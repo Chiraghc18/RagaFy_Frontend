@@ -11,6 +11,7 @@ export default function ResourceHeader() {
     { path: "/movies", label: "Movies" },
     { path: "/genres", label: "Genres" },
     { path: "/singers", label: "Singers" },
+    { path: "/browse", label: "Browse" },
   ];
 
   return (
