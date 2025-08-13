@@ -1,7 +1,7 @@
 // src/services/uploadSong.js
 
 import axios from "axios";
-const API = "http://localhost:5000";
+const API = "https://ragafy-backend.onrender.com";
 export const uploadSong = (file, meta = {}, onUploadProgress) => {
   const formData = new FormData();
   formData.append("audio", file);

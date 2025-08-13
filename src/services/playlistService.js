@@ -1,7 +1,7 @@
 // src/services/playlistService.js
 import axios from "axios";
 
-const API_BASE ="http://localhost:5000";
+const API_BASE ="https://ragafy-backend.onrender.com";
 const BASE = `${API_BASE}/playlists`;
 
 export const fetchPlaylists = () => axios.get(BASE);

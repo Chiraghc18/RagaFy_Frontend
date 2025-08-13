@@ -6,5 +6,5 @@ export const uploadPhoto = (songId, file) => {
   formData.append("photo", file);
   formData.append("songId", songId);
 
-  return axios.post(`http://localhost:5000/songs/upload-photo`, formData);
+  return axios.post(`https://ragafy-backend.onrender.com/songs/upload-photo`, formData);
 };

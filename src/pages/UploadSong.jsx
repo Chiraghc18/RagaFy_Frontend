@@ -20,7 +20,7 @@ export default function UploadSong() {
     formData.append("audio", audio);
 
     try {
-      const res = await axios.post("http://localhost:5000/songs/upload", formData, {
+      const res = await axios.post("https://ragafy-backend.onrender.com/songs/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

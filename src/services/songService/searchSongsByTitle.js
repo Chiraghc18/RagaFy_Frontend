@@ -1,7 +1,7 @@
 // src/services/songService.js
 
 import axios from "axios";
-const API = "http://localhost:5000";
+const API = "https://ragafy-backend.onrender.com";
 
 export const searchSongsByTitle = async (title) => {
   try {

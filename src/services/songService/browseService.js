@@ -1,7 +1,7 @@
 // src/services/songService/browseService.js
 import axios from "axios";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://ragafy-backend.onrender.com";
 
 export const categoryApiMap = {
   genre: "/genres",

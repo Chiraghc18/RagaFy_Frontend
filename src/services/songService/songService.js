@@ -1,5 +1,5 @@
 import axios from "axios";
-const API = "http://localhost:5000";
+const API = "https://ragafy-backend.onrender.com";
 
 
 export const fetchSongById = (id) => axios.get(`${API}/songs/${id}`);

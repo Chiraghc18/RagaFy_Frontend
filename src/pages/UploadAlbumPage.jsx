@@ -13,12 +13,12 @@ export default function UploadAlbumPage() {
   }, []);
 
   const fetchArtists = async () => {
-    const res = await axios.get("http://localhost:5000/artists");
+    const res = await axios.get("https://ragafy-backend.onrender.com/artists");
     setArtists(res.data);
   };
 
   const fetchAlbums = async () => {
-    const res = await axios.get("http://localhost:5000/albums");
+    const res = await axios.get("https://ragafy-backend.onrender.com/albums");
     setAlbums(res.data);
   };
 
@@ -26,7 +26,7 @@ export default function UploadAlbumPage() {
     e.preventDefault();
     if (!name || !artist) return alert("Please select artist and enter album name");
 
-    await axios.post("http://localhost:5000/albums/upload", { name, artist });
+    await axios.post("https://ragafy-backend.onrender.com/albums/upload", { name, artist });
 
     setName("");
     setArtist("");

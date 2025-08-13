@@ -15,7 +15,7 @@ export default function UploadPlaylistPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const API_SONGS = "http://localhost:5000/songs";
+  const API_SONGS = "https://ragafy-backend.onrender.com/songs";
 
   useEffect(() => {
     fetchSongs();

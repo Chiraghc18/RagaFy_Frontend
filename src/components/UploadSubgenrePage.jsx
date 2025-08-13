@@ -13,12 +13,12 @@ export default function UploadSubgenrePage() {
   }, []);
 
   const fetchGenres = async () => {
-    const res = await axios.get("http://localhost:5000/genres");
+    const res = await axios.get("https://ragafy-backend.onrender.com/genres");
     setGenres(res.data);
   };
 
   const fetchSubgenres = async () => {
-    const res = await axios.get("http://localhost:5000/subgenres");
+    const res = await axios.get("https://ragafy-backend.onrender.com/subgenres");
     setSubgenres(res.data);
   };
 
@@ -26,7 +26,7 @@ export default function UploadSubgenrePage() {
     e.preventDefault();
     if (!name || !genre) return alert("Please provide name and select genre");
 
-    await axios.post("http://localhost:5000/subgenres/upload", { name, genre });
+    await axios.post("https://ragafy-backend.onrender.com/subgenres/upload", { name, genre });
 
     setName("");
     setGenre("");

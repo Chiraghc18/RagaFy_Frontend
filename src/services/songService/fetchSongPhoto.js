@@ -2,5 +2,5 @@
 import axios from "axios";
 
 export const fetchSongPhoto = (songId) => {
-  return axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/songs/${songId}/photo`);
+  return axios.get(`${process.env.REACT_APP_API_URL || "https://ragafy-backend.onrender.com"}/songs/${songId}/photo`);
 };
