@@ -1,0 +1,78 @@
+.category-selector{
+    width: 700px;
+    margin: 20px auto;
+    display: flex;
+    justify-content: space-between;
+
+}
+
+.category-button{
+    padding: 10px 15px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.category-button:hover{
+    background-color: #e0e0e0;
+}
+
+.category-button.active{
+    background-color: #d0d0d0;
+    font-weight: bold;
+}
+
+.category-items{
+    width: 700px;
+    margin: 20px auto;
+    display: flex;
+    flex-wrap: wrap;
+    
+}
+
+.category-item-button{
+    padding: 10px 15px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.category-item-button:hover{
+    background-color: #e0e0e0;
+}
+
+.browse-song-list{
+    width: 900px;
+    margin: 20px auto;
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+}
+
+.browse-song-list .song-card{
+    margin: 10px;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    width: 250px;
+    height: 100px;
+}
+
+.browse-song-list .song-card:last-child{
+    border-bottom: none;
+}
+
+.browse-song-list .song-title{
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.browse-song-list .song-audio{
+    width: 100%;
+    margin-top: 5px;
+}
