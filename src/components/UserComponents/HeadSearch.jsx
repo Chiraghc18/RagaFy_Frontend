@@ -33,14 +33,14 @@ const HeadSearch = () => {
   }, [query, songs]);
 
   const navigate = useNavigate();
-   const handleSongClick = (song, index) => {
-  // Filter songs with same language & genre as clicked song
+   const handleSongClick = (song) => {
+  // Compare by IDs (safer than names in case of spelling differences)
   const filteredSameCategory = songs.filter(
     (s) =>
-      s.language === song.language && s.genre === song.genre
+      s.genre?._id === song.genre?._id &&
+      s.language?._id === song.language?._id
   );
 
-  // Find the index of clicked song in filtered list
   const startIndex = filteredSameCategory.findIndex(
     (s) => s._id === song._id
   );
@@ -49,6 +49,7 @@ const HeadSearch = () => {
     state: { songs: filteredSameCategory, startIndex },
   });
 };
+
 
 
   return (
@@ -66,8 +67,8 @@ const HeadSearch = () => {
      
       <div className="head-search_search-results">
         {filtered.length > 0 ? (
-          filtered.map((song,index) => (
-            <button key={song._id} className="song-item" onClick={() => handleSongClick(song,index)}>
+          filtered.map((song) => (
+            <button key={song._id} className="song-item" onClick={() => handleSongClick(song)}>
               <strong>{song.title}</strong>
             </button>
           ))
