@@ -68,9 +68,9 @@ const HeadSearch = () => {
       <div className="head-search_search-results">
         {filtered.length > 0 ? (
           filtered.map((song) => (
-            <button key={song._id} className="song-item" onClick={() => handleSongClick(song)}>
+            <div key={song._id} className="song-item" onClick={() => handleSongClick(song)}>
               <strong>{song.title}</strong>
-            </button>
+            </div>
           ))
         ) : (
           <p>No songs found</p>
