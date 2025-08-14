@@ -1,78 +1,68 @@
-.category-selector{
-    width: 700px;
-    margin: 20px auto;
-    display: flex;
-    justify-content: space-between;
-
-}
-
-.category-button{
-    padding: 10px 15px;
-    margin: 5px;
-    border: none;
+.browse-page{
+    /* width: 200px; */
+    padding: 20px;
     border-radius: 5px;
-    background-color: #f0f0f0;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.category-button:hover{
-    background-color: #e0e0e0;
-}
-
-.category-button.active{
-    background-color: #d0d0d0;
-    font-weight: bold;
-}
-
-.category-items{
-    width: 700px;
-    margin: 20px auto;
+   
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
     
 }
 
-.category-item-button{
-    padding: 10px 15px;
-    margin: 5px;
-    border: none;
-    border-radius: 5px;
-    background-color: #f0f0f0;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
 
-.category-item-button:hover{
-    background-color: #e0e0e0;
-}
-
-.browse-song-list{
-    width: 900px;
-    margin: 20px auto;
+.category-selector{
     display: flex;
-    justify-content: space-evenly;
     flex-wrap: wrap;
+    margin-top: 10px;
 }
 
-.browse-song-list .song-card{
-    margin: 10px;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    width: 250px;
-    height: 100px;
+.category-button{
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 5px;
+    width: 150px;
+    height: 175px;
+    margin: 5px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 1rem;
+
 }
 
-.browse-song-list .song-card:last-child{
-    border-bottom: none;
-}
-
-.browse-song-list .song-title{
-    font-size: 10px;
-    font-weight: bold;
-}
-
-.browse-song-list .song-audio{
-    width: 100%;
+.category-button .category-name{
     margin-top: 5px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.category-image{
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.browse-title-container{
+    display: flex;
+    flex-direction: column;
+}
+
+.browse-title-container .back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #007bff;
+    position: absolute;
+    top: 10px;
+    left: 15px;
+}
+
+.browse-title-container .title{
+    position: relative;
+    left: -15px;
+    margin:20px 0;
 }

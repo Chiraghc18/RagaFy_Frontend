@@ -1,17 +1,15 @@
-// src/components/CategoryItems.jsx
-import React from "react";
-
 export default function CategoryItems({ items, onSelect }) {
   return (
-    <div className="category-items">
+    <div className="category-selector">
       {items.map((item) => (
-        <button
+        <div
           key={item._id}
-          onClick={() => onSelect(item._id)}
-          className="category-item-button"
+          onClick={() => onSelect(item)}
+           className="category-button"
         >
-          {item.name}
-        </button>
+          <img src={item.photo} alt={item.name || item.title} className="category-image" />
+        <span className="category-name">{item.name || item.title}</span>
+        </div>
       ))}
     </div>
   );

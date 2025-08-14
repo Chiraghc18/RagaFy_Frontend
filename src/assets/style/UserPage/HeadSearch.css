@@ -38,6 +38,7 @@
   padding: 12px;
   background-color: rgb(253, 253, 253);
   box-shadow: 2px 8px rgba(245, 245, 245, 1);
+  
 
 }
 
@@ -49,6 +50,7 @@
   background-color: rgb(254, 254, 254);
   display: flex;
   align-items: center;
+  cursor: pointer;
 
 }
 .head-search_results .song-item-image {

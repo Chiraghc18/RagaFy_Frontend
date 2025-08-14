@@ -94,23 +94,12 @@ export default function HeadSearch() {
       <div className="head-search_results">
         {filtered.length > 0 ? (
           filtered.map((song) => (
-            <div
-              key={song._id}
-              
-              onClick={() => handleSongClick(song)}
-              className="song-item"
-            >
+            <div key={song._id} onClick={() => handleSongClick(song)} className="song-item">
               {photos[song._id] && (
                 <img
                   src={photos[song._id]}
                   alt={song.title}
-                  style={{
-                    width: "50px",
-                    height: "50px",
-                    objectFit: "cover",
-                    marginRight: "8px",
-                    borderRadius: "4px",
-                  }}
+                  className="song-item-image"
                 />
               )}
               <span>{song.title}</span>
@@ -123,3 +112,4 @@ export default function HeadSearch() {
     </div>
   );
 }
+

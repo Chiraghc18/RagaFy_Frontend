@@ -5,7 +5,6 @@ const BASE_URL = "https://ragafy-backend.onrender.com";
 
 export const categoryApiMap = {
   genre: "/genres",
-  subgenre: "/subgenres",
   artist: "/artists",
   album: "/albums",
   movie: "/movies",
