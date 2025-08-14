@@ -24,9 +24,13 @@
 
 .head-search_search-bar i {
   font-size: 22px;
+   font-size: 24px;
+  color: #888;
+  font-weight: 900;
+  cursor: pointer;
 }
 
-.head-search_search-results {
+.head-search_results {
   /* margin-top: 12px; */
   display: flex;
   flex-direction: column;
@@ -38,12 +42,21 @@
 }
 
 
-.head-search_search-results .song-item {
+.head-search_results .song-item {
   padding: 12px;
   border: 1px solid rgb(250, 248, 250);
   border-radius: 5px;
   background-color: rgb(254, 254, 254);
+  display: flex;
+  align-items: center;
 
+}
+.head-search_results .song-item-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 8px;
 }
 
 .head-search_search-results .song-item:last-child {

@@ -1,39 +1,66 @@
-import { useState, useEffect } from "react";
+// src/components/HeadSearch.jsx
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import  fetchSongs  from "../../services/songService/fetchSongs";
+import "../../assets/style/UserPage/HeadSearch.css";
 import { useNavigate } from "react-router-dom";
-import fetchSongs from "../../services/songService/fetchSongs";
-import "../../assets/style/UserPage/HeadSearch.css"; // Assuming you have a CSS file for styling
-const HeadSearch = () => {
-  const [songs, setSongs] = useState([]);      // All songs from backend
-  const [filtered, setFiltered] = useState([]); // Songs after filtering
-  const [query, setQuery] = useState("");       // Search input
 
-  // Load songs when component mounts
+export default function HeadSearch() {
+  const [songs, setSongs] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [photos, setPhotos] = useState({});
+  const [query, setQuery] = useState("");
+
   useEffect(() => {
-    const loadSongs = async () => {
+    const loadData = async () => {
       try {
-        const res = await fetchSongs();
-        const data = res.data || [];
-        setSongs(data);
-        setFiltered(data); // Show all initially
+        // Fetch songs
+        const songRes = await fetchSongs();
+        const songData = songRes.data || [];
+        setSongs(songData);
+        setFiltered(songData);
+
+        // Fetch each song's photo individually
+        const photoMap = {};
+        await Promise.all(
+          songData.map(async (song) => {
+            try {
+              const res = await axios.get(
+                `https://ragafy-backend.onrender.com/songs/${song._id}/photo`
+              );
+              photoMap[song._id] = res.data.url;
+            } catch {
+              photoMap[song._id] = null;
+            }
+          })
+        );
+
+        setPhotos(photoMap);
       } catch (err) {
-        console.error("Error fetching songs:", err);
+        console.error("Error loading data:", err);
       }
     };
 
-    loadSongs();
+    loadData();
   }, []);
 
-  // Filter songs every time query changes
-  useEffect(() => {
-    const lowerQuery = query.toLowerCase();
-    const filteredSongs = songs.filter((song) =>
-      song.title.toLowerCase().includes(lowerQuery)
-    );
-    setFiltered(filteredSongs);
-  }, [query, songs]);
+  // Handle search
+  const handleSearch = (e) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (!value.trim()) {
+      setFiltered(songs);
+    } else {
+      const filteredSongs = songs.filter((song) =>
+        song.title.toLowerCase().includes(value.toLowerCase())
+      );
+      setFiltered(filteredSongs);
+    }
+  };
 
   const navigate = useNavigate();
-   const handleSongClick = (song) => {
+  const handleSongClick = (song) => {
   // Compare by IDs (safer than names in case of spelling differences)
   const filteredSameCategory = songs.filter(
     (s) =>
@@ -50,35 +77,49 @@ const HeadSearch = () => {
   });
 };
 
-
-
   return (
     <div className="head-search">
-     <header className="head-search_search-bar">
+      {/* Search Bar */}
+      <div className="head-search_search-bar">
         <input
-        type="text"
-        placeholder="Search songs..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <i className="fa-solid fa-magnifying-glass"></i>
+          type="text"
+          placeholder="Search songs..."
+          value={query}
+          onChange={handleSearch}
+        />
+        <i className="fa-solid fa-magnifying-glass"></i>
+      </div>
 
-     </header>
-     
-      <div className="head-search_search-results">
+      {/* Song List */}
+      <div className="head-search_results">
         {filtered.length > 0 ? (
           filtered.map((song) => (
-            <div key={song._id} className="song-item" onClick={() => handleSongClick(song)}>
-              <strong>{song.title}</strong>
+            <div
+              key={song._id}
+              
+              onClick={() => handleSongClick(song)}
+              className="song-item"
+            >
+              {photos[song._id] && (
+                <img
+                  src={photos[song._id]}
+                  alt={song.title}
+                  style={{
+                    width: "50px",
+                    height: "50px",
+                    objectFit: "cover",
+                    marginRight: "8px",
+                    borderRadius: "4px",
+                  }}
+                />
+              )}
+              <span>{song.title}</span>
             </div>
           ))
         ) : (
-          <p>No songs found</p>
+          <p>No songs found.</p>
         )}
       </div>
     </div>
   );
-};
-
-
-export default HeadSearch;
+}
