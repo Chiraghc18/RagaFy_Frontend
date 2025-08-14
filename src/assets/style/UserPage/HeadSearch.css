@@ -43,7 +43,7 @@
 }
 
 
-.head-search_results .song-item {
+ .song-item {
   padding: 12px;
   border: 1px solid rgb(250, 248, 250);
   border-radius: 5px;
@@ -53,7 +53,7 @@
   cursor: pointer;
 
 }
-.head-search_results .song-item-image {
+ .song-item-image {
   width: 50px;
   height: 50px;
   object-fit: cover;

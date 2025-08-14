@@ -13,12 +13,14 @@ export default function BrowseByCategoryPage() {
 
   const [selectedCategoryName, setSelectedCategoryName] = useState("");
   const [selectedItemName, setSelectedItemName] = useState("");
+  const [selectedItemPhoto, setSelectedItemPhoto] = useState("");
 
   // Fetch all items for the selected category
   useEffect(() => {
     if (!category) return;
     setSongs([]);
     setSelectedItemName("");
+    setSelectedItemPhoto("");
     fetchCategoryItems(category)
       .then(setItems)
       .catch((err) => console.error(err));
@@ -37,6 +39,7 @@ export default function BrowseByCategoryPage() {
       const data = await fetchSongsByCategory(category, item._id);
       setSongs(data);
       setSelectedItemName(item.name || item.title || "Selected Item");
+      setSelectedItemPhoto(item.photo || item.imageUrl || "");
     } catch (err) {
       console.error(err);
     }
@@ -46,70 +49,60 @@ export default function BrowseByCategoryPage() {
   // Back button functionality
   const handleBack = () => {
     if (songs.length > 0) {
-      // From songs → go back to category items
       setSongs([]);
       setSelectedItemName("");
+      setSelectedItemPhoto("");
     } else {
-      // From category items → go back to category selector
       setCategory("");
       setSelectedCategoryName("");
     }
   };
 
   return (
-  <div className="browse-page">
-    <div className="browse-title-container">
-      {/* Show main title only if no category is selected */}
+    <div className="browse-page">
+      <div className="browse-title-container">
+        {!category && <h1 className="title">Category</h1>}
+
+        {(category || songs.length > 0) && (
+          <button className="back-btn" onClick={handleBack}>
+            ⬅ Back
+          </button>
+        )}
+
+        {category && !songs.length && (
+          <h2 className="title">
+            {selectedCategoryName.charAt(0).toUpperCase() + selectedCategoryName.slice(1)}
+          </h2>
+        )}
+
+        {songs.length > 0 && (
+          <h2 className="title">
+            {selectedItemName.charAt(0).toUpperCase() + selectedItemName.slice(1)}
+          </h2>
+        )}
+      </div>
+
       {!category && (
-        <h1 className="title">Category</h1>
+        <CategorySelector
+          category={category}
+          setCategory={handleCategorySelect}
+          categories={categoryApiMap}
+        />
       )}
 
-      {/* Back button if not at the top level */}
-    {(category || songs.length > 0) && (
-      <button className="back-btn" onClick={handleBack}>
-        ⬅ Back
-      </button>
-    )}
+      {category && !songs.length && items.length > 0 && (
+        <CategoryItems items={items} onSelect={handleItemClick} />
+      )}
 
-    {/* Selected category name (when category chosen, no song list yet) */}
-    {category && !songs.length && (
-      <h2 className="title">{selectedCategoryName.charAt(0).toUpperCase() + selectedCategoryName.slice(1)}</h2>
-    )}
-
-    {songs.length > 0 && (
-      <h2 className="title">
-        {selectedItemName.charAt(0).toUpperCase() + selectedItemName.slice(1)}
-      </h2>
-    )}
-
+      {songs.length > 0 && (
+        <>
+          {loading ? (
+            <p className="loading-text">Loading songs...</p>
+          ) : (
+            <BrowseSongLists songs={songs} photo={selectedItemPhoto} />
+          )}
+        </>
+      )}
     </div>
-
-    {/* Category selector */}
-    {!category && (
-      <CategorySelector
-        category={category}
-        setCategory={handleCategorySelect}
-        categories={categoryApiMap}
-      />
-    )}
-
-    {/* Show category items */}
-    {category && !songs.length && items.length > 0 && (
-      <CategoryItems items={items} onSelect={handleItemClick} />
-    )}
-
-    {/* Song list */}
-    {songs.length > 0 && (
-      <>
-        {loading ? (
-          <p className="loading-text">Loading songs...</p>
-        ) : ( 
-          <BrowseSongLists songs={songs} />
-
-        )}
-      </>
-    )}
-  </div>
-);
-
+  );
 }

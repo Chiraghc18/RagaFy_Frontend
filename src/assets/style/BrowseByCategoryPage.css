@@ -62,7 +62,31 @@
 }
 
 .browse-title-container .title{
-    position: relative;
-    left: -15px;
+
     margin:20px 0;
+    font-weight: bolder;
+    font-size: 1.9rem;
+}
+
+.browse-song-list{
+    display: flex;
+    flex-direction: column;
+    
+}
+
+.selected-item-photo{
+    width: 340px;
+    height: 340px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(98, 91, 91, 0.7);
+}
+
+.browse-song-list .song-list{
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+    width: 340px;
+    padding: 12px;
+    background-color: rgb(253, 253, 253);
+    box-shadow: 2px 8px rgba(245, 245, 245, 1);
 }
