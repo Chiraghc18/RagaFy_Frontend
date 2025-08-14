@@ -7,7 +7,7 @@ const UserHome = () => {
   return (
     <div className="user-home">
       <Head />
-      <HeadSearch />
+      
       <BrowseByCategoryPage />
       {/* <Link to="/user" className="upload-link">Search Songs</Link> */}
     </div>
