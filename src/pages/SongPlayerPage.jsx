@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
+import "../assets/style/SongPlayerPage.css";
 
 export default function SongPlayerPage() {
   const location = useLocation();
@@ -11,23 +12,29 @@ export default function SongPlayerPage() {
 
   const currentSong = songs[currentIndex];
 
-  // Fetch song photo only once per song
+  // Fetch all song photos (so bottom list can display them too)
   useEffect(() => {
-    if (!currentSong?._id || photos[currentSong._id]) return;
+    if (!songs.length) return;
 
-    const fetchPhoto = async () => {
-      try {
-        const res = await axios.get(
-          `https://ragafy-backend.onrender.com/songs/${currentSong._id}/photo`
-        );
-        setPhotos((prev) => ({ ...prev, [currentSong._id]: res.data.url }));
-      } catch {
-        setPhotos((prev) => ({ ...prev, [currentSong._id]: null }));
-      }
+    const loadPhotos = async () => {
+      const photoMap = {};
+      await Promise.all(
+        songs.map(async (song) => {
+          try {
+            const res = await axios.get(
+              `https://ragafy-backend.onrender.com/songs/${song._id}/photo`
+            );
+            photoMap[song._id] = res.data.url;
+          } catch {
+            photoMap[song._id] = null;
+          }
+        })
+      );
+      setPhotos(photoMap);
     };
 
-    fetchPhoto();
-  }, [currentSong?._id, photos]);
+    loadPhotos();
+  }, [songs]);
 
   const handleSongEnd = () => {
     setCurrentIndex((prev) => (prev < songs.length - 1 ? prev + 1 : 0));
@@ -52,28 +59,50 @@ export default function SongPlayerPage() {
   if (!songs.length) return <p>No songs provided</p>;
 
   return (
-    <div className="p-6 max-w-lg mx-auto">
+    <div className="song-player-page">
       {/* Song Photo */}
       {photos[currentSong._id] ? (
         <img
           src={photos[currentSong._id]}
           alt={currentSong.title}
-          className="w-full h-64 object-cover rounded mb-4"
+          className="song-photo"
         />
       ) : (
-        <div className="w-full h-64 bg-gray-200 flex items-center justify-center mb-4">
+        <div className="song-photo-placeholder">
           <span>No Image</span>
         </div>
       )}
 
       {/* Song Details */}
-      <h2 className="text-xl font-bold mb-2">{currentSong.title}</h2>
-      <p><strong>Hero:</strong> {currentSong.hero?.name || "Unknown"}</p>
-      <p><strong>Heroine:</strong> {currentSong.heroine?.name || "Unknown"}</p>
-      <p><strong>Movie:</strong> {currentSong.movie?.name || "Unknown"}</p>
-      <p><strong>Language:</strong> {currentSong.language?.name || "Unknown"}</p>
-      <p><strong>Genre:</strong> {currentSong.genre?.name || "Unknown"}</p>
-      <p><strong>Singers:</strong> {currentSong.singers?.map(s => s.name).join(", ") || "N/A"}</p>
+      <h2 className="song-title">{currentSong.title}</h2>
+
+      {currentSong.hero?.name && (
+        <p className="song-detail"><strong>Hero:</strong> {currentSong.hero.name}</p>
+      )}
+      {currentSong.heroine?.name && (
+        <p className="song-detail"><strong>Heroine:</strong> {currentSong.heroine.name}</p>
+      )}
+      {currentSong.artist?.name && (
+        <p className="song-detail"><strong>Artist:</strong> {currentSong.artist.name}</p>
+      )}
+      {currentSong.album?.name && (
+        <p className="song-detail"><strong>Album:</strong> {currentSong.album.name}</p>
+      )}
+      {currentSong.movie?.name && (
+        <p className="song-detail"><strong>Movie:</strong> {currentSong.movie.name}</p>
+      )}
+      {currentSong.language?.name && (
+        <p className="song-detail"><strong>Language:</strong> {currentSong.language.name}</p>
+      )}
+      {currentSong.genre?.name && (
+        <p className="song-detail"><strong>Genre:</strong> {currentSong.genre.name}</p>
+      )}
+
+      {currentSong.singers?.length > 0 && (
+        <p className="song-detail">
+          <strong>Singers:</strong> {currentSong.singers.map(s => s.name).join(", ")}
+        </p>
+      )}
 
       {/* Audio Player */}
       <audio
@@ -82,40 +111,37 @@ export default function SongPlayerPage() {
         controls
         autoPlay
         onEnded={handleSongEnd}
-        className="w-full mt-4"
+        className="audio-player"
       />
 
       {/* Controls */}
-      <div className="flex justify-between mt-4">
-        <button
-          onClick={handlePrevious}
-          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-        >
+      <div className="controls">
+        <button onClick={handlePrevious} className="control-button">
           ◀ Previous
         </button>
-        <button
-          onClick={handleNext}
-          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-        >
+        <button onClick={handleNext} className="control-button">
           Next ▶
         </button>
       </div>
 
-      {/* Playlist */}
-      <div className="mt-6">
-        <h3 className="font-semibold mb-2">Playlist</h3>
+      {/* Songs List with Photos */}
+      <div className="player-songs-list">
+        <h3 className="songs-list-title">Songs</h3>
         {songs.map((song, idx) => (
-          <button
+          <div
             key={song._id}
             onClick={() => setCurrentIndex(idx)}
-            className={`block w-full text-left p-2 rounded ${
-              idx === currentIndex
-                ? "bg-blue-500 text-white"
-                : "hover:bg-gray-100"
-            }`}
+            className={`song-item ${idx === currentIndex ? "active" : ""}`}
           >
-            {song.title}
-          </button>
+            {photos[song._id] && (
+              <img
+                src={photos[song._id]}
+                alt={song.title}
+                className="song-item-image"
+              />
+            )}
+            <span className="song-item-title">{song.title}</span>
+          </div>
         ))}
       </div>
     </div>
