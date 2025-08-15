@@ -13,7 +13,8 @@
 .category-selector{
     display: flex;
     flex-wrap: wrap;
-    margin-top: 10px;
+    margin-top: 5px;
+    justify-content: space-evenly;
 }
 
 .category-button{
@@ -56,9 +57,9 @@
     cursor: pointer;
     font-size: 1rem;
     color: #007bff;
-    position: absolute;
+    position: relative;
     top: 10px;
-    left: 15px;
+    right: 130px;
 }
 
 .browse-title-container .title{
