@@ -84,6 +84,7 @@ export default function SongPlayerPage() {
 
   return (
     <div className="song-player-page">
+      <div className="song-player-header">
       {/* Song Photo */}
       {photos[currentSong._id] ? (
         <img
@@ -101,37 +102,37 @@ export default function SongPlayerPage() {
       <h2 className="song-title">{currentSong.title}</h2>
       {currentSong.hero?.name && (
         <p className="song-detail">
-          <strong>Hero:</strong> {currentSong.hero.name}
+          <strong>Hero :</strong> {currentSong.hero.name}
         </p>
       )}
       {currentSong.heroine?.name && (
         <p className="song-detail">
-          <strong>Heroine:</strong> {currentSong.heroine.name}
+          <strong>Heroine :</strong> {currentSong.heroine.name}
         </p>
       )}
       {currentSong.artist?.name && (
         <p className="song-detail">
-          <strong>Artist:</strong> {currentSong.artist.name}
+          <strong>Artist :</strong> {currentSong.artist.name}
         </p>
       )}
       {currentSong.album?.name && (
         <p className="song-detail">
-          <strong>Album:</strong> {currentSong.album.name}
+          <strong>Album :</strong> {currentSong.album.name}
         </p>
       )}
       {currentSong.movie?.name && (
         <p className="song-detail">
-          <strong>Movie:</strong> {currentSong.movie.name}
+          <strong>Movie :</strong> {currentSong.movie.name}
         </p>
       )}
       {currentSong.language?.name && (
         <p className="song-detail">
-          <strong>Language:</strong> {currentSong.language.name}
+          <strong>Language :</strong> {currentSong.language.name}
         </p>
       )}
       {currentSong.genre?.name && (
         <p className="song-detail">
-          <strong>Genre:</strong> {currentSong.genre.name}
+          <strong>Genre :</strong> {currentSong.genre.name}
         </p>
       )}
       {currentSong.singers?.length > 0 && (
@@ -140,7 +141,9 @@ export default function SongPlayerPage() {
           {currentSong.singers.map((s) => s.name).join(", ")}
         </p>
       )}
+      </div>
 
+      <div className="audio-player-container">
       {/* Audio Player */}
       <audio
         ref={audioRef}
@@ -178,7 +181,7 @@ export default function SongPlayerPage() {
           <i className="fa-solid fa-forward"></i>
         </div>
       </div>
-
+      </div>
       {/* Songs List with Photos */}
       <div className="player-songs-list">
         <h3 className="songs-list-title">Songs</h3>
