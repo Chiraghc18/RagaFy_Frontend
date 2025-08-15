@@ -4,7 +4,7 @@ import CategorySelector from "../components/CategorySelector";
 import CategoryItems from "../components/CategoryItems";
 import BrowseSongLists from "../components/BrowseSongLists";
 import "../assets/style/BrowseByCategoryPage.css";
-
+import { useNavigate } from 'react-router-dom';
 export default function BrowseByCategoryPage() {
   const [category, setCategory] = useState("");
   const [items, setItems] = useState([]);
@@ -14,6 +14,8 @@ export default function BrowseByCategoryPage() {
   const [selectedCategoryName, setSelectedCategoryName] = useState("");
   const [selectedItemName, setSelectedItemName] = useState("");
   const [selectedItemPhoto, setSelectedItemPhoto] = useState("");
+
+  const navigate = useNavigate();
 
   // Fetch all items for the selected category
   useEffect(() => {
@@ -59,15 +61,28 @@ export default function BrowseByCategoryPage() {
   };
 
   return (
-    <div className="browse-page">
-      <div className="browse-title-container">
-        {!category && <h1 className="title">Category</h1>}
+    <>
+      {(category || !category) && (
+    <div
+      className="back"
+      onClick={() => {
+        if (!category) {
+          // We're at the Category header → use navigate(-1)
+          navigate(-1);
+        } else {
+          // We're inside categories → use handleBack
+          handleBack();
+        }
+      }}
+    >
+      <i className="fa-solid fa-arrow-left"></i>
+    </div>
+  )}
+        <div className="browse-page">
+          <div className="browse-title-container">
+            {!category && <h1 className="title">Category</h1>}
 
-        {(category || songs.length > 0) && (
-          <button className="back-btn" onClick={handleBack}>
-            ⬅ Back
-          </button>
-        )}
+        
 
         {category && !songs.length && (
           <h2 className="title">
@@ -104,5 +119,6 @@ export default function BrowseByCategoryPage() {
         </>
       )}
     </div>
+  </>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import "../assets/style/SongPlayerPage.css";
+import { useNavigate } from 'react-router-dom';
 
 export default function SongPlayerPage() {
   const location = useLocation();
@@ -14,6 +15,8 @@ export default function SongPlayerPage() {
   const audioRef = useRef(null);
 
   const currentSong = songs[currentIndex];
+
+  const navigate = useNavigate();
 
   // Fetch song photos
   useEffect(() => {
@@ -83,6 +86,10 @@ export default function SongPlayerPage() {
   if (!songs.length) return <p>No songs provided</p>;
 
   return (
+    <>
+    <div className="back" onClick={() => {navigate(-1)}}>
+        <i className="fa-solid fa-arrow-left"></i>
+      </div>
     <div className="song-player-page">
       <div className="song-player-header">
       {/* Song Photo */}
@@ -203,5 +210,6 @@ export default function SongPlayerPage() {
         ))}
       </div>
     </div>
+  </>
   );
 }

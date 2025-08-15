@@ -1,18 +1,17 @@
-
+/* --------------------------
+   Song Player Header
+-------------------------- */
 .song-player-header {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 20px;
   border-radius: 12px;
-  /* box-shadow: 0 4px 10px rgba(0,0,0,0.3); */
-
 }
 
 .song-photo {
   width: 220px;
   height: 220px;
-  object-fit: inherit;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
@@ -49,68 +48,33 @@
     align-items: center;
     text-align: center;
   }
-
 }
 
+/* --------------------------
+   Audio Player Container
+-------------------------- */
 .audio-player-container {
   margin-top: 2px;
-  /* border-top: 1px solid rgba(0,0,0,0.3); */
   border-radius: 12px;
-  /* box-shadow: 10 4px 10px rgba(0,0,0,0.3); */
   height: 150px;
   padding: 2px;
-
 }
 
-.player-songs-list {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding: 10px;
-  background-color: rgb(253, 253, 253);
-  box-shadow: 2px 8px rgba(245, 245, 245, 1);
-}
-
-.player-songs-list .songs-list-title{
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-.player-songs-list .song-item{
-  
-  padding: 12px;
-  border: 1px solid rgb(250, 248, 250);
-  border-radius: 5px;
-  background-color: rgb(254, 254, 254);
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-
-
-.song-item-image{
-  width: 50px;
-  height: 50px;
-  object-fit: cover;
-  border-radius: 4px;
-  margin-right: 8px;
-
-}
-
+/* --------------------------
+   Progress Bar
+-------------------------- */
 #progress {
- -webkit-appearance: none;
- width: 98%;
- height: 6px;
- background: black;
- border-radius: 4px;
- cursor: pointer;
- margin: 20px 2px;
+  -webkit-appearance: none;
+  width: 98%;
+  height: 6px;
+  background: black;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 20px 2px;
   box-shadow: 0 5px 5px rgba(0, 0, 0, 0.42);
 }
 
-#progress::-webkit-slider-thumb{
+#progress::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 20px;
   height: 20px;
@@ -121,30 +85,65 @@
   box-shadow: 0 5px 5px rgba(0, 0, 0, 0.32);
 }
 
-.controls{
+/* --------------------------
+   Controls
+-------------------------- */
+.controls {
   display: flex;
   justify-content: center;
   align-items: center;
   margin-bottom: 20px;
 }
 
-.controls div{
-  width:60px;
+.controls div {
+  width: 60px;
   height: 60px;
-  margin:10px;
-  
+  margin: 10px;
   background: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  /* color: #f53192; */
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
   cursor: pointer;
 }
 
-.controls div:nth-child(2){
-  /* background: #f53192; */
-  /* color: #fff; */
+.controls div:nth-child(2) {
   transform: scale(1.3);
+}
+
+/* --------------------------
+   Songs List
+-------------------------- */
+.player-songs-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 10px;
+  background-color: rgb(253, 253, 253);
+  box-shadow: 2px 8px rgba(245, 245, 245, 1);
+}
+
+.player-songs-list .songs-list-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.player-songs-list .song-item {
+  padding: 12px;
+  border: 1px solid rgb(250, 248, 250);
+  border-radius: 5px;
+  background-color: rgb(254, 254, 254);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.song-item-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 8px;
 }

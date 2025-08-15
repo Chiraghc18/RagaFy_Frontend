@@ -1,3 +1,4 @@
+// Head.jsx
 import React, { useState } from "react";
 import "../../assets/style/UserPage/Head.css";
 import HeadSearch from "../UserComponents/HeadSearch";
@@ -18,7 +19,7 @@ const Head = () => {
         </header>
       )}
 
-      {showSearch && <HeadSearch />}
+      {showSearch && <HeadSearch onBack={() => setShowSearch(false)} />}
     </>
   );
 };

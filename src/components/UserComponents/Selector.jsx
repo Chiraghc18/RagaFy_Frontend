@@ -21,6 +21,8 @@ const Selector = () => {
     };
 
     return (
+      <>
+        
         <div className="selector">
             <div className="Selector-category-options">
                 <div className="options" onClick={handleAllClick}>All</div>
@@ -29,6 +31,7 @@ const Selector = () => {
                 <div className="options" onClick={handleQueueClick}>Queue</div>
             </div>
         </div>
+      </>
     );
 };
 

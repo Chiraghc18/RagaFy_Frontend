@@ -5,7 +5,7 @@ import  fetchSongs  from "../../services/songService/fetchSongs";
 import "../../assets/style/UserPage/HeadSearch.css";
 import { useNavigate } from "react-router-dom";
 
-export default function HeadSearch() {
+export default function HeadSearch({ onBack }) {
   const [songs, setSongs] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [photos, setPhotos] = useState({});
@@ -78,9 +78,16 @@ export default function HeadSearch() {
 };
 
   return (
+     <>
+      <div className="back" onClick={onBack}>
+        <i className="fa-solid fa-arrow-left"></i>
+      </div>
+
     <div className="head-search">
+       
       {/* Search Bar */}
       <div className="head-search_search-bar">
+        
         <input
           type="text"
           placeholder="Search songs..."
@@ -110,6 +117,8 @@ export default function HeadSearch() {
         )}
       </div>
     </div>
+    </>
   );
+  
 }
 
