@@ -33,7 +33,7 @@ import HeadSearch from "./components/UserComponents/HeadSearch";
 export default function App() {
   return (
     <Router>
-      {/* <Header /> */}
+      <Header />
       <Routes>
         {/* Main music upload/player page */}
         <Route path="/upload" element={<HomePage />} />

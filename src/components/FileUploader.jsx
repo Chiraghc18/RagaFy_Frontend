@@ -21,6 +21,7 @@ export default function FileUploader({ onUpload }) {
   const [hero, setHero] = useState("");
   const [heroine, setHeroine] = useState("");
   const [language, setLanguage] = useState("");
+  const [releaseDate, setReleaseDate] = useState(""); // NEW
   const [selectedSingers, setSelectedSingers] = useState([]);
 
   const [genres, setGenres] = useState([]);
@@ -60,7 +61,8 @@ export default function FileUploader({ onUpload }) {
       singers: selectedSingers,
       hero,
       heroine,
-      language
+      language,
+      releaseDate // NEW
     };
     onUpload(file, meta);
   };
@@ -68,7 +70,12 @@ export default function FileUploader({ onUpload }) {
   return (
     <form onSubmit={submit} style={{ marginBottom: 16 }}>
       <div style={{ marginBottom: 8 }}>
-        <input type="file" accept="audio/*" onChange={(e) => { setFile(e.target.files[0] || null); if (!title && e.target.files[0]) setTitle(e.target.files[0].name); }} />
+        <input type="file" accept="audio/*" 
+          onChange={(e) => { 
+            setFile(e.target.files[0] || null); 
+            if (!title && e.target.files[0]) setTitle(e.target.files[0].name); 
+          }} 
+        />
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
@@ -91,7 +98,7 @@ export default function FileUploader({ onUpload }) {
 
         <select value={movie} onChange={e => setMovie(e.target.value)}>
           <option value="">Select Movie</option>
-          {movies.map(m => <option key={m._id} value={m._1d || m._id}>{m.name || m.title}</option>)}
+          {movies.map(m => <option key={m._id} value={m._id}>{m.name || m.title}</option>)}
         </select>
       </div>
 
@@ -121,6 +128,12 @@ export default function FileUploader({ onUpload }) {
           <option value="">Select Language</option>
           {languages.map(l => <option key={l._id} value={l._id}>{l.name}</option>)}
         </select>
+      </div>
+
+      {/* Release Date */}
+      <div style={{ marginBottom: 8 }}>
+        <label><strong>Release Date: </strong></label>
+        <input type="date" value={releaseDate} onChange={e => setReleaseDate(e.target.value)} />
       </div>
 
       <button type="submit">Upload Song</button>
