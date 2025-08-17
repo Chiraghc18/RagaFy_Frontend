@@ -40,6 +40,7 @@ export default function BrowseByCategoryPage() {
     try {
       const data = await fetchSongsByCategory(category, item._id);
       setSongs(data);
+      console.log(songs);
       setSelectedItemName(item.name || item.title || "Selected Item");
       setSelectedItemPhoto(item.photo || item.imageUrl || "");
     } catch (err) {
@@ -52,6 +53,7 @@ export default function BrowseByCategoryPage() {
   const handleBack = () => {
     if (songs.length > 0) {
       setSongs([]);
+      
       setSelectedItemName("");
       setSelectedItemPhoto("");
     } else {

@@ -26,6 +26,7 @@ export default function BrowseSongLists({ songs, photo }) {
 
     if (songs.length > 0) {
       loadPhotos();
+      console.log(songs);
     }
   }, [songs]);
 
