@@ -37,7 +37,7 @@ export default function BrowseSongLists({ songs, photo }) {
   return (
     <div className="browse-song-list">
       {photo && (
-        <div>
+        <div className="selected-item-container">
           <img
             src={photo}
             alt="Selected item"
