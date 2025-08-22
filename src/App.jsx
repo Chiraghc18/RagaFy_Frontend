@@ -26,14 +26,18 @@ import UploadPhotoPage from "./pages/UploadPhotoPage";
  
 import Header from "./pages/Header";
 
+
+
 // User Page imports
 import Head from "./components/UserComponents/Head";
 import UserHome from "./pages/User/UserHome";
 import HeadSearch from "./components/UserComponents/HeadSearch";
+import UserPlaylists from "./components/UserComponents/UserPlayLists.jsx";
+import UserPlaylistDetails from "./components/UserComponents/UserPlaylistDetails.jsx";
 export default function App() {
   return (
     <Router>
-      <Header />
+      {/* <Header /> */}
       <Routes>
         {/* Main music upload/player page */}
         <Route path="/upload" element={<HomePage />} />
@@ -66,6 +70,8 @@ export default function App() {
         {/* user page  */}
         <Route path="/user" element={<HeadSearch />} />
         <Route path="/" element={<UserHome />} />
+        <Route path="/user/playlists" element={<UserPlaylists />} />
+        <Route path="/user-playlists/:id" element={<UserPlaylistDetails />} />
       </Routes>
     </Router>
   );

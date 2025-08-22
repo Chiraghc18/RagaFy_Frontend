@@ -1,0 +1,70 @@
+.user-playlists h2 {
+  font-size: 30px;
+  margin: 12px 0;
+  text-align: center;
+}
+
+.playlist-grid{
+     display: flex;
+    flex-wrap: wrap;
+    margin-top: 5px;
+    justify-content: space-evenly;
+    width: 100%;
+}
+
+.playlist-card{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    text-decoration: none;
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 5px 2px 5px rgba(0,0,0,0.1);
+    width: 170px;
+}
+
+
+.playlist-image {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 15px;
+  margin: 7px;
+}
+
+.playlist-name{
+    font-size: 16px;
+  font-weight: bold;
+  margin: 0 4px;
+  text-decoration: none;
+  color: black;
+}
+
+.playlist-count {
+  font-size: 14px;
+  margin: 4px 0;
+  color: #666;
+}
+
+/* single playlist player page */
+
+.playlist-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+  width: 340px;
+
+}
+
+.playlist-cover-image{
+  width: 250px;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 15px;
+}
+
+.songs-list-title{
+  margin-left: 13px;
+}

@@ -13,7 +13,7 @@ const Selector = () => {
     };
 
     const handlePlaylistClick = () => {
-        navigate('/playlist'); // route to Playlist page
+        navigate('/user/playlists'); // route to Playlist page
     };
 
     const handleQueueClick = () => {

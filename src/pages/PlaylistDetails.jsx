@@ -6,8 +6,8 @@ import {
   removeSongFromPlaylist,
 } from "../services/playlistService";
 import { fetchSongById } from "../services/songService/songService";
-import fetchSongs  from "../services/songService/fetchSongs.js";
-
+import fetchSongs from "../services/songService/fetchSongs.js";
+import { searchSongsByTitle } from "../services/songService/searchSongsByTitle";
 
 export default function PlaylistDetails() {
   const { id } = useParams();
@@ -17,6 +17,11 @@ export default function PlaylistDetails() {
   const [allSongs, setAllSongs] = useState([]);
   const [selectedSongId, setSelectedSongId] = useState("");
   const [songsDetails, setSongsDetails] = useState([]);
+
+  // search state
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const loadPlaylist = async () => {
     try {
@@ -49,10 +54,10 @@ export default function PlaylistDetails() {
     loadAllSongs();
   }, [id]);
 
-  const handleAddSong = async () => {
-    if (!selectedSongId) return;
+  const handleAddSong = async (songId) => {
+    if (!songId) return;
     try {
-      await addSongToPlaylist(id, selectedSongId);
+      await addSongToPlaylist(id, songId);
       setSelectedSongId("");
       await loadPlaylist(); // refresh
     } catch (e) {
@@ -71,6 +76,25 @@ export default function PlaylistDetails() {
     }
   };
 
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setSearchLoading(true);
+    try {
+      const results = await searchSongsByTitle(query);
+      // filter out already added songs
+      const filtered = results.filter(
+        (s) => !playlist.songs.some((ps) => ps._id === s._id)
+      );
+      setSearchResults(filtered);
+    } catch (e) {
+      console.error("search error:", e.response?.data || e.message);
+      alert("Search failed");
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   if (loading) return <div style={{ padding: 20 }}>Loading playlist...</div>;
   if (err) return <div style={{ padding: 20, color: "red" }}>Error: {err}</div>;
   if (!playlist) return <div style={{ padding: 20 }}>Playlist not found.</div>;
@@ -81,6 +105,7 @@ export default function PlaylistDetails() {
         <Link to="/playlists">&larr; Back to Playlists</Link>
       </div>
 
+      {/* Playlist Header */}
       <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 12 }}>
         <div style={{ width: 160, height: 160 }}>
           {playlist.coverImage ? (
@@ -117,7 +142,7 @@ export default function PlaylistDetails() {
         </div>
       </div>
 
-      {/* Add Song Section */}
+      {/* Old Dropdown Add */}
       <div style={{ marginBottom: 24 }}>
         <select
           value={selectedSongId}
@@ -132,9 +157,36 @@ export default function PlaylistDetails() {
               </option>
             ))}
         </select>
-        <button onClick={handleAddSong} style={{ marginLeft: 12 }}>
+        <button onClick={() => handleAddSong(selectedSongId)} style={{ marginLeft: 12 }}>
           Add to Playlist
         </button>
+      </div>
+
+      {/* 🔍 Search & Add */}
+      <div style={{ marginBottom: 24 }}>
+        <form onSubmit={handleSearch} style={{ display: "flex", gap: 8 }}>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search songs by title..."
+            style={{ flex: 1, padding: 6 }}
+          />
+          <button type="submit">Search</button>
+        </form>
+
+        {searchLoading && <p>Searching...</p>}
+
+        {searchResults.length > 0 && (
+          <ul style={{ marginTop: 12 }}>
+            {searchResults.map((s) => (
+              <li key={s._id} style={{ marginBottom: 8 }}>
+                {s.title || s.filename || "Untitled"}{" "}
+                <button onClick={() => handleAddSong(s._id)}>Add</button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Playlist Songs */}
