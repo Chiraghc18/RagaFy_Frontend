@@ -75,8 +75,8 @@
 }
 
 .selected-item-photo{
-    width: 340px;
-    height: 340px;
+    width: 250px;
+    height: 250px;
     border-radius: 5px;
     box-shadow: 2px 2px 5px rgba(98, 91, 91, 0.7);
 }
