@@ -34,6 +34,7 @@ import UserHome from "./pages/User/UserHome";
 import HeadSearch from "./components/UserComponents/HeadSearch";
 import UserPlaylists from "./components/UserComponents/UserPlayLists.jsx";
 import UserPlaylistDetails from "./components/UserComponents/UserPlaylistDetails.jsx";
+import AllSongs from "./components/UserComponents/AllSong.jsx";
 export default function App() {
   return (
     <Router>
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/" element={<UserHome />} />
         <Route path="/user/playlists" element={<UserPlaylists />} />
         <Route path="/user-playlists/:id" element={<UserPlaylistDetails />} />
+        <Route path="/all" element={<AllSongs />} />
       </Routes>
     </Router>
   );

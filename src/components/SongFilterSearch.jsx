@@ -1,17 +1,17 @@
-// src/components/SongFilterSearch.jsx
 import React from "react";
+// import "./SongFilterSearch.css";
 
 export default function SongFilterSearch({ filters, options, handleChange }) {
   return (
-    <div className="grid grid-cols-2 gap-4 mb-4">
+    <div className="song-filter-grid">
       {Object.entries(filters).map(([key, value]) => (
-        <div key={key}>
-          <label className="block capitalize mb-1">{key}</label>
+        <div key={key} className="filter-item">
+          <label className="filter-label">{key}</label>
           <select
             name={key}
             value={value}
             onChange={handleChange}
-            className="w-full border p-2 rounded"
+            className="filter-select"
           >
             <option value="">-- Select --</option>
             {options[`${key}s`] &&

@@ -1,0 +1,201 @@
+/* src/assets/style/SongFilterSearchPage.css */
+
+.song-filter-search-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.page-title {
+  text-align: center;
+  color: #2c3e50;
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.search-btn {
+  display: block;
+  width: 200px;
+  margin: 30px auto;
+  padding: 15px 25px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.search-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.search-btn:active {
+  transform: translateY(0);
+}
+
+.search-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.results-container {
+  margin-top: 40px;
+  padding: 30px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+}
+
+.results-title {
+  color: #2c3e50;
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  font-weight: 600;
+  border-bottom: 3px solid #667eea;
+  padding-bottom: 10px;
+}
+
+.loading-text {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #667eea;
+  font-weight: 500;
+  padding: 40px;
+  background: #f8f9ff;
+  border-radius: 10px;
+  border: 2px dashed #667eea;
+}
+
+.no-results {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #7f8c8d;
+  padding: 40px;
+  background: #f8f9ff;
+  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .song-filter-search-page {
+    padding: 15px;
+  }
+  
+  .page-title {
+    font-size: 2rem;
+    margin-bottom: 20px;
+  }
+  
+  .search-btn {
+    width: 90%;
+    margin: 20px auto;
+    padding: 12px 20px;
+  }
+  
+  .results-container {
+    padding: 20px;
+    margin-top: 30px;
+  }
+  
+  .results-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.8rem;
+  }
+  
+  .search-btn {
+    font-size: 1rem;
+    padding: 10px 15px;
+  }
+  
+  .loading-text,
+  .no-results {
+    font-size: 1.1rem;
+    padding: 30px 20px;
+  }
+}
+
+/* src/assets/style/SongFilterSearchPage.css */
+
+.song-filter-search-page {
+  font-family: Arial, sans-serif;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: #f4f7f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+.page-title {
+  text-align: center;
+  color: #0056b3;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.search-btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 1.5rem;
+  font-size: 1.25rem;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.search-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.search-btn:active {
+  transform: translateY(0);
+}
+
+.results-container {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #ddd;
+}
+
+.results-title {
+  font-size: 2rem;
+  color: #0056b3;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.loading-text,
+.no-results {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #888;
+  margin: 2rem 0;
+}

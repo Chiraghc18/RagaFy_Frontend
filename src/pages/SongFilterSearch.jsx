@@ -3,10 +3,11 @@ import React, { useEffect, useState } from "react";
 import SongFilterSearch from "../components/SongFilterSearch";
 import { fetchAllFilters, fetchFilteredSongs } from "../services/songService/songFilterService";
 import BrowseSongLists from "../components/BrowseSongLists";
+import "../assets/style/SongFilterSearchPage.css"; // ✅ Import CSS
 
 export default function SongFilterSearchPage() {
   const [filters, setFilters] = useState({
-    genre: "", artist: "", album: "", movie: "", hero: "",
+    genre: "", artist: "", album: "", movie: "", heroe: "",
     heroine: "", subgenre: "", language: "", singer: "",
   });
 
@@ -43,25 +44,22 @@ export default function SongFilterSearchPage() {
   };
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Filter Songs</h2>
+    <div className="song-filter-search-page">
+      <h2 className="page-title">Filter Songs</h2>
 
       <SongFilterSearch filters={filters} options={options} handleChange={handleChange} />
 
-      <button
-        onClick={handleSearch}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
+      <button onClick={handleSearch} className="search-btn">
         Search
       </button>
 
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-2">Results:</h3>
+      <div className="results-container">
+        <h3 className="results-title">Results:</h3>
 
         {loading ? (
-          <p>Loading...</p>
+          <p className="loading-text">Loading...</p>
         ) : songs.length === 0 ? (
-          <p>No songs found</p>
+          <p className="no-results">No songs found</p>
         ) : (
           <BrowseSongLists songs={songs} />
         )}

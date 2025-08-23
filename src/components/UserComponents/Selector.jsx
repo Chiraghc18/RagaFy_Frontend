@@ -5,7 +5,7 @@ const Selector = () => {
     const navigate = useNavigate();
 
     const handleAllClick = () => {
-        navigate('/all'); // route to All page
+        navigate('/search-filter'); // route to All page
     };
 
     const handleCategoryClick = () => {
@@ -25,7 +25,7 @@ const Selector = () => {
         
         <div className="selector">
             <div className="Selector-category-options">
-                <div className="options" onClick={handleAllClick}>All</div>
+                <div className="options" onClick={handleAllClick}>Filter</div>
                 <div className="options" onClick={handleCategoryClick}>Category</div>
                 <div className="options" onClick={handlePlaylistClick}>PlayList</div>
                 <div className="options" onClick={handleQueueClick}>Queue</div>
