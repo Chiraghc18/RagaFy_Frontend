@@ -1,4 +1,3 @@
-// src/pages/SongFilterSearchPage.jsx
 import React, { useEffect, useState } from "react";
 import SongFilterSearch from "../components/SongFilterSearch";
 import { fetchAllFilters, fetchFilteredSongs } from "../services/songService/songFilterService";
@@ -7,13 +6,27 @@ import "../assets/style/SongFilterSearchPage.css"; // ✅ Import CSS
 
 export default function SongFilterSearchPage() {
   const [filters, setFilters] = useState({
-    genre: "", artist: "", album: "", movie: "", heroe: "",
-    heroine: "", subgenre: "", language: "", singer: "",
+    genre: "",
+    artist: "",
+    album: "",
+    movie: "",
+    heroe: "",
+    heroine: "",
+    subgenre: "",
+    language: "",
+    singer: "",
+    releaseYear: "", // ✅ Added year filter
   });
 
   const [options, setOptions] = useState({
-    genres: [], artists: [], albums: [], movies: [],
-    heroes: [], heroines: [], singers: [], languages: [],
+    genres: [],
+    artists: [],
+    albums: [],
+    movies: [],
+    heroes: [],
+    heroines: [],
+    singers: [],
+    languages: [],
   });
 
   const [songs, setSongs] = useState([]);
