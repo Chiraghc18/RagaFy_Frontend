@@ -38,7 +38,7 @@ import AllSongs from "./components/UserComponents/AllSong.jsx";
 export default function App() {
   return (
     <Router>
-      <Header />
+      {/* <Header /> */}
       <Routes>
         {/* Main music upload/player page */}
         <Route path="/upload" element={<HomePage />} />
