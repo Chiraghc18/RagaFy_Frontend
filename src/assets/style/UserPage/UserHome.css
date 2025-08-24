@@ -35,11 +35,11 @@
 }
 
 .Selector-category-options .options {
-  padding: 10px 13px;
+  padding: 10px 12px;
   border: 1px solid #eee;
   border-radius: 4px;
   cursor: pointer;
-  background-color: rgba(2, 2, 2, 0.02);
+  background-color: rgba(2, 2, 2, 0.1);
   transition: background-color 0.3s;
 }
 
