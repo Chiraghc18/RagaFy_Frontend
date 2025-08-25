@@ -1,103 +1,37 @@
 .splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a, #1a1a1a, #2f2f2f,#414141,#575757); /* dark tones */
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  width: 100%;
-  background: #0d0d0d; /* dark start */
-  position: relative;
-  overflow: hidden;
-  animation: bgTransition 6s ease-in forwards; /* background animation */
-}
-
-.splash-content {
-  text-align: center;
-  position: relative;
-  z-index: 2;
+  z-index: 9999;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 2s ease;
 }
 
 .logo-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background: rgba(255, 255, 255, 1); /* translucent dark overlay */
+  border-radius: 30px;
+  padding: 40px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
 }
 
 .splash-logo {
-  max-width: 220px;
-  animation: fadeInZoom 1.0s ease-in-out;
+  width: 140px;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2)); /* subtle glow to make logo pop */
+  animation: pop-in 4s cubic-bezier(.2, 0, .2, 1);
 }
 
-/* Loading bar */
-.loading-bar {
-  margin-top: 20px;
-  width: 200px;
-  height: 6px;
-  background: rgba(255, 252, 252, 1);
-  border-radius: 3px;
-  overflow: hidden;
-  position: relative;
-}
-
-.loading-progress {
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, #ff5f6d, #ffc371);
-  animation: loadingAnim 3s linear forwards;
-  border-radius: 3px;
-}
-
-/* Pulse glow effect */
-.pulse-effect {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 220px;
-  height: 220px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(255, 140, 0, 0.2) 0%, transparent 70%);
-  animation: pulse 2s infinite;
-  z-index: 1;
-}
-
-/* --- Animations --- */
-@keyframes fadeInZoom {
-  0% { opacity: 0; transform: scale(0.8); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes loadingAnim {
-  from { width: 0; }
-  to { width: 100%; }
-}
-
-@keyframes pulse {
-  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
-  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.3; }
-  100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
-}
-
-/* Background goes dark → white before hiding */
-@keyframes bgTransition {
-  0%   { background: #0d0d0d; color: #ffffff; }
-  5%   { background: #0d0d0d; color: #ffffff; }
-  10%  { background: #1a1a1a; color: #ffffff; }
-  15%  { background: #1a1a1a; color: #ffffff; }
-  20%  { background: #262626; color: #ffffff; }
-  25%  { background: #262626; color: #ffffff; }
-  30%  { background: #262626; color: #ffffff; box-shadow: 5px 5px 5px #ffffff; }
-  35%  { background: #262626; color: #ffffff; }
-  40%  { background: #333333; color: #ffffff; }
-  45%  { background: #333333; color: #ffffff; }
-  50%  { background: #404040; color: #ffffff; }
-  55%  { background: #404040; color: #ffffff; }
-  60%  { background: #4d4d4d; color: #ffffff; }
-  65%  { background: #4d4d4d; color: #ffffff; }
-  70%  { background: #676767; color: #ffffff; }
-  75%  { background: #676767; color: #ffffff; }
-  80%  { background: #8a8989; color: #605e5e; }
-  85%  { background: #8a8989; color: #605e5e; }
-  90%  { background: #cecdcd; color: #292828; }
-  95%  { background: #cecdcd; color: #292828; }
-  100% { background: #ffffff; color: #000000; }
+@keyframes pop-in {
+  0% { transform: scale(0.8); opacity: 0.6;}
+  60% { transform: scale(1.55); opacity: 0.9;}
+  100% { transform: scale(1.2); opacity: 1;}
 }
