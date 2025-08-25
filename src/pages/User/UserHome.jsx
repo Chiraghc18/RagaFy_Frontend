@@ -9,12 +9,21 @@ import AllSongs from "../../components/UserComponents/AllSong";
 import SplashScreen from "../../components/UserComponents/SplashScreen";
 
 const UserHome = () => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    // Check if splash was already shown
+    const splashShown = localStorage.getItem("splashShown");
+    return !splashShown; // show splash only if not shown yet
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 3000); // 3s
-    return () => clearTimeout(timer);
-  }, []);
+    if (loading) {
+      const timer = setTimeout(() => {
+        setLoading(false);
+        localStorage.setItem("splashShown", "true"); // mark as shown
+      }, 4000); // 4s
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   if (loading) {
     return <SplashScreen />;
