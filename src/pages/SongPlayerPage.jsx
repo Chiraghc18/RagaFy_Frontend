@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../assets/style/SongPlayerPage.css";
-import { useNavigate } from 'react-router-dom';
 
 export default function SongPlayerPage() {
   const location = useLocation();
@@ -15,7 +14,6 @@ export default function SongPlayerPage() {
   const audioRef = useRef(null);
 
   const currentSong = songs[currentIndex];
-
   const navigate = useNavigate();
 
   // Fetch song photos
@@ -60,6 +58,39 @@ export default function SongPlayerPage() {
     }
   }, [isPlaying, currentIndex]);
 
+  // Media Session API integration (controls + metadata for notification player)
+  useEffect(() => {
+    if ("mediaSession" in navigator && currentSong) {
+      navigator.mediaSession.setActionHandler("play", () => {
+        setIsPlaying(true);
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        setIsPlaying(false);
+      });
+      navigator.mediaSession.setActionHandler("previoustrack", () => {
+        handlePrevious();
+      });
+      navigator.mediaSession.setActionHandler("nexttrack", () => {
+        handleNext();
+      });
+
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: currentSong.title,
+        artist: currentSong.artist?.name || "",
+        album: currentSong.album?.name || "",
+        artwork: photos[currentSong._id]
+          ? [
+              { src: photos[currentSong._id], sizes: "96x96", type: "image/png" },
+              { src: photos[currentSong._id], sizes: "128x128", type: "image/png" },
+              { src: photos[currentSong._id], sizes: "192x192", type: "image/png" },
+              { src: photos[currentSong._id], sizes: "256x256", type: "image/png" },
+              { src: photos[currentSong._id], sizes: "512x512", type: "image/png" },
+            ]
+          : [],
+      });
+    }
+  }, [currentIndex, songs, photos, currentSong]);
+
   // Song ended -> go to next
   const handleSongEnd = () => {
     setCurrentIndex((prev) => (prev < songs.length - 1 ? prev + 1 : 0));
@@ -87,129 +118,130 @@ export default function SongPlayerPage() {
 
   return (
     <>
-    <div className="back" onClick={() => {navigate(-1)}}>
+      <div className="back" onClick={() => { navigate(-1); }}>
         <i className="fa-solid fa-arrow-left"></i>
       </div>
-    <div className="song-player-page">
-      <div className="song-player-header">
-      {/* Song Photo */}
-      {photos[currentSong._id] ? (
-        <img
-          src={photos[currentSong._id]}
-          alt={currentSong.title}
-          className="song-photo"
-        />
-      ) : (
-        <div className="song-photo-placeholder">
-          <span>No Image</span>
-        </div>
-      )}
+      <div className="song-player-page">
+        <div className="song-player-header">
+          {/* Song Photo */}
+          {photos[currentSong._id] ? (
+            <img
+              src={photos[currentSong._id]}
+              alt={currentSong.title}
+              className="song-photo"
+            />
+          ) : (
+            <div className="song-photo-placeholder">
+              <span>No Image</span>
+            </div>
+          )}
 
-      {/* Song Details */}
-      <h2 className="song-title">{currentSong.title}</h2>
-      {currentSong.hero?.name && (
-        <p className="song-detail">
-          <strong>Hero :</strong> {currentSong.hero.name}
-        </p>
-      )}
-      {currentSong.heroine?.name && (
-        <p className="song-detail">
-          <strong>Heroine :</strong> {currentSong.heroine.name}
-        </p>
-      )}
-      {currentSong.artist?.name && (
-        <p className="song-detail">
-          <strong>Artist :</strong> {currentSong.artist.name}
-        </p>
-      )}
-      {currentSong.album?.name && (
-        <p className="song-detail">
-          <strong>Album :</strong> {currentSong.album.name}
-        </p>
-      )}
-      {currentSong.movie?.name && (
-        <p className="song-detail">
-          <strong>Movie :</strong> {currentSong.movie.name}
-        </p>
-      )}
-      {currentSong.language?.name && (
-        <p className="song-detail">
-          <strong>Language :</strong> {currentSong.language.name}
-        </p>
-      )}
-      {currentSong.genre?.name && (
-        <p className="song-detail">
-          <strong>Genre :</strong> {currentSong.genre.name}
-        </p>
-      )}
-      {currentSong.singers?.length > 0 && (
-        <p className="song-detail">
-          <strong>Singers:</strong>{" "}
-          {currentSong.singers.map((s) => s.name).join(", ")}
-        </p>
-      )}
-      </div>
-
-      <div className="audio-player-container">
-      {/* Audio Player */}
-      <audio
-        ref={audioRef}
-        src={currentSong.audioUrl}
-        autoPlay
-        onEnded={handleSongEnd}
-        onLoadedMetadata={() => {
-          setDuration(audioRef.current.duration);
-          setProgress(0);
-        }}
-        className="audio-player"
-      />
-
-      {/* Progress Bar */}
-      <input
-        type="range"
-        id="progress"
-        value={progress}
-        onChange={handleSeek}
-        max={duration || 0}
-      />
-
-      {/* Controls */}
-      <div className="controls">
-        <div onClick={handlePrevious}>
-          <i className="fa-solid fa-backward"></i>
+          {/* Song Details */}
+          <h2 className="song-title">{currentSong.title}</h2>
+          {currentSong.hero?.name && (
+            <p className="song-detail">
+              <strong>Hero :</strong> {currentSong.hero.name}
+            </p>
+          )}
+          {currentSong.heroine?.name && (
+            <p className="song-detail">
+              <strong>Heroine :</strong> {currentSong.heroine.name}
+            </p>
+          )}
+          {currentSong.artist?.name && (
+            <p className="song-detail">
+              <strong>Artist :</strong> {currentSong.artist.name}
+            </p>
+          )}
+          {currentSong.album?.name && (
+            <p className="song-detail">
+              <strong>Album :</strong> {currentSong.album.name}
+            </p>
+          )}
+          {currentSong.movie?.name && (
+            <p className="song-detail">
+              <strong>Movie :</strong> {currentSong.movie.name}
+            </p>
+          )}
+          {currentSong.language?.name && (
+            <p className="song-detail">
+              <strong>Language :</strong> {currentSong.language.name}
+            </p>
+          )}
+          {currentSong.genre?.name && (
+            <p className="song-detail">
+              <strong>Genre :</strong> {currentSong.genre.name}
+            </p>
+          )}
+          {currentSong.singers?.length > 0 && (
+            <p className="song-detail">
+              <strong>Singers:</strong>{" "}
+              {currentSong.singers.map((s) => s.name).join(", ")}
+            </p>
+          )}
         </div>
-        <div onClick={togglePlayPause}>
-          <i
-            className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`}
-            id="ctrlIcon"
-          ></i>
-        </div>
-        <div onClick={handleNext}>
-          <i className="fa-solid fa-forward"></i>
-        </div>
-      </div>
-      </div>
-      {/* Songs List with Photos */}
-      <div className="player-songs-list">
-        <h3 className="songs-list-title">Songs</h3>
-        {songs.map((song, idx) => (
-          <div
-            key={song._id}
-            onClick={() => setCurrentIndex(idx)}
-            className={`song-item ${idx === currentIndex ? "active" : ""}`}
-          >
-            {photos[song._id] && (
-              <img
-                src={photos[song._id]}
-                alt={song.title}
-                className="song-item-image"
-              />
-            )}
-            <span className="song-item-title">{song.title}</span>
+
+        <div className="audio-player-container">
+          {/* Audio Player */}
+          <audio
+            ref={audioRef}
+            src={currentSong.audioUrl}
+            autoPlay
+            onEnded={handleSongEnd}
+            onLoadedMetadata={() => {
+              setDuration(audioRef.current.duration);
+              setProgress(0);
+            }}
+            className="audio-player"
+          />
+
+          {/* Progress Bar */}
+          <input
+            type="range"
+            id="progress"
+            value={progress}
+            onChange={handleSeek}
+            max={duration || 0}
+          />
+
+          {/* Controls */}
+          <div className="controls">
+            <div onClick={handlePrevious}>
+              <i className="fa-solid fa-backward"></i>
+            </div>
+            <div onClick={togglePlayPause}>
+              <i
+                className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`}
+                id="ctrlIcon"
+              ></i>
+            </div>
+            <div onClick={handleNext}>
+              <i className="fa-solid fa-forward"></i>
+            </div>
           </div>
-        ))}
+        </div>
+
+        {/* Songs List with Photos */}
+        <div className="player-songs-list">
+          <h3 className="songs-list-title">Songs</h3>
+          {songs.map((song, idx) => (
+            <div
+              key={song._id}
+              onClick={() => setCurrentIndex(idx)}
+              className={`song-item ${idx === currentIndex ? "active" : ""}`}
+            >
+              {photos[song._id] && (
+                <img
+                  src={photos[song._id]}
+                  alt={song.title}
+                  className="song-item-image"
+                />
+              )}
+              <span className="song-item-title">{song.title}</span>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  </>
+    </>
   );
 }
