@@ -38,7 +38,7 @@ export default function SongPlayerPage() {
     loadPhotos();
   }, [songs]);
 
-  // Update progress as song plays
+  // Update progress
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -47,32 +47,21 @@ export default function SongPlayerPage() {
     return () => audio.removeEventListener("timeupdate", updateProgress);
   }, []);
 
-  // Handle play/pause when state changes
+  // Play/pause control
   useEffect(() => {
     if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch(() => console.log("Autoplay blocked"));
-      } else {
-        audioRef.current.pause();
-      }
+      if (isPlaying) audioRef.current.play().catch(() => console.log("Autoplay blocked"));
+      else audioRef.current.pause();
     }
   }, [isPlaying, currentIndex]);
 
-  // Media Session API integration (controls + metadata for notification player)
+  // Media Session API
   useEffect(() => {
     if ("mediaSession" in navigator && currentSong) {
-      navigator.mediaSession.setActionHandler("play", () => {
-        setIsPlaying(true);
-      });
-      navigator.mediaSession.setActionHandler("pause", () => {
-        setIsPlaying(false);
-      });
-      navigator.mediaSession.setActionHandler("previoustrack", () => {
-        handlePrevious();
-      });
-      navigator.mediaSession.setActionHandler("nexttrack", () => {
-        handleNext();
-      });
+      navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
+      navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
+      navigator.mediaSession.setActionHandler("previoustrack", handlePrevious);
+      navigator.mediaSession.setActionHandler("nexttrack", handleNext);
 
       navigator.mediaSession.metadata = new window.MediaMetadata({
         title: currentSong.title,
@@ -91,23 +80,10 @@ export default function SongPlayerPage() {
     }
   }, [currentIndex, songs, photos, currentSong]);
 
-  // Song ended -> go to next
-  const handleSongEnd = () => {
-    setCurrentIndex((prev) => (prev < songs.length - 1 ? prev + 1 : 0));
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev < songs.length - 1 ? prev + 1 : 0));
-  };
-
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : songs.length - 1));
-  };
-
-  const togglePlayPause = () => {
-    setIsPlaying((prev) => !prev);
-  };
-
+  const handleSongEnd = () => setCurrentIndex(prev => prev < songs.length - 1 ? prev + 1 : 0);
+  const handleNext = () => setCurrentIndex(prev => prev < songs.length - 1 ? prev + 1 : 0);
+  const handlePrevious = () => setCurrentIndex(prev => prev > 0 ? prev - 1 : songs.length - 1);
+  const togglePlayPause = () => setIsPlaying(prev => !prev);
   const handleSeek = (e) => {
     const newTime = e.target.value;
     audioRef.current.currentTime = newTime;
@@ -118,126 +94,71 @@ export default function SongPlayerPage() {
 
   return (
     <>
-      <div className="back" onClick={() => { navigate(-1); }}>
+      <div className="ragafy-player__back" onClick={() => navigate(-1)}>
         <i className="fa-solid fa-arrow-left"></i>
       </div>
-      <div className="song-player-page">
-        <div className="song-player-header">
-          {/* Song Photo */}
+
+      <div className="ragafy-player">
+        <div className="ragafy-player__header">
           {photos[currentSong._id] ? (
             <img
               src={photos[currentSong._id]}
               alt={currentSong.title}
-              className="song-photo"
+              className="ragafy-player__photo"
             />
           ) : (
-            <div className="song-photo-placeholder">
+            <div className="ragafy-player__photo-placeholder">
               <span>No Image</span>
             </div>
           )}
 
-          {/* Song Details */}
-          <h2 className="song-title">{currentSong.title}</h2>
-          {currentSong.hero?.name && (
-            <p className="song-detail">
-              <strong>Hero :</strong> {currentSong.hero.name}
-            </p>
-          )}
-          {currentSong.heroine?.name && (
-            <p className="song-detail">
-              <strong>Heroine :</strong> {currentSong.heroine.name}
-            </p>
-          )}
-          {currentSong.artist?.name && (
-            <p className="song-detail">
-              <strong>Artist :</strong> {currentSong.artist.name}
-            </p>
-          )}
-          {currentSong.album?.name && (
-            <p className="song-detail">
-              <strong>Album :</strong> {currentSong.album.name}
-            </p>
-          )}
-          {currentSong.movie?.name && (
-            <p className="song-detail">
-              <strong>Movie :</strong> {currentSong.movie.name}
-            </p>
-          )}
-          {currentSong.language?.name && (
-            <p className="song-detail">
-              <strong>Language :</strong> {currentSong.language.name}
-            </p>
-          )}
-          {currentSong.genre?.name && (
-            <p className="song-detail">
-              <strong>Genre :</strong> {currentSong.genre.name}
-            </p>
-          )}
-          {currentSong.singers?.length > 0 && (
-            <p className="song-detail">
-              <strong>Singers:</strong>{" "}
-              {currentSong.singers.map((s) => s.name).join(", ")}
-            </p>
-          )}
+          <h2 className="ragafy-player__title">{currentSong.title}</h2>
+
+          {currentSong.hero?.name && <p className="ragafy-player__detail"><strong>Hero :</strong> {currentSong.hero.name}</p>}
+          {currentSong.heroine?.name && <p className="ragafy-player__detail"><strong>Heroine :</strong> {currentSong.heroine.name}</p>}
+          {currentSong.artist?.name && <p className="ragafy-player__detail"><strong>Artist :</strong> {currentSong.artist.name}</p>}
+          {currentSong.album?.name && <p className="ragafy-player__detail"><strong>Album :</strong> {currentSong.album.name}</p>}
+          {currentSong.movie?.name && <p className="ragafy-player__detail"><strong>Movie :</strong> {currentSong.movie.name}</p>}
+          {currentSong.language?.name && <p className="ragafy-player__detail"><strong>Language :</strong> {currentSong.language.name}</p>}
+          {currentSong.genre?.name && <p className="ragafy-player__detail"><strong>Genre :</strong> {currentSong.genre.name}</p>}
+          {currentSong.singers?.length > 0 && <p className="ragafy-player__detail"><strong>Singers:</strong> {currentSong.singers.map(s => s.name).join(", ")}</p>}
         </div>
 
-        <div className="audio-player-container">
-          {/* Audio Player */}
+        <div className="ragafy-player__audio-container">
           <audio
             ref={audioRef}
             src={currentSong.audioUrl}
             autoPlay
             onEnded={handleSongEnd}
-            onLoadedMetadata={() => {
-              setDuration(audioRef.current.duration);
-              setProgress(0);
-            }}
-            className="audio-player"
+            onLoadedMetadata={() => { setDuration(audioRef.current.duration); setProgress(0); }}
+            className="ragafy-player__audio"
           />
 
-          {/* Progress Bar */}
           <input
             type="range"
-            id="progress"
+            id="ragafy-player__progress"
             value={progress}
             onChange={handleSeek}
             max={duration || 0}
           />
 
-          {/* Controls */}
-          <div className="controls">
-            <div onClick={handlePrevious}>
-              <i className="fa-solid fa-backward"></i>
-            </div>
-            <div onClick={togglePlayPause}>
-              <i
-                className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`}
-                id="ctrlIcon"
-              ></i>
-            </div>
-            <div onClick={handleNext}>
-              <i className="fa-solid fa-forward"></i>
-            </div>
+          <div className="ragafy-player__controls">
+            <div onClick={handlePrevious}><i className="fa-solid fa-backward"></i></div>
+            <div onClick={togglePlayPause}><i className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`} id="ragafy-player__ctrl-icon"></i></div>
+            <div onClick={handleNext}><i className="fa-solid fa-forward"></i></div>
           </div>
         </div>
 
-        {/* Songs List with Photos */}
-        <div className="player-songs-list">
-          <h3 className="songs-list-title">Songs</h3>
+        <div className="ragafy-player__song-list">
+          <h3 className="ragafy-player__song-list-title">Songs</h3>
           {songs.map((song, idx) => (
             <div
               key={song._id}
               onClick={() => setCurrentIndex(idx)}
-              className={`song-item ${idx === currentIndex ? "active" : ""}`}
+              className={`ragafy-player__song-item ${idx === currentIndex ? "ragafy-player__song-item--active" : ""}`}
             >
-              {photos[song._id] && (
-                <img
-                  src={photos[song._id]}
-                  alt={song.title}
-                  className="song-item-image"
-                />
-              )}
-              <span className="song-item-title">{song.title}</span>
+              {photos[song._id] && <img src={photos[song._id]} alt={song.title} className="ragafy-player__song-item-image" />}
+              <span className="ragafy-player__song-item-title">{song.title}</span>
             </div>
           ))}
         </div>
