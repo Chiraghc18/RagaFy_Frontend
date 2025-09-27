@@ -5,6 +5,7 @@ import CategoryItems from "../components/CategoryItems";
 import BrowseSongLists from "../components/BrowseSongLists";
 import "../assets/style/BrowseByCategoryPage.css";
 import { useNavigate } from 'react-router-dom';
+
 export default function BrowseByCategoryPage() {
   const [category, setCategory] = useState("");
   const [items, setItems] = useState([]);
@@ -40,7 +41,6 @@ export default function BrowseByCategoryPage() {
     try {
       const data = await fetchSongsByCategory(category, item._id);
       setSongs(data);
-      console.log(songs);
       setSelectedItemName(item.name || item.title || "Selected Item");
       setSelectedItemPhoto(item.photo || item.imageUrl || "");
     } catch (err) {
@@ -53,7 +53,6 @@ export default function BrowseByCategoryPage() {
   const handleBack = () => {
     if (songs.length > 0) {
       setSongs([]);
-      
       setSelectedItemName("");
       setSelectedItemPhoto("");
     } else {
@@ -64,63 +63,59 @@ export default function BrowseByCategoryPage() {
 
   return (
     <>
-      {(category || !category) && (
-    <div
-      className="back"
-      onClick={() => {
-        if (!category) {
-          // We're at the Category header → use navigate(-1)
-          navigate(-1);
-        } else {
-          // We're inside categories → use handleBack
-          handleBack();
-        }
-      }}
-    >
-      <i className="fa-solid fa-arrow-left"></i>
-    </div>
-  )}
-        <div className="browse-page">
-          <div className="browse-title-container">
-            {!category && <h1 className="title">Category</h1>}
+      <div
+        className="browse__back"
+        onClick={() => {
+          if (!category) {
+            navigate(-1);
+          } else {
+            handleBack();
+          }
+        }}
+      >
+        <i className="browse__back-icon fa-solid fa-arrow-left"></i>
+      </div>
 
-        
+      <div className="browse__page">
+        <div className="browse__header">
+          {!category && <h1 className="browse__title">Category</h1>}
 
-        {category && !songs.length && (
-          <h2 className="title">
-            {selectedCategoryName.charAt(0).toUpperCase() + selectedCategoryName.slice(1)}
-          </h2>
+          {category && !songs.length && (
+            <h2 className="browse__subtitle">
+              {selectedCategoryName.charAt(0).toUpperCase() + selectedCategoryName.slice(1)}
+            </h2>
+          )}
+
+          {songs.length > 0 && (
+            <h2 className="browse__subtitle">
+              {selectedItemName.charAt(0).toUpperCase() + selectedItemName.slice(1)}
+            </h2>
+          )}
+        </div>
+
+        {!category && (
+          <CategorySelector
+            category={category}
+            setCategory={handleCategorySelect}
+            categories={categoryApiMap}
+            className="browse__category-selector"
+          />
+        )}
+
+        {category && !songs.length && items.length > 0 && (
+          <CategoryItems items={items} onSelect={handleItemClick} className="browse__category-items" />
         )}
 
         {songs.length > 0 && (
-          <h2 className="title">
-            {selectedItemName.charAt(0).toUpperCase() + selectedItemName.slice(1)}
-          </h2>
+          <>
+            {loading ? (
+              <p className="browse__loading-text">Loading songs...</p>
+            ) : (
+              <BrowseSongLists songs={songs} photo={selectedItemPhoto} className="browse__song-lists" />
+            )}
+          </>
         )}
       </div>
-
-      {!category && (
-        <CategorySelector
-          category={category}
-          setCategory={handleCategorySelect}
-          categories={categoryApiMap}
-        />
-      )}
-
-      {category && !songs.length && items.length > 0 && (
-        <CategoryItems items={items} onSelect={handleItemClick} />
-      )}
-
-      {songs.length > 0 && (
-        <>
-          {loading ? (
-            <p className="loading-text">Loading songs...</p>
-          ) : (
-            <BrowseSongLists songs={songs} photo={selectedItemPhoto} />
-          )}
-        </>
-      )}
-    </div>
-  </>
+    </>
   );
 }

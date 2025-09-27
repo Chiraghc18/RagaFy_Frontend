@@ -57,9 +57,7 @@ export default function AllSongs() {
     loadData();
   }, []);
 
-  // Handle clicking a song
   const handleSongClick = (song) => {
-    // Filter songs by same genre & language
     const filteredSameCategory = songs.filter(
       (s) =>
         s.genre?._id === song.genre?._id &&
@@ -68,7 +66,6 @@ export default function AllSongs() {
 
     const startIndex = filteredSameCategory.findIndex((s) => s._id === song._id);
 
-    // Navigate normally with state
     navigate("/player", {
       state: { songs: filteredSameCategory, startIndex },
     });
@@ -77,14 +74,14 @@ export default function AllSongs() {
   if (loading)
     return (
       <div className="all-songs-page">
-        <div className="loading-skeleton">
+        <div className="all-songs__loading">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="skeleton-card">
-              <div className="skeleton-content">
-                <div className="skeleton-image"></div>
-                <div className="skeleton-text">
-                  <div className="skeleton-line"></div>
-                  <div className="skeleton-line short"></div>
+            <div key={i} className="all-songs__skeleton-card">
+              <div className="all-songs__skeleton-content">
+                <div className="all-songs__skeleton-image"></div>
+                <div className="all-songs__skeleton-text">
+                  <div className="all-songs__skeleton-line"></div>
+                  <div className="all-songs__skeleton-line all-songs__skeleton-line--short"></div>
                 </div>
               </div>
             </div>
@@ -96,10 +93,10 @@ export default function AllSongs() {
   if (err)
     return (
       <div className="all-songs-page">
-        <div className="error-state">
-          <div className="error-icon">⚠️</div>
-          <h3>Something went wrong</h3>
-          <p>{err}</p>
+        <div className="all-songs__error">
+          <div className="all-songs__error-icon">⚠️</div>
+          <h3 className="all-songs__error-title">Something went wrong</h3>
+          <p className="all-songs__error-message">{err}</p>
         </div>
       </div>
     );
@@ -108,28 +105,30 @@ export default function AllSongs() {
     <div className="all-songs-page">
       {/* Playlists Section */}
       {playlists.length > 0 && (
-        <div className="user-playlists">
-          <h2>Featured Playlists</h2>
-          <div className="playlist-scroll-container">
+        <div className="all-songs__playlists">
+          <h2 className="all-songs__section-title">Featured Playlists</h2>
+          <div className="all-songs__playlist-container">
             {playlists.map((pl) => (
               <Link
                 key={pl._id}
                 to={`/user-playlists/${pl._id}`}
-                className="playlist-card"
+                className="all-songs__playlist-card"
               >
-                <div className="playlist-cover">
+                <div className="all-songs__playlist-cover">
                   {pl.coverImage ? (
                     <img
                       src={pl.coverImage}
                       alt={pl.name}
-                      className="playlist-image"
+                      className="all-songs__playlist-image"
                     />
                   ) : (
-                    <div className="playlist-cover-placeholder">🎵</div>
+                    <div className="all-songs__playlist-placeholder">🎵</div>
                   )}
                 </div>
-                <div className="playlist-name">{pl.name}</div>
-                <div className="playlist-count">{pl.songs?.length || 0} songs</div>
+                <div className="all-songs__playlist-name">{pl.name}</div>
+                <div className="all-songs__playlist-count">
+                  {pl.songs?.length || 0} songs
+                </div>
               </Link>
             ))}
           </div>
@@ -137,52 +136,42 @@ export default function AllSongs() {
       )}
 
       {/* Songs Section */}
-      <div className="all-songs">
-        <h2>All Songs</h2>
-        <div className="songs-masonry-grid">
+      <div className="all-songs__songs">
+        <h2 className="all-songs__section-title">All Songs</h2>
+        <div className="all-songs__grid">
           {songs.length > 0 ? (
             songs.map((song) => (
               <div
                 key={song._id}
-                className="song-card"
+                className="all-songs__card"
                 onClick={() => handleSongClick(song)}
               >
-                <div className="song-card-content">
+                <div className="all-songs__card-content">
                   {photos[song._id] ? (
                     <img
                       src={photos[song._id]}
                       alt={song.title}
-                      className="song-item-image"
+                      className="all-songs__image"
                     />
                   ) : (
-                    <div
-                      className="song-item-image"
-                      style={{
-                        background: "linear-gradient(135deg, #ffa50033, #1e90ff33)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "rgba(255,255,255,0.5)",
-                        fontSize: "24px",
-                      }}
-                    >
+                    <div className="all-songs__image all-songs__image--placeholder">
                       🎵
                     </div>
                   )}
-                  <div className="song-info">
-                    <div className="song-title">{song.title}</div>
-                    <div className="song-meta">
-                      {song.artist?.name || "Unknown Artist"}
+                  <div className="all-songs__info">
+                    <div className="all-songs__title">{song.title}</div>
+                    <div className="all-songs__meta">
+                      {song.singers?.map((s) => s.name).join(", ") || "Unknown Artist"} 
                     </div>
                   </div>
-                  <div className="play-icon">▶</div>
+                  <div className="all-songs__play-icon">▶</div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="empty-state">
-              <div className="empty-icon">🎵</div>
-              <p>No songs available</p>
+            <div className="all-songs__empty">
+              <div className="all-songs__empty-icon">🎵</div>
+              <p className="all-songs__empty-text">No songs available</p>
             </div>
           )}
         </div>

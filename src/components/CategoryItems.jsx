@@ -1,14 +1,20 @@
 export default function CategoryItems({ items, onSelect }) {
   return (
-    <div className="category-selector">
+    <div className="browse__category-items">
       {items.map((item) => (
         <div
           key={item._id}
           onClick={() => onSelect(item)}
-           className="category-button"
+          className="browse__category-item"
         >
-          <img src={item.photo} alt={item.name || item.title} className="category-image" />
-        <span className="category-name">{item.name || item.title}</span>
+          <img
+            src={item.photo}
+            alt={item.name || item.title}
+            className="browse__category-item-image"
+          />
+          <span className="browse__category-item-name">
+            {item.name || item.title}
+          </span>
         </div>
       ))}
     </div>
