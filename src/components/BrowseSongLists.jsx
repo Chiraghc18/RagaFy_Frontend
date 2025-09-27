@@ -26,7 +26,6 @@ export default function BrowseSongLists({ songs, photo }) {
 
     if (songs.length > 0) {
       loadPhotos();
-      console.log(songs);
     }
   }, [songs]);
 
@@ -35,32 +34,34 @@ export default function BrowseSongLists({ songs, photo }) {
   };
 
   return (
-    <div className="browse-song-list">
+    <div className="browse-songs">
       {photo && (
-        <div className="selected-item-container">
+        <div className="browse-songs__selected">
           <img
             src={photo}
             alt="Selected item"
-            className="selected-item-photo"
+            className="browse-songs__selected-photo"
           />
         </div>
       )}
 
-      <div className="song-list">
+      <div className="browse-songs__list">
         {songs.map((song, index) => (
           <div
             key={song._id}
             onClick={() => handleSongClick(index)}
-            className="song-item"
+            className="browse-songs__item"
           >
-            {photos[song._id] && (
+            {photos[song._id] ? (
               <img
                 src={photos[song._id]}
                 alt={song.title}
-                className="song-item-image"
+                className="browse-songs__item-image"
               />
+            ) : (
+              <div className="browse-songs__item-placeholder">🎵</div>
             )}
-            <span>{song.title}</span>
+            <span className="browse-songs__item-title">{song.title}</span>
           </div>
         ))}
       </div>
