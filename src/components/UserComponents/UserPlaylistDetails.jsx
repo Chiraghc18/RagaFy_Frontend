@@ -2,9 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchPlaylistById } from "../../services/playlistService";
 import { fetchSongById } from "../../services/songService/songService";
-// import "../../assets/style/UserPlaylistDetails.css";
-
 import BrowseSongLists from "../BrowseSongLists";
+
 
 export default function UserPlaylistDetails() {
   const { id } = useParams();
@@ -21,6 +20,7 @@ export default function UserPlaylistDetails() {
       const res = await fetchPlaylistById(id);
       setPlaylist(res.data);
 
+      // Fetch detailed song information
       const songDetails = await Promise.all(
         res.data.songs.map((s) =>
           fetchSongById(s._id).then((res) => res.data)
@@ -39,35 +39,121 @@ export default function UserPlaylistDetails() {
     loadPlaylist();
   }, [id]);
 
-  if (loading) return <div className="loading">Loading playlist...</div>;
-  if (err) return <div className="error">Error: {err}</div>;
-  if (!playlist) return <div className="not-found">Playlist not found.</div>;
+  const handlePlayPlaylist = () => {
+    if (songsDetails.length > 0) {
+      navigate("/player", {
+        state: { songs: songsDetails, startIndex: 0 }
+      });
+    }
+  };
+
+  const handleEditPlaylist = () => {
+    navigate(`/edit-playlist/${id}`);
+  };
+
+  if (loading) return (
+    <div className="upd">
+      <div className="upd__loading">Loading playlist...</div>
+    </div>
+  );
+  
+  if (err) return (
+    <div className="upd">
+      <div className="upd__error">
+        <div className="upd__error-icon">⚠️</div>
+        <div className="upd__error-text">Failed to load playlist</div>
+        <div className="upd__error-details">{err}</div>
+        <button onClick={() => navigate(-1)} className="upd__action-btn upd__action-btn--play">
+          Go Back
+        </button>
+      </div>
+    </div>
+  );
+  
+  if (!playlist) return (
+    <div className="upd">
+      <div className="upd__not-found">
+        <div className="upd__not-found-icon">🎵</div>
+        <div className="upd__not-found-text">Playlist not found</div>
+        <button onClick={() => navigate(-1)} className="upd__action-btn upd__action-btn--play">
+          Go Back to Playlists
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="playlist-details">
+    <div className="upd">
       {/* Back Button */}
-      <div className="back" onClick={() => navigate(-1)}>
-         <i className="fa-solid fa-arrow-left"></i>
+      <div className="upd__back" onClick={() => navigate(-1)}>
+        <i className="fa-solid fa-arrow-left"></i>
       </div>
 
       {/* Playlist Header */}
-        <div className="playlist-header">
-            <div className="playlist-cover">
-            {playlist.coverImage ? (
-                <img src={playlist.coverImage} alt={playlist.name} className="playlist-cover-image"/>
-            ) : (
-                <div className="cover-placeholder">No cover</div>
-            )}
+      <div className="upd__header">
+        <div className="upd__cover">
+          {playlist.coverImage ? (
+            <img
+              src={playlist.coverImage}
+              alt={playlist.name}
+              className="upd__cover-image"
+            />
+          ) : (
+            <div className="upd__cover-placeholder">
+              <i className="fa-solid fa-music" style={{fontSize: '3rem', marginBottom: '10px'}}></i>
+              <div>No cover</div>
             </div>
-            <div className="playlist-info">
-            <h2>{playlist.name}</h2>
-            </div>
+          )}
         </div>
+        
+        <div className="upd__info">
+          <h2 className="upd__title">{playlist.name}</h2>
+          
+          <div className="upd__meta">
+            <div className="upd__meta-item">
+              <i className="upd__meta-icon fa-solid fa-music"></i>
+              <span>{songsDetails.length} songs</span>
+            </div>
+            <div className="upd__meta-item">
+              <i className="upd__meta-icon fa-solid fa-clock"></i>
+              <span>{(songsDetails.length * 3.5).toFixed(0)} min approx</span>
+            </div>
+          </div>
+
+          {playlist.description && (
+            <p className="upd__description">{playlist.description}</p>
+          )}
+
+          <div className="upd__actions">
+            <button 
+              className="upd__action-btn upd__action-btn--play"
+              onClick={handlePlayPlaylist}
+              disabled={songsDetails.length === 0}
+            >
+              <i className="fa-solid fa-play"></i>
+              Play All
+            </button>
+            
+  
+          </div>
+        </div>
+      </div>
 
       {/* Playlist Songs */}
-      <div className="songs-list">
-        <h3 className="songs-list-title">Songs</h3>
-        <BrowseSongLists songs={songsDetails} />
+      <div className="upd__songs">
+        <h3 className="upd__songs-title">
+          Songs {songsDetails.length > 0 && `(${songsDetails.length})`}
+        </h3>
+        
+        {songsDetails.length === 0 ? (
+          <div className="upd__empty-songs">
+            <div className="upd__empty-icon">🎵</div>
+            <div className="upd__empty-text">No songs in this playlist yet</div>
+            <div className="upd__empty-subtext">Add some songs to get started!</div>
+          </div>
+        ) : (
+          <BrowseSongLists songs={songsDetails} />
+        )}
       </div>
     </div>
   );
