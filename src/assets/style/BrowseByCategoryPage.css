@@ -106,7 +106,8 @@
   background: linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(30, 144, 255, 0.15));
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  padding: 20px 10px;
+  width: fit-content;
+  padding: 20px 15px;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -146,8 +147,8 @@
 }
 
 .browse__category-image {
-  width: 100px;
-  height: 100px;
+  width: 150px;
+  height: 150px;
   object-fit: contain;
   transition: all 0.3s ease;
 }
@@ -208,8 +209,8 @@
 }
 
 .browse__category-item-image {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   object-fit: cover;
   border-radius: 12px;
   margin-bottom: 15px;
@@ -259,6 +260,7 @@
 
   .browse__category-button {
     padding: 15px 10px;
+    width: max-content;
   }
 
   .browse__category-image {
@@ -304,6 +306,9 @@
 
   .browse__subtitle {
     font-size: 1.8rem;
+  }
+  .browse__category-button {
+    width: unset;
   }
 
   .browse__category-selector {
@@ -391,6 +396,8 @@
   opacity: 0.8;
 }
 
+/* Browse Songs List Styles */
+
 .browse-songs {
   max-width: 800px;
   margin: 0 auto;
@@ -404,8 +411,8 @@
 }
 
 .browse-songs__selected-photo {
-  width: 200px;
-  height: 200px;
+  width: 180px;
+  height: 180px;
   object-fit: cover;
   border-radius: 20px;
   border: 4px solid rgba(255, 165, 0.6);
@@ -516,7 +523,7 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .browse-songs { padding: 15px; }
-  .browse-songs__selected-photo { width: 180px; height: 180px; }
+  .browse-songs__selected-photo { width: 160px; height: 160px; }
   .browse-songs__item { padding: 12px 15px; }
   .browse-songs__item-image { width: 70px; height: 70px; margin-right: 12px; }
   .browse-songs__item-title { font-size: 20px; }
@@ -524,7 +531,7 @@
 
 @media (max-width: 480px) {
   .browse-songs { padding: 10px; }
-  .browse-songs__selected-photo { width: 180px; height: 180px; }
+  .browse-songs__selected-photo { width: 150px; height: 150px; }
   .browse-songs__item { padding: 10px 12px; border-radius: 12px; }
   .browse-songs__item-image { width: 60px; height: 60px; margin-right: 10px; }
   .browse-songs__item-title { font-size: 18px; }
