@@ -28,12 +28,9 @@ export default function BrowseSongLists({ songs, photo }) {
   }, [songs]);
 
   const handleSongClick = (index) => {
-    // Save playlist + selected index in localStorage
     localStorage.setItem("ragafySongs", JSON.stringify(songs));
     localStorage.setItem("ragafyStartIndex", index);
-
-    // Open new tab
-    window.open("/player", "_blank");
+    window.open("/player", "_blank"); // opens in new tab
   };
 
   return (
