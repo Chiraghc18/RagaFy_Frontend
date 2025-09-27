@@ -5,7 +5,7 @@
 
 .Selector-category-options {
   display: flex;
-  gap: 15px;
+  gap:7px;
   overflow-x: auto;
   padding: 10px 0;
   scrollbar-width: none; /* Firefox */
