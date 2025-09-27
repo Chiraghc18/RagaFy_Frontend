@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 export default function BrowseSongLists({ songs, photo }) {
+  const navigate = useNavigate();
   const [photos, setPhotos] = useState({});
 
   useEffect(() => {
@@ -24,13 +26,12 @@ export default function BrowseSongLists({ songs, photo }) {
 
     if (songs.length > 0) {
       loadPhotos();
+      console.log(songs);
     }
   }, [songs]);
 
   const handleSongClick = (index) => {
-    localStorage.setItem("ragafySongs", JSON.stringify(songs));
-    localStorage.setItem("ragafyStartIndex", index);
-    window.open("/player", "_blank"); // opens in new tab
+    navigate("/player", { state: { songs, startIndex: index } });
   };
 
   return (
