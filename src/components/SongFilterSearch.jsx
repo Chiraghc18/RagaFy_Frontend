@@ -14,7 +14,7 @@ export default function SongFilterSearch({ filters, options, handleChange }) {
             type="text"
             name="name"
             placeholder="Enter song title..."
-            value={filters.name}
+            value={filters.name || ""}
             onChange={handleChange}
             className="sfs-filter__input"
           />
@@ -29,21 +29,21 @@ export default function SongFilterSearch({ filters, options, handleChange }) {
           type="text"
           name="genreName"
           placeholder="Search genre..."
-          value={filters.genreName}
+          value={filters.genreName || ""}
           onChange={handleChange}
           className="sfs-filter__input"
         />
         <div className="sfs-filter__select-wrapper">
           <select
             name="genre"
-            value={filters.genre}
+            value={filters.genre || ""}
             onChange={handleChange}
             className="sfs-filter__select"
           >
             <option value="">-- Select Genre --</option>
-            {options.genres
+            {(options.genres || [])
               .filter((g) =>
-                g.name.toLowerCase().includes(filters.genreName.toLowerCase())
+                g.name.toLowerCase().includes((filters.genreName || "").toLowerCase())
               )
               .map((g) => (
                 <option key={g._id} value={g._id}>
@@ -61,21 +61,21 @@ export default function SongFilterSearch({ filters, options, handleChange }) {
           type="text"
           name="languageName"
           placeholder="Search language..."
-          value={filters.languageName}
+          value={filters.languageName || ""}
           onChange={handleChange}
           className="sfs-filter__input"
         />
         <div className="sfs-filter__select-wrapper">
           <select
             name="language"
-            value={filters.language}
+            value={filters.language || ""}
             onChange={handleChange}
             className="sfs-filter__select"
           >
             <option value="">-- Select Language --</option>
-            {options.languages
+            {(options.languages || [])
               .filter((l) =>
-                l.name.toLowerCase().includes(filters.languageName.toLowerCase())
+                l.name.toLowerCase().includes((filters.languageName || "").toLowerCase())
               )
               .map((l) => (
                 <option key={l._id} value={l._id}>
@@ -93,21 +93,21 @@ export default function SongFilterSearch({ filters, options, handleChange }) {
           type="text"
           name="singerName"
           placeholder="Search singer..."
-          value={filters.singerName}
+          value={filters.singerName || ""}
           onChange={handleChange}
           className="sfs-filter__input"
         />
         <div className="sfs-filter__select-wrapper">
           <select
             name="singer"
-            value={filters.singer}
+            value={filters.singer || ""}
             onChange={handleChange}
             className="sfs-filter__select"
           >
             <option value="">-- Select Singer --</option>
-            {options.singers
+            {(options.singers || [])
               .filter((s) =>
-                s.name.toLowerCase().includes(filters.singerName.toLowerCase())
+                s.name.toLowerCase().includes((filters.singerName || "").toLowerCase())
               )
               .map((s) => (
                 <option key={s._id} value={s._id}>
@@ -124,7 +124,7 @@ export default function SongFilterSearch({ filters, options, handleChange }) {
         <div className="sfs-filter__select-wrapper">
           <select
             name="releaseYear"
-            value={filters.releaseYear}
+            value={filters.releaseYear || ""}
             onChange={handleChange}
             className="sfs-filter__select"
           >
