@@ -1,26 +1,16 @@
-// Head.jsx
-import React, { useState } from "react";
+import React from "react";
 import "../../assets/style/UserPage/Head.css";
-import HeadSearch from "../UserComponents/HeadSearch";
 
-const Head = () => {
-  const [showSearch, setShowSearch] = useState(false);
-
+const Head = ({ onSearchClick }) => {
   return (
-    <>
-      {!showSearch && (
-        <header className="user-header">
-          <h1 className="user-header-title">Discover</h1>
-          <i
-            className="fa-solid fa-magnifying-glass"
-            onClick={() => setShowSearch(true)}
-            style={{ cursor: "pointer" }}
-          ></i>
-        </header>
-      )}
-
-      {showSearch && <HeadSearch onBack={() => setShowSearch(false)} />}
-    </>
+    <header className="user-header">
+      <h1 className="user-header-title">Discover</h1>
+      <i
+        className="fa-solid fa-magnifying-glass"
+        onClick={onSearchClick}
+        style={{ cursor: "pointer" }}
+      ></i>
+    </header>
   );
 };
 

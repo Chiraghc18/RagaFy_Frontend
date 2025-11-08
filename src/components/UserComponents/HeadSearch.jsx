@@ -4,7 +4,7 @@ import fetchSongs from "../../services/songService/fetchSongs";
 import "../../assets/style/UserPage/HeadSearch.css";
 import { useNavigate } from "react-router-dom";
 
-export default function HeadSearch({ onBack }) {
+export default function HeadSearch() {
   const [songs, setSongs] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [photos, setPhotos] = useState({});
@@ -34,7 +34,6 @@ export default function HeadSearch({ onBack }) {
             }
           })
         );
-
         setPhotos(photoMap);
       } catch (err) {
         console.error("Error loading data:", err);
@@ -46,19 +45,20 @@ export default function HeadSearch({ onBack }) {
     loadData();
   }, []);
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setQuery(value);
+  const handleSearch = (e) => setQuery(e.target.value);
 
-    if (!value.trim()) {
-      setFiltered(songs);
-    } else {
-      const filteredSongs = songs.filter((song) =>
-        song.title.toLowerCase().includes(value.toLowerCase())
-      );
-      setFiltered(filteredSongs);
-    }
-  };
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!query.trim()) setFiltered(songs);
+      else {
+        const filteredSongs = songs.filter((song) =>
+          song.title.toLowerCase().includes(query.toLowerCase())
+        );
+        setFiltered(filteredSongs);
+      }
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [query, songs]);
 
   const handleSongClick = (song) => {
     const filteredSameCategory = songs.filter(
@@ -83,12 +83,12 @@ export default function HeadSearch({ onBack }) {
 
   return (
     <>
-      <div className="hs-back-button" onClick={onBack}>
+      {/* Back Button */}
+      <div className="hs-back-button" onClick={() => navigate("/")}>
         <i className="fa-solid fa-arrow-left"></i>
       </div>
 
       <div className="hs-container">
-        {/* Search Bar */}
         <div className="hs-search-bar">
           <input
             type="text"
@@ -97,53 +97,32 @@ export default function HeadSearch({ onBack }) {
             onChange={handleSearch}
             autoFocus
           />
-          <i className="fa-solid fa-magnifying-glass"></i>
-          
-          {query && (
-            <div 
-              className="hs-clear-search"
+          {!query ? (
+            <i className="fa-solid fa-magnifying-glass"></i>
+          ) : (
+            <i
+              className="fa-solid fa-times hs-clear-icon"
               onClick={clearSearch}
-              style={{
-                position: 'absolute',
-                right: '50px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'rgba(255,255,255,0.5)',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                transition: 'color 0.3s ease'
-              }}
-            >
-              <i className="fa-solid fa-times"></i>
-            </div>
+            ></i>
           )}
         </div>
 
-        {/* Results Count */}
         {!loading && query && (
           <div className="hs-results-count">
-            Found <strong>{filtered.length}</strong> song{filtered.length !== 1 ? 's' : ''} matching "{query}"
+            Found <strong>{filtered.length}</strong> song
+            {filtered.length !== 1 ? "s" : ""} matching "{query}"
           </div>
         )}
 
-        {/* Results List */}
         <div className="hs-results-list">
           {loading ? (
-            <div className="hs-loading">
-              Loading songs...
-            </div>
+            <div className="hs-loading">Loading songs...</div>
           ) : filtered.length > 0 ? (
             filtered.map((song) => (
               <div
                 key={song._id}
                 onClick={() => handleSongClick(song)}
                 className="hs-result-item"
-                tabIndex={0}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    handleSongClick(song);
-                  }
-                }}
               >
                 {photos[song._id] ? (
                   <img
@@ -152,36 +131,42 @@ export default function HeadSearch({ onBack }) {
                     className="hs-result-item-image"
                   />
                 ) : (
-                  <div 
-                    className="hs-result-item-image"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(255,165,0,0.2), rgba(30,144,255,0.2))',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'rgba(255,255,255,0.5)',
-                      fontSize: '1.5rem'
-                    }}
-                  >
-                    🎵
-                  </div>
+                  <div className="hs-result-item-image placeholder">🎵</div>
                 )}
                 <span className="hs-result-item-title">{song.title}</span>
               </div>
             ))
           ) : query ? (
             <div className="hs-no-results">
-              <i className="fa-solid fa-music" style={{fontSize: '3rem', marginBottom: '15px', opacity: '0.5'}}></i>
+              <i
+                className="fa-solid fa-music"
+                style={{
+                  fontSize: "3rem",
+                  marginBottom: "15px",
+                  opacity: "0.5",
+                }}
+              ></i>
               <div>No songs found for "{query}"</div>
-              <div style={{fontSize: '1rem', marginTop: '10px', opacity: '0.7'}}>
+              <div
+                style={{ fontSize: "1rem", marginTop: "10px", opacity: "0.7" }}
+              >
                 Try searching with different keywords
               </div>
             </div>
           ) : (
             <div className="hs-no-results">
-              <i className="fa-solid fa-search" style={{fontSize: '3rem', marginBottom: '15px', opacity: '0.5'}}></i>
+              <i
+                className="fa-solid fa-search"
+                style={{
+                  fontSize: "3rem",
+                  marginBottom: "15px",
+                  opacity: "0.5",
+                }}
+              ></i>
               <div>Search for songs</div>
-              <div style={{fontSize: '1rem', marginTop: '10px', opacity: '0.7'}}>
+              <div
+                style={{ fontSize: "1rem", marginTop: "10px", opacity: "0.7" }}
+              >
                 Enter a song title in the search bar above
               </div>
             </div>
