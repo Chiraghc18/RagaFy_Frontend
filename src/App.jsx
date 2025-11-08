@@ -29,7 +29,7 @@ import Header from "./pages/Header";
 
 
 // User Page imports
-import Head from "./components/UserComponents/Head";
+// import Head from "./components/UserComponents/Head";
 import UserHome from "./pages/User/UserHome";
 import HeadSearch from "./components/UserComponents/HeadSearch";
 import UserPlaylists from "./components/UserComponents/UserPlayLists.jsx";
