@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useData } from "../context/DataContext"; // <-- IMPORT
 import "../assets/style/SongPlayerPage.css";
+// Removed axios
 
 export default function SongPlayerPage() {
   const location = useLocation();
   const { songs = [], startIndex = 0 } = location.state || {};
   const [currentIndex, setCurrentIndex] = useState(startIndex);
-  const [photos, setPhotos] = useState({});
+  
+  const { photos } = useData(); // <-- Get photos from context
+  
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -16,27 +19,7 @@ export default function SongPlayerPage() {
   const currentSong = songs[currentIndex];
   const navigate = useNavigate();
 
-  // Fetch song photos
-  useEffect(() => {
-    if (!songs.length) return;
-    const loadPhotos = async () => {
-      const photoMap = {};
-      await Promise.all(
-        songs.map(async (song) => {
-          try {
-            const res = await axios.get(
-              `https://ragafy-backend.onrender.com/songs/${song._id}/photo`
-            );
-            photoMap[song._id] = res.data.url;
-          } catch {
-            photoMap[song._id] = null;
-          }
-        })
-      );
-      setPhotos(photoMap);
-    };
-    loadPhotos();
-  }, [songs]);
+  // The useEffect to fetch song photos is GONE.
 
   // Update progress
   useEffect(() => {
@@ -67,7 +50,7 @@ export default function SongPlayerPage() {
         title: currentSong.title,
         artist: currentSong.artist?.name || "",
         album: currentSong.album?.name || "",
-        artwork: photos[currentSong._id]
+        artwork: photos[currentSong._id] // <-- This works from context
           ? [
               { src: photos[currentSong._id], sizes: "96x96", type: "image/png" },
               { src: photos[currentSong._id], sizes: "128x128", type: "image/png" },
@@ -78,7 +61,7 @@ export default function SongPlayerPage() {
           : [],
       });
     }
-  }, [currentIndex, songs, photos, currentSong]);
+  }, [currentIndex, songs, photos, currentSong, isPlaying]); // Added isPlaying dependency
 
   const handleSongEnd = () => setCurrentIndex(prev => prev < songs.length - 1 ? prev + 1 : 0);
   const handleNext = () => setCurrentIndex(prev => prev < songs.length - 1 ? prev + 1 : 0);
@@ -90,7 +73,7 @@ export default function SongPlayerPage() {
     setProgress(newTime);
   };
 
-  if (!songs.length) return <p>No songs provided</p>;
+  if (!songs.length || !currentSong) return <p>No songs provided</p>;
 
   return (
     <>
@@ -100,6 +83,7 @@ export default function SongPlayerPage() {
 
       <div className="ragafy-player">
         <div className="ragafy-player__header">
+          {/* This works from context */}
           {photos[currentSong._id] ? (
             <img
               src={photos[currentSong._id]}

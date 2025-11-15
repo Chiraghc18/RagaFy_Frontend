@@ -1,33 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React from "react"; // Removed useState, useEffect
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useData } from "../context/DataContext"; // <-- IMPORT
+// Removed axios
 
 export default function BrowseSongLists({ songs, photo }) {
   const navigate = useNavigate();
-  const [photos, setPhotos] = useState({});
+  const { photos } = useData(); // <-- Get the globally-loaded photo map
 
-  useEffect(() => {
-    const loadPhotos = async () => {
-      const photoMap = {};
-      await Promise.all(
-        songs.map(async (song) => {
-          try {
-            const res = await axios.get(
-              `https://ragafy-backend.onrender.com/songs/${song._id}/photo`
-            );
-            photoMap[song._id] = res.data.url;
-          } catch {
-            photoMap[song._id] = null;
-          }
-        })
-      );
-      setPhotos(photoMap);
-    };
-
-    if (songs.length > 0) {
-      loadPhotos();
-    }
-  }, [songs]);
+  // The entire useEffect to load photos is GONE.
 
   const handleSongClick = (index) => {
     navigate("/player", { state: { songs, startIndex: index } });
@@ -52,6 +32,7 @@ export default function BrowseSongLists({ songs, photo }) {
             onClick={() => handleSongClick(index)}
             className="browse-songs__item"
           >
+            {/* This now works instantly from global state */}
             {photos[song._id] ? (
               <img
                 src={photos[song._id]}

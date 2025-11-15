@@ -1,52 +1,29 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import fetchSongs from "../../services/songService/fetchSongs";
+import { useData } from "../../context/DataContext"; // <-- IMPORT
 import "../../assets/style/UserPage/HeadSearch.css";
 import { useNavigate } from "react-router-dom";
+// Removed axios and fetchSongs
 
 export default function HeadSearch() {
-  const [songs, setSongs] = useState([]);
+  // Get global data
+  const { songs, photos, loading } = useData();
+
   const [filtered, setFiltered] = useState([]);
-  const [photos, setPhotos] = useState({});
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // The main data loading useEffect is GONE.
+
+  // This new useEffect initializes the filter state once songs are loaded
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const songRes = await fetchSongs();
-        const songData = songRes.data || [];
-        setSongs(songData);
-        setFiltered(songData);
-
-        const photoMap = {};
-        await Promise.all(
-          songData.map(async (song) => {
-            try {
-              const res = await axios.get(
-                `https://ragafy-backend.onrender.com/songs/${song._id}/photo`
-              );
-              photoMap[song._id] = res.data.url;
-            } catch {
-              photoMap[song._id] = null;
-            }
-          })
-        );
-        setPhotos(photoMap);
-      } catch (err) {
-        console.error("Error loading data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+    if (!loading) {
+      setFiltered(songs);
+    }
+  }, [loading, songs]);
 
   const handleSearch = (e) => setQuery(e.target.value);
 
+  // This client-side search logic remains
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!query.trim()) setFiltered(songs);
@@ -124,6 +101,7 @@ export default function HeadSearch() {
                 onClick={() => handleSongClick(song)}
                 className="hs-result-item"
               >
+                {/* This now reads from the global photo map */}
                 {photos[song._id] ? (
                   <img
                     src={photos[song._id]}

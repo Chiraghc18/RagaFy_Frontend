@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React from "react"; // Removed useState, useEffect
 import "../../assets/style/UserPage/UserHome.css";
 import { useNavigate } from "react-router-dom";
 
@@ -6,16 +6,13 @@ import Head from "../../components/UserComponents/Head";
 import Selector from "../../components/UserComponents/Selector";
 import AllSongs from "../../components/UserComponents/AllSong";
 import SplashScreen from "../../components/UserComponents/SplashScreen";
+import { useData } from "../../context/DataContext"; // <-- IMPORT
 
 const UserHome = () => {
-  const [loading, setLoading] = useState(true);
+  const { loading } = useData(); // <-- Get REAL loading state
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 4000);
-    return () => clearTimeout(timer);
-  }, []);
-
+  // The 4-second setTimeout is GONE.
   if (loading) return <SplashScreen />;
 
   return (

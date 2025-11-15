@@ -1,61 +1,15 @@
-// src/components/AllSongs.jsx
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import fetchSongs from "../../services/songService/fetchSongs";
-import { fetchPlaylists } from "../../services/playlistService";
+import React from "react"; // Removed useState, useEffect
+import { useData } from "../../context/DataContext"; // <-- IMPORT
 import "../../assets/style/UserPage/AllSongs.css";
 import { useNavigate, Link } from "react-router-dom";
+// Removed axios, fetchSongs, fetchPlaylists
 
 export default function AllSongs() {
-  const [songs, setSongs] = useState([]);
-  const [photos, setPhotos] = useState({});
-  const [playlists, setPlaylists] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState(null);
-
+  // Get all data from the global context
+  const { songs, photos, playlists, loading, err } = useData();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-
-        const [plRes, songRes] = await Promise.allSettled([
-          fetchPlaylists(),
-          fetchSongs(),
-        ]);
-
-        if (plRes.status === "fulfilled") {
-          setPlaylists(plRes.value.data || []);
-        }
-
-        if (songRes.status === "fulfilled") {
-          const songData = songRes.value.data || [];
-          setSongs(songData);
-
-          // Fetch photos asynchronously
-          songData.forEach(async (song) => {
-            try {
-              const res = await axios.get(
-                `https://ragafy-backend.onrender.com/songs/${song._id}/photo`
-              );
-              setPhotos((prev) => ({ ...prev, [song._id]: res.data.url }));
-            } catch {
-              setPhotos((prev) => ({ ...prev, [song._id]: null }));
-            }
-          });
-        } else {
-          setErr(songRes.reason.message || "Failed to fetch songs");
-        }
-      } catch (e) {
-        setErr(e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  // ALL of the useEffect and loadData functions are GONE.
 
   const handleSongClick = (song) => {
     const filteredSameCategory = songs.filter(
@@ -147,6 +101,7 @@ export default function AllSongs() {
                 onClick={() => handleSongClick(song)}
               >
                 <div className="all-songs__card-content">
+                  {/* This now reads from the global photo map */}
                   {photos[song._id] ? (
                     <img
                       src={photos[song._id]}
@@ -161,7 +116,8 @@ export default function AllSongs() {
                   <div className="all-songs__info">
                     <div className="all-songs__title">{song.title}</div>
                     <div className="all-songs__meta">
-                      {song.singers?.map((s) => s.name).join(", ") || "Unknown Artist"} 
+                      {song.singers?.map((s) => s.name).join(", ") ||
+                        "Unknown Artist"}
                     </div>
                   </div>
                   <div className="all-songs__play-icon">▶</div>

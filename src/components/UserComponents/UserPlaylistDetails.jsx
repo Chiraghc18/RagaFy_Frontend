@@ -1,57 +1,63 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchPlaylistById } from "../../services/playlistService";
-import { fetchSongById } from "../../services/songService/songService";
+// import { fetchSongById } from "../../services/songService/songService"; // No longer needed
+import { useData } from "../../context/DataContext"; // <-- IMPORT
 import BrowseSongLists from "../BrowseSongLists";
-
 
 export default function UserPlaylistDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // Get all songs from context
+  const { songs: allSongs, loading: dataLoading } = useData(); 
 
   const [playlist, setPlaylist] = useState(null);
   const [songsDetails, setSongsDetails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
-  const loadPlaylist = async () => {
-    try {
-      setLoading(true);
-      const res = await fetchPlaylistById(id);
-      setPlaylist(res.data);
-
-      // Fetch detailed song information
-      const songDetails = await Promise.all(
-        res.data.songs.map((s) =>
-          fetchSongById(s._id).then((res) => res.data)
-        )
-      );
-      setSongsDetails(songDetails);
-    } catch (e) {
-      console.error("fetch playlist error:", e.response?.data || e.message);
-      setErr(e.response?.data?.error || e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadPlaylist();
-  }, [id]);
+    const loadPlaylist = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const res = await fetchPlaylistById(id);
+        setPlaylist(res.data);
+
+        // --- PERFORMANCE FIX ---
+        // Instead of fetching each song, find them in our global list
+        const songIdsInPlaylist = res.data.songs.map(s => s._id); 
+        const details = allSongs.filter(song => songIdsInPlaylist.includes(song._id));
+        setSongsDetails(details);
+        // -------------------------
+
+      } catch (e) {
+        console.error("fetch playlist error:", e.response?.data || e.message);
+        setErr(e.response?.data?.error || e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // Only run this if the global data is ready
+    if (!dataLoading && allSongs.length > 0) {
+      loadPlaylist();
+    }
+  }, [id, allSongs, dataLoading]); // Add dependencies
 
   const handlePlayPlaylist = () => {
     if (songsDetails.length > 0) {
       navigate("/player", {
-        state: { songs: songsDetails, startIndex: 0 }
+        state: { songs: songsDetails, startIndex: 0 },
       });
     }
   };
 
-  const handleEditPlaylist = () => {
-    navigate(`/edit-playlist/${id}`);
-  };
-
-  if (loading) return (
+  // ... (rest of your component: handleEdit, loading/error/null JSX) ...
+  // ... The rest of your return JSX is unchanged ...
+  
+  if (loading || dataLoading) return (
     <div className="upd">
       <div className="upd__loading">Loading playlist...</div>
     </div>
@@ -133,8 +139,6 @@ export default function UserPlaylistDetails() {
               <i className="fa-solid fa-play"></i>
               Play All
             </button>
-            
-  
           </div>
         </div>
       </div>
