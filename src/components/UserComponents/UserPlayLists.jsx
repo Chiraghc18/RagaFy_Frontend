@@ -50,5 +50,5 @@ export default function UserPlaylists() {
         </div>
       )}
     </div>
-  );
+  )
 }
