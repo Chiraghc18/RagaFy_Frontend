@@ -14,7 +14,7 @@ const SplashScreen = ({ onLoadingComplete }) => {
           clearInterval(progressInterval);
           return 100;
         }
-        return prev + 20; // Increment by 20% every second
+        return prev + 10; // Increment by 20% every second
       });
     }, 1000);
 
@@ -23,7 +23,7 @@ const SplashScreen = ({ onLoadingComplete }) => {
       if (onLoadingComplete) {
         setTimeout(() => onLoadingComplete(), 500);
       }
-    }, 5000); // Show for 5 seconds
+    }, 10000); // Show for 5 seconds
     
     return () => {
       clearTimeout(timer);
