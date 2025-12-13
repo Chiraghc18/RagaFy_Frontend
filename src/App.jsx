@@ -1,6 +1,6 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { DataProvider } from "./context/DataContext"; // <-- IMPORT
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { DataProvider } from "./context/DataContext";
 
 import NotFound from "./pages/NotFound";
 
@@ -18,16 +18,14 @@ import AllSongs from "./components/UserComponents/AllSong.jsx";
 
 export default function App() {
   return (
-    // <-- WRAP with DataProvider -->
     <DataProvider>
       <Router>
         <Routes>
-          {/* 404 fallback */}
-          <Route path="*" element={<NotFound />} />
-
-          {/* user page  */}
-          <Route path="/user" element={<HeadSearch />} />
+          {/* Home route */}
           <Route path="/" element={<UserHome />} />
+          
+          {/* user page routes */}
+          <Route path="/user" element={<HeadSearch />} />
           <Route path="/user/playlists" element={<UserPlaylists />} />
           <Route path="/user-playlists/:id" element={<UserPlaylistDetails />} />
           <Route path="/all" element={<AllSongs />} />
@@ -36,6 +34,12 @@ export default function App() {
           <Route path="/browse" element={<BrowseByCategoryPage />} />
           <Route path="/player" element={<SongPlayerPage />} />
           <Route path="/search-filter" element={<SongFilterSearch />} />
+          
+          {/* Redirect any unmatched route to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+          
+          {/* Optional: Keep 404 for truly non-existent routes */}
+          {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
       </Router>
     </DataProvider>
