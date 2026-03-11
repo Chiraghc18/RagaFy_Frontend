@@ -1,105 +1,48 @@
-// components/SongPlayerPage.jsx
-import React, { useState, useRef, useEffect } from "react";
+// pages/SongPlayerPage.jsx
+import React, { useState, useEffect ,useRef} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
+import { useGlobalPlayer } from "../context/GlobalPlayerContext";
 import "../assets/style/SongPlayerPage.css";
 
 export default function SongPlayerPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { songs = [], startIndex = 0 } = location.state || {};
   
-  // Local state for current playlist/songs
-  const [currentIndex, setCurrentIndex] = useState(startIndex);
-  const [playlistSongs, setPlaylistSongs] = useState(songs);
-  const [originalSongs, setOriginalSongs] = useState(songs); // For restoring order when shuffle off
-  
-  // Player modes
-  const [shuffleMode, setShuffleMode] = useState(false);
-  const [repeatOneMode, setRepeatOneMode] = useState(false); // Just true/false for repeat one
-  
-  const { 
-    photos, 
-    queue, 
-    addToQueue, 
-    addToQueueNext, 
-    removeFromQueue,
-    clearQueue 
-  } = useData();
-  
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const { photos, queue, addToQueue, removeFromQueue, clearQueue } = useData();
+  const {
+    currentPlaylist,
+    currentIndex,
+    currentSong,
+    isPlaying,
+    progress,
+    duration,
+    shuffleMode,
+    repeatMode,
+    togglePlayPause,
+    handleNext,
+    handlePrevious,
+    seekTo,
+    toggleShuffle,
+    toggleRepeat,
+    playPlaylist,
+    formatTime
+  } = useGlobalPlayer();
+
   const [showQueue, setShowQueue] = useState(false);
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   
-  const audioRef = useRef(null);
   const queuePanelRef = useRef(null);
   const volumeRef = useRef(null);
 
-  const currentSong = playlistSongs[currentIndex];
-  const navigate = useNavigate();
-
-  // Shuffle function
-  const shuffleArray = (array) => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  // Initialize player with songs from location if provided
+  useEffect(() => {
+    if (songs && songs.length > 0) {
+      playPlaylist(songs, startIndex);
     }
-    return shuffled;
-  };
-
-  // Toggle shuffle
-  const toggleShuffle = () => {
-    if (!shuffleMode) {
-      // Save original order first time
-      if (originalSongs.length === 0) {
-        setOriginalSongs(playlistSongs);
-      }
-      // Shuffle current playlist
-      setPlaylistSongs(shuffleArray(playlistSongs));
-      setShuffleMode(true);
-      
-      showNotification('🔀 Shuffle on', '#ffa500');
-    } else {
-      // Restore original order
-      setPlaylistSongs(originalSongs);
-      // Find new index for current song in restored order
-      if (currentSong) {
-        const newIndex = originalSongs.findIndex(s => s._id === currentSong._id);
-        if (newIndex !== -1) {
-          setCurrentIndex(newIndex);
-        }
-      }
-      setShuffleMode(false);
-      
-      showNotification('🔀 Shuffle off', '#666');
-    }
-  };
-
-  // Toggle repeat one on/off
-  const toggleRepeatOne = () => {
-    const newMode = !repeatOneMode;
-    setRepeatOneMode(newMode);
-    
-    // Show notification
-    if (newMode) {
-      showNotification('🔂 Repeat one - Current song repeats', '#2196F3');
-    } else {
-      showNotification('▶️ Normal playback - Playlist continues', '#ffa500');
-    }
-  };
-
-  // Show notification helper
-  const showNotification = (message, color) => {
-    const notification = document.createElement('div');
-    notification.className = 'ragafy-player__notification';
-    notification.textContent = message;
-    notification.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 2000);
-  };
+  }, [songs, startIndex]);
 
   // Click outside handlers
   useEffect(() => {
@@ -118,121 +61,18 @@ export default function SongPlayerPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Audio progress update
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const updateProgress = () => setProgress(audio.currentTime);
-    audio.addEventListener("timeupdate", updateProgress);
-    return () => audio.removeEventListener("timeupdate", updateProgress);
-  }, []);
-
-  // Play/pause control
-  useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) audioRef.current.play().catch(() => console.log("Autoplay blocked"));
-      else audioRef.current.pause();
-    }
-  }, [isPlaying, currentIndex]);
-
-  // Volume control
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
-
-  // Media Session API
-  useEffect(() => {
-    if ("mediaSession" in navigator && currentSong) {
-      navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
-      navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
-      navigator.mediaSession.setActionHandler("previoustrack", handlePrevious);
-      navigator.mediaSession.setActionHandler("nexttrack", handleNext);
-
-      navigator.mediaSession.metadata = new window.MediaMetadata({
-        title: currentSong.title,
-        artist: currentSong.artist?.name || "",
-        album: currentSong.album?.name || "",
-        artwork: photos[currentSong._id]
-          ? [
-              { src: photos[currentSong._id], sizes: "96x96", type: "image/png" },
-              { src: photos[currentSong._id], sizes: "128x128", type: "image/png" },
-              { src: photos[currentSong._id], sizes: "192x192", type: "image/png" },
-              { src: photos[currentSong._id], sizes: "256x256", type: "image/png" },
-              { src: photos[currentSong._id], sizes: "512x512", type: "image/png" },
-            ]
-          : [],
-      });
-    }
-  }, [currentIndex, playlistSongs, photos, currentSong]);
-
-  // Handle song end - PLAYLISTS ALWAYS CONTINUE AUTOMATICALLY (built-in)
-  const handleSongEnd = () => {
-    if (repeatOneMode) {
-      // REPEAT ONE: Replay the same song
-      audioRef.current.currentTime = 0;
-      audioRef.current.play();
-      setIsPlaying(true);
-      
-      // Subtle visual feedback
-      const notification = document.createElement('div');
-      notification.className = 'ragafy-player__notification';
-      notification.textContent = '🔂 Repeating current song';
-      notification.style.background = 'linear-gradient(135deg, #2196F3, #1976D2)';
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 1000);
-      
-      return;
-    }
-
-    // NORMAL PLAYLIST BEHAVIOR (ALWAYS HAPPENS)
-    if (currentIndex < playlistSongs.length - 1) {
-      // Go to next song
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      // End of playlist - loop back to start (AUTOMATIC)
-      setCurrentIndex(0);
-      
-      // Optional: Show playlist looping notification
-      const notification = document.createElement('div');
-      notification.className = 'ragafy-player__notification';
-      notification.textContent = '🔄 Continuing from start';
-      notification.style.background = 'linear-gradient(135deg, #ffa500, #ff8c00)';
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 1500);
-    }
-  };
-
-  // Handle next button
-  const handleNext = () => {
-    if (currentIndex < playlistSongs.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      setCurrentIndex(0); // Loop to start
-    }
-  };
-
-  // Handle previous button
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
-    } else {
-      setCurrentIndex(playlistSongs.length - 1); // Loop to end
-    }
-  };
-
-  const togglePlayPause = () => setIsPlaying(prev => !prev);
-  
-  const handleSeek = (e) => {
-    const newTime = e.target.value;
-    audioRef.current.currentTime = newTime;
-    setProgress(newTime);
+  const showNotification = (message, color) => {
+    const notification = document.createElement('div');
+    notification.className = 'ragafy-player__notification';
+    notification.textContent = message;
+    notification.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
   };
 
   const handleAddToQueue = (song, playNext = false) => {
     if (playNext) {
-      addToQueueNext(song);
+      addToQueue(song);
       showNotification('✓ Added to play next', '#4CAF50');
     } else {
       addToQueue(song);
@@ -241,8 +81,8 @@ export default function SongPlayerPage() {
   };
 
   const handleAddAllToQueue = () => {
-    playlistSongs.forEach(song => addToQueue(song));
-    showNotification(`✓ Added ${playlistSongs.length} songs to queue`, '#4CAF50');
+    currentPlaylist.forEach(song => addToQueue(song));
+    showNotification(`✓ Added ${currentPlaylist.length} songs to queue`, '#4CAF50');
   };
 
   const handleClearQueue = () => {
@@ -253,21 +93,18 @@ export default function SongPlayerPage() {
     }
   };
 
-  const formatTime = (seconds) => {
-    if (!seconds) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Get tooltip text for repeat button
-  const getRepeatTitle = () => {
-    return repeatOneMode 
-      ? 'Repeat one - Current song repeats' 
-      : 'Repeat off - Playlist continues automatically';
-  };
-
-  if (!playlistSongs.length || !currentSong) return <p>No songs provided</p>;
+  if (!currentPlaylist.length || !currentSong) {
+    return (
+      <div className="ragafy-player__empty">
+        <i className="fa-solid fa-music"></i>
+        <h2>No song playing</h2>
+        <p>Select a song to start playing</p>
+        <button onClick={() => navigate('/browse')} className="ragafy-player__browse-btn">
+          Browse Songs
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -311,9 +148,14 @@ export default function SongPlayerPage() {
                   <i className="fa-solid fa-shuffle"></i> Shuffle on
                 </span>
               )}
-              {repeatOneMode && (
+              {repeatMode === 'one' && (
                 <span className="mode-indicator repeat-one">
                   <i className="fa-solid fa-repeat-1"></i> Repeat one
+                </span>
+              )}
+              {repeatMode === 'all' && (
+                <span className="mode-indicator repeat-all">
+                  <i className="fa-solid fa-repeat"></i> Repeat all
                 </span>
               )}
             </div>
@@ -347,17 +189,6 @@ export default function SongPlayerPage() {
           </div>
 
           <div className="ragafy-player__audio-container">
-            <audio
-              ref={audioRef}
-              src={currentSong.audioUrl}
-              autoPlay
-              onEnded={handleSongEnd}
-              onLoadedMetadata={() => { 
-                setDuration(audioRef.current.duration); 
-                setProgress(0); 
-              }}
-            />
-
             {/* Time Display */}
             <div className="ragafy-player__time-display">
               <span>{formatTime(progress)}</span>
@@ -369,7 +200,7 @@ export default function SongPlayerPage() {
               type="range"
               className="ragafy-player__progress"
               value={progress}
-              onChange={handleSeek}
+              onChange={(e) => seekTo(parseFloat(e.target.value))}
               max={duration || 0}
               step="0.1"
             />
@@ -406,11 +237,22 @@ export default function SongPlayerPage() {
               </button>
 
               <button 
-                className={`ragafy-player__control-btn repeat-one ${repeatOneMode ? 'active' : ''}`}
-                onClick={toggleRepeatOne}
-                title={getRepeatTitle()}
+                className={`ragafy-player__control-btn repeat ${
+                  repeatMode !== 'none' ? 'active' : ''
+                }`}
+                onClick={toggleRepeat}
+                title={
+                  repeatMode === 'one' 
+                    ? 'Repeat one' 
+                    : repeatMode === 'all' 
+                    ? 'Repeat all' 
+                    : 'Repeat off'
+                }
               >
-                <i className="fa-solid fa-repeat"></i>
+                <i className={`fa-solid ${
+                  repeatMode === 'one' ? 'fa-repeat-1' : 'fa-repeat'
+                }`}></i>
+                {repeatMode === 'one' && <span className="repeat-one-indicator">1</span>}
               </button>
             </div>
 
@@ -474,35 +316,33 @@ export default function SongPlayerPage() {
             </div>
 
             {/* Now Playing */}
-            {currentSong && (
-              <div className="ragafy-player__queue-now-playing">
-                <span className="ragafy-player__queue-label">NOW PLAYING</span>
-                <div className="ragafy-player__queue-current">
-                  {photos[currentSong._id] && (
-                    <img 
-                      src={photos[currentSong._id]} 
-                      alt={currentSong.title}
-                      className="ragafy-player__queue-current-image"
-                    />
-                  )}
-                  <div className="ragafy-player__queue-current-info">
-                    <span className="ragafy-player__queue-current-title">
-                      {currentSong.title}
-                    </span>
-                    <span className="ragafy-player__queue-current-artist">
-                      {currentSong.artist?.name || currentSong.singers?.[0]?.name}
-                    </span>
-                  </div>
-                  <button 
-                    className="ragafy-player__queue-add-next"
-                    onClick={() => handleAddToQueue(currentSong, true)}
-                    title="Play next"
-                  >
-                    <i className="fa-solid fa-forward"></i>
-                  </button>
+            <div className="ragafy-player__queue-now-playing">
+              <span className="ragafy-player__queue-label">NOW PLAYING</span>
+              <div className="ragafy-player__queue-current">
+                {photos[currentSong._id] && (
+                  <img 
+                    src={photos[currentSong._id]} 
+                    alt={currentSong.title}
+                    className="ragafy-player__queue-current-image"
+                  />
+                )}
+                <div className="ragafy-player__queue-current-info">
+                  <span className="ragafy-player__queue-current-title">
+                    {currentSong.title}
+                  </span>
+                  <span className="ragafy-player__queue-current-artist">
+                    {currentSong.artist?.name || currentSong.singers?.[0]?.name}
+                  </span>
                 </div>
+                <button 
+                  className="ragafy-player__queue-add-next"
+                  onClick={() => handleAddToQueue(currentSong, true)}
+                  title="Play next"
+                >
+                  <i className="fa-solid fa-forward"></i>
+                </button>
               </div>
-            )}
+            </div>
 
             {/* Queue List */}
             <div className="ragafy-player__queue-list">
@@ -592,7 +432,8 @@ export default function SongPlayerPage() {
           </div>
         )}
 
-        {/* Song List */}
+        {/* Playlist */}
+       
         <div className="ragafy-player__song-list">
           <div className="ragafy-player__song-list-header">
             <h3>
@@ -603,9 +444,14 @@ export default function SongPlayerPage() {
                   <i className="fa-solid fa-shuffle"></i>
                 </span>
               )}
-              {repeatOneMode && (
+              {repeatMode === 'one' && (
                 <span className="repeat-one-indicator-header">
                   <i className="fa-solid fa-repeat-1"></i>
+                </span>
+              )}
+              {repeatMode === 'all' && (
+                <span className="repeat-all-indicator-header">
+                  <i className="fa-solid fa-repeat"></i>
                 </span>
               )}
             </h3>
@@ -620,15 +466,25 @@ export default function SongPlayerPage() {
           </div>
           
           <div className="ragafy-player__song-list-items">
-            {playlistSongs.map((song, idx) => (
+            {currentPlaylist.map((song, idx) => (
               <div
                 key={song._id}
-                onClick={() => setCurrentIndex(idx)}
+                onClick={() => {
+                  // THIS IS THE FIX - Add functionality to change the current song
+                  // Navigate to the same page with the new index
+                  navigate('/player', {
+                    state: {
+                      songs: currentPlaylist,
+                      startIndex: idx
+                    },
+                    replace: true // Use replace to avoid adding to history
+                  });
+                }}
                 className={`ragafy-player__song-item ${
                   idx === currentIndex ? "active" : ""
                 }`}
               >
-                {photos[song._id] && (
+                {photos && photos[song._id] && (
                   <img 
                     src={photos[song._id]} 
                     alt={song.title} 
@@ -643,6 +499,14 @@ export default function SongPlayerPage() {
                     {song.artist?.name || song.singers?.[0]?.name}
                   </span>
                 </div>
+                
+                {/* Add play indicator for current song */}
+                {idx === currentIndex && (
+                  <div className="ragafy-player__song-item-playing">
+                    <i className="fa-solid fa-volume-high"></i>
+                  </div>
+                )}
+                
                 <button 
                   className="ragafy-player__song-item-add"
                   onClick={(e) => {
