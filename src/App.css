@@ -145,3 +145,7 @@ audio {
 .custom-file-upload input[type="file"] {
   display: none;
 }
+
+.fa-square-plus{
+  opacity: 1;
+}

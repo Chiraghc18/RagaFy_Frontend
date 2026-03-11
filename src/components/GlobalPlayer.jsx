@@ -22,7 +22,7 @@ export default function GlobalPlayer() {
     currentIndex
   } = useGlobalPlayer();
 
-  const { photos } = useData();
+  const { photos, queue } = useData();
   const navigate = useNavigate();
   
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -92,7 +92,7 @@ export default function GlobalPlayer() {
         <div className="global-player__drag-handle" />
 
         <div className="global-player__main">
-          {/* Song Info */}
+          {/* Left Side - Song Info */}
           <div 
             className="global-player__info"
             onClick={() => {
@@ -130,62 +130,70 @@ export default function GlobalPlayer() {
                 {currentSong.artist?.name || currentSong.singers?.[0]?.name || 'Unknown Artist'}
               </span>
             </div>
-            
-            {/* Circular navigation indicator */}
-            {currentPlaylist.length > 1 && (
-              <div className="global-player__circular-indicator" title="Playlist loops continuously">
-                <i className="fa-solid fa-repeat"></i>
-              </div>
-            )}
           </div>
 
-          {/* Controls - Previous, Play/Pause, Next with circular navigation */}
-          <div className="global-player__controls">
-            <button
-              className="global-player__control"
-              onClick={handlePrevious}
-              title="Previous (loops to last song)"
-              disabled={!currentPlaylist.length}
-            >
-              <i className="fa-solid fa-backward-step"></i>
-            </button>
+          {/* Center - Controls and Progress stacked */}
+          <div className="global-player__center">
+            {/* Control Buttons */}
+            <div className="global-player__controls">
+              <button
+                className="global-player__control"
+                onClick={handlePrevious}
+                title="Previous"
+                disabled={!currentPlaylist.length}
+              >
+                <i className="fa-solid fa-backward-step"></i>
+              </button>
 
-            <button
-              className="global-player__control play-pause"
-              onClick={togglePlayPause}
-              title={isPlaying ? 'Pause' : 'Play'}
-              disabled={!currentPlaylist.length}
-            >
-              <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
-            </button>
+              <button
+                className="global-player__control play-pause"
+                onClick={togglePlayPause}
+                title={isPlaying ? 'Pause' : 'Play'}
+                disabled={!currentPlaylist.length}
+              >
+                <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
+              </button>
 
-            <button
-              className="global-player__control"
-              onClick={handleNext}
-              title="Next (loops to first song)"
-              disabled={!currentPlaylist.length}
-            >
-              <i className="fa-solid fa-forward-step"></i>
-            </button>
+              <button
+                className="global-player__control"
+                onClick={handleNext}
+                title="Next"
+                disabled={!currentPlaylist.length}
+              >
+                <i className="fa-solid fa-forward-step"></i>
+              </button>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="global-player__progress-container">
+              <span className="global-player__time">{formatTime(progress)}</span>
+              <input
+                type="range"
+                className="global-player__progress"
+                value={progress || 0}
+                onChange={(e) => seekTo(parseFloat(e.target.value))}
+                max={duration || 0}
+                step="0.1"
+                disabled={!duration}
+              />
+              <span className="global-player__time">{formatTime(duration)}</span>
+            </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="global-player__progress-container">
-            <span className="global-player__time">{formatTime(progress)}</span>
-            <input
-              type="range"
-              className="global-player__progress"
-              value={progress || 0}
-              onChange={(e) => seekTo(parseFloat(e.target.value))}
-              max={duration || 0}
-              step="0.1"
-              disabled={!duration}
-            />
-            <span className="global-player__time">{formatTime(duration)}</span>
-          </div>
-
-          {/* Right Controls */}
+          {/* Right Side - Queue, Playlist Toggle, Volume */}
           <div className="global-player__right">
+            {/* Queue Button */}
+            <button
+              className="global-player__queue-btn"
+              onClick={() => navigate('/queue')}
+              title="View Queue"
+            >
+              <i className="fa-solid fa-list"></i>
+              {queue && queue.length > 0 && (
+                <span className="global-player__queue-count">{queue.length}</span>
+              )}
+            </button>
+
             {/* Playlist Toggle */}
             {currentPlaylist.length > 1 && (
               <button
@@ -193,7 +201,7 @@ export default function GlobalPlayer() {
                 onClick={() => setShowPlaylist(!showPlaylist)}
                 title="Show playlist"
               >
-                <i className="fa-solid fa-list"></i>
+                <i className="fa-solid fa-music"></i>
                 <span className="global-player__playlist-count">
                   {currentPlaylist.length}
                 </span>
@@ -300,12 +308,6 @@ export default function GlobalPlayer() {
                   )}
                 </div>
               ))}
-            </div>
-            
-            {/* Circular navigation footer */}
-            <div className="global-player__playlist-footer">
-              <i className="fa-solid fa-repeat"></i>
-              <span>Playlist loops continuously</span>
             </div>
           </div>
         )}

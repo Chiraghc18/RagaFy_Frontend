@@ -82,16 +82,10 @@ export default function BrowseSongLists({ songs, photo }) {
               </div>
             )}
             
-            <span className="browse-songs__item-title">{song.title}</span>
+            <span className="browse-songs__item-title" onClick={(e) => handlePlayNow(e, song, index)}>{song.title}</span>
             
             <div className="browse-songs__item-actions">
-              <button 
-                className="browse-songs__item-play-btn"
-                onClick={(e) => handlePlayNow(e, song, index)}
-                title="Play now"
-              >
-                <i className="fa-solid fa-play"></i>
-              </button>
+              
               
               <button 
                 className="browse-songs__item-add-btn"
