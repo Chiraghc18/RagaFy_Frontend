@@ -209,33 +209,7 @@ export default function GlobalPlayer() {
             )}
 
             {/* Volume Control */}
-            <div className="global-player__volume" ref={volumeRef}>
-              <button
-                className="global-player__volume-icon"
-                onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-                title="Volume"
-              >
-                {volume === 0 ? (
-                  <i className="fa-solid fa-volume-off"></i>
-                ) : volume < 0.5 ? (
-                  <i className="fa-solid fa-volume-low"></i>
-                ) : (
-                  <i className="fa-solid fa-volume-high"></i>
-                )}
-              </button>
-              
-              {showVolumeSlider && (
-                <input
-                  type="range"
-                  className="global-player__volume-slider"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={volume}
-                  onChange={(e) => setVolume(parseFloat(e.target.value))}
-                />
-              )}
-            </div>
+            
           </div>
         </div>
 

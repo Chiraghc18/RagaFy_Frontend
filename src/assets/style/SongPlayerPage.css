@@ -1715,3 +1715,203 @@
     height: 200px;
   }
 }
+
+/* Fix for mobile centering */
+@media (max-width: 992px) {
+  .ragafy-player {
+    grid-template-columns: 1fr !important; /* Force single column */
+    display: flex !important; /* Use flexbox for better centering */
+    flex-direction: column;
+    align-items: center; /* Center all content horizontally */
+    justify-content: flex-start;
+    padding: 20px;
+  }
+
+  .ragafy-player__main {
+    width: 100%;
+    max-width: 600px; /* Limit width on larger mobile devices */
+    margin: 0 auto; /* Center the main content */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Center the header content */
+  .ragafy-player__header {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* Center the audio container */
+  .ragafy-player__audio-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* Center the playlist section */
+  .ragafy-player__song-list {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto 0;
+    padding: 20px;
+  }
+
+  /* Center the song items */
+  .ragafy-player__song-list-items {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ragafy-player__song-item {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* Center the meta grid */
+  .ragafy-player__meta-grid {
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* Center the controls */
+  .ragafy-player__controls {
+    justify-content: center;
+  }
+
+  .ragafy-player__bottom-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+/* Additional fixes for smaller mobile devices */
+@media (max-width: 768px) {
+  .ragafy-player {
+    padding: 15px;
+  }
+
+  .ragafy-player__main {
+    max-width: 100%;
+  }
+
+  .ragafy-player__audio-container {
+    max-width: 100%;
+    padding: 20px 15px;
+  }
+
+  .ragafy-player__song-list {
+    max-width: 100%;
+    padding: 15px;
+  }
+
+  .ragafy-player__song-item {
+    max-width: 100%;
+  }
+
+  /* Ensure the back button doesn't interfere with centering */
+  .ragafy-player__back {
+    left: 15px;
+  }
+}
+
+/* Fix for very small devices */
+@media (max-width: 480px) {
+  .ragafy-player {
+    padding: 10px;
+  }
+
+  .ragafy-player__main {
+    width: 100%;
+  }
+
+  .ragafy-player__header {
+    margin-bottom: 20px;
+  }
+
+  .ragafy-player__photo,
+  .ragafy-player__photo-placeholder {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 15px;
+  }
+
+  .ragafy-player__title {
+    font-size: 20px;
+    padding: 0 10px;
+  }
+
+  .ragafy-player__audio-container {
+    padding: 15px 12px;
+  }
+
+  .ragafy-player__controls {
+    gap: 10px;
+  }
+
+  .ragafy-player__control-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ragafy-player__control-btn.play-pause {
+    width: 50px;
+    height: 50px;
+  }
+
+  .ragafy-player__song-list {
+    padding: 12px;
+  }
+
+  .ragafy-player__song-item {
+    padding: 8px;
+  }
+}
+
+/* Fix for landscape mode on mobile */
+@media (max-width: 992px) and (orientation: landscape) {
+  .ragafy-player {
+    padding: 15px;
+  }
+
+  .ragafy-player__photo,
+  .ragafy-player__photo-placeholder {
+    width: 150px;
+    height: 150px;
+  }
+
+  .ragafy-player__main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 100%;
+  }
+
+  .ragafy-player__header {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Ensure the queue panel doesn't affect centering when open */
+@media (max-width: 992px) {
+  .ragafy-player__queue-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 350px;
+    z-index: 1000;
+    margin: 0; /* Remove any auto margins */
+  }
+
+  /* When queue is open, main content should still be centered */
+  .ragafy-player:has(.ragafy-player__queue-panel) .ragafy-player__main {
+    margin-right: 0; /* Reset any margin that might be added */
+  }
+}
