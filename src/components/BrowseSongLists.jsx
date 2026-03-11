@@ -1,16 +1,20 @@
-import React from "react"; // Removed useState, useEffect
+// components/BrowseSongLists.jsx
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useData } from "../context/DataContext"; // <-- IMPORT
-// Removed axios
+import { useData } from "../context/DataContext";
+// import '../assets/style/BrowseSongList.css';
 
 export default function BrowseSongLists({ songs, photo }) {
   const navigate = useNavigate();
-  const { photos } = useData(); // <-- Get the globally-loaded photo map
-
-  // The entire useEffect to load photos is GONE.
+  const { photos, addToQueue } = useData();
 
   const handleSongClick = (index) => {
     navigate("/player", { state: { songs, startIndex: index } });
+  };
+
+  const handleAddToQueue = (e, song) => {
+    e.stopPropagation();
+    addToQueue(song);
   };
 
   return (
@@ -32,7 +36,6 @@ export default function BrowseSongLists({ songs, photo }) {
             onClick={() => handleSongClick(index)}
             className="browse-songs__item"
           >
-            {/* This now works instantly from global state */}
             {photos[song._id] ? (
               <img
                 src={photos[song._id]}
@@ -43,6 +46,12 @@ export default function BrowseSongLists({ songs, photo }) {
               <div className="browse-songs__item-placeholder">🎵</div>
             )}
             <span className="browse-songs__item-title">{song.title}</span>
+            <button 
+              className="browse-songs__item-add-btn"
+              onClick={(e) => handleAddToQueue(e, song)}
+            >
+              <i className="fa-regular fa-square-plus"></i>
+            </button>
           </div>
         ))}
       </div>

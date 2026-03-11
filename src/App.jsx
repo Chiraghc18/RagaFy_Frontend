@@ -15,6 +15,7 @@ import HeadSearch from "./components/UserComponents/HeadSearch";
 import UserPlaylists from "./components/UserComponents/UserPlayLists.jsx";
 import UserPlaylistDetails from "./components/UserComponents/UserPlaylistDetails.jsx";
 import AllSongs from "./components/UserComponents/AllSong.jsx";
+import QueuePage from './pages/QueuePage';
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
           {/* Redirect any unmatched route to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
           
+          <Route path="/queue" element={<QueuePage />} />
           {/* Optional: Keep 404 for truly non-existent routes */}
           {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
