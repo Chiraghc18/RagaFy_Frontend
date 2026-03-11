@@ -33,9 +33,13 @@ export default function SongPlayerPage() {
   const [showQueue, setShowQueue] = useState(false);
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [animatingSong, setAnimatingSong] = useState(null);
   
   const queuePanelRef = useRef(null);
   const volumeRef = useRef(null);
+
+  // Create a Set of queue song IDs for quick lookup
+  const queueSongIds = new Set(queue.map(song => song._id));
 
   // Initialize player with songs from location if provided
   useEffect(() => {
@@ -71,6 +75,10 @@ export default function SongPlayerPage() {
   };
 
   const handleAddToQueue = (song, playNext = false) => {
+    // Trigger animation
+    setAnimatingSong(song._id);
+    setTimeout(() => setAnimatingSong(null), 500);
+    
     if (playNext) {
       addToQueue(song);
       showNotification('✓ Added to play next', '#4CAF50');
@@ -91,6 +99,10 @@ export default function SongPlayerPage() {
       setShowQueue(false);
       showNotification('🗑️ Queue cleared', '#f44336');
     }
+  };
+
+  const isSongInQueue = (songId) => {
+    return queueSongIds.has(songId);
   };
 
   if (!currentPlaylist.length || !currentSong) {
@@ -433,7 +445,6 @@ export default function SongPlayerPage() {
         )}
 
         {/* Playlist */}
-       
         <div className="ragafy-player__song-list">
           <div className="ragafy-player__song-list-header">
             <h3>
@@ -466,59 +477,66 @@ export default function SongPlayerPage() {
           </div>
           
           <div className="ragafy-player__song-list-items">
-            {currentPlaylist.map((song, idx) => (
-              <div
-                key={song._id}
-                onClick={() => {
-                  // THIS IS THE FIX - Add functionality to change the current song
-                  // Navigate to the same page with the new index
-                  navigate('/player', {
-                    state: {
-                      songs: currentPlaylist,
-                      startIndex: idx
-                    },
-                    replace: true // Use replace to avoid adding to history
-                  });
-                }}
-                className={`ragafy-player__song-item ${
-                  idx === currentIndex ? "active" : ""
-                }`}
-              >
-                {photos && photos[song._id] && (
-                  <img 
-                    src={photos[song._id]} 
-                    alt={song.title} 
-                    className="ragafy-player__song-item-image" 
-                  />
-                )}
-                <div className="ragafy-player__song-item-info">
-                  <span className="ragafy-player__song-item-title">
-                    {song.title}
-                  </span>
-                  <span className="ragafy-player__song-item-subtitle">
-                    {song.artist?.name || song.singers?.[0]?.name}
-                  </span>
-                </div>
-                
-                {/* Add play indicator for current song */}
-                {idx === currentIndex && (
-                  <div className="ragafy-player__song-item-playing">
-                    <i className="fa-solid fa-volume-high"></i>
-                  </div>
-                )}
-                
-                <button 
-                  className="ragafy-player__song-item-add"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToQueue(song);
+            {currentPlaylist.map((song, idx) => {
+              const inQueue = isSongInQueue(song._id);
+              const isAnimating = animatingSong === song._id;
+              
+              return (
+                <div
+                  key={song._id}
+                  onClick={() => {
+                    navigate('/player', {
+                      state: {
+                        songs: currentPlaylist,
+                        startIndex: idx
+                      },
+                      replace: true
+                    });
                   }}
-                  title="Add to queue"
+                  className={`ragafy-player__song-item ${
+                    idx === currentIndex ? "active" : ""
+                  }`}
                 >
-                  <i className="fa-regular fa-square-plus"></i>
-                </button>
-              </div>
-            ))}
+                  {photos && photos[song._id] && (
+                    <img 
+                      src={photos[song._id]} 
+                      alt={song.title} 
+                      className="ragafy-player__song-item-image" 
+                    />
+                  )}
+                  <div className="ragafy-player__song-item-info">
+                    <span className="ragafy-player__song-item-title">
+                      {song.title}
+                    </span>
+                    <span className="ragafy-player__song-item-subtitle">
+                      {song.artist?.name || song.singers?.[0]?.name}
+                    </span>
+                  </div>
+                  
+                  {/* Add play indicator for current song */}
+                  {idx === currentIndex && (
+                    <div className="ragafy-player__song-item-playing">
+                      <i className="fa-solid fa-volume-high"></i>
+                    </div>
+                  )}
+                  
+                  <button 
+                    className={`ragafy-player__song-item-add ${inQueue ? 'added' : ''} ${isAnimating ? 'animating' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToQueue(song);
+                    }}
+                    title={inQueue ? "Added to queue" : "Add to queue"}
+                  >
+                    {inQueue ? (
+                      <i className="fa-regular fa-square-check"></i> // Square check icon when added
+                    ) : (
+                      <i className="fa-regular fa-square-plus"></i> // Square plus icon when not added
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

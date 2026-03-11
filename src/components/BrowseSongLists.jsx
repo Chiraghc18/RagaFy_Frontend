@@ -1,5 +1,5 @@
 // components/BrowseSongLists.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useGlobalPlayer } from "../context/GlobalPlayerContext";
@@ -7,17 +7,35 @@ import { useGlobalPlayer } from "../context/GlobalPlayerContext";
 
 export default function BrowseSongLists({ songs, photo }) {
   const navigate = useNavigate();
-  const { photos, addToQueue } = useData();
-  const { playPlaylist, currentSong } = useGlobalPlayer(); // Added currentSong for active state
+  const { photos, addToQueue, queue } = useData(); // Added queue
+  const { playPlaylist, currentSong } = useGlobalPlayer();
+  
+  // Local state to track which songs are in queue with animation
+  const [queueStatus, setQueueStatus] = useState({});
+  const [animatingSong, setAnimatingSong] = useState(null);
+
+  // Update queue status when queue changes
+  useEffect(() => {
+    const queueSongIds = new Set(queue.map(song => song._id));
+    const newQueueStatus = {};
+    songs.forEach(song => {
+      newQueueStatus[song._id] = queueSongIds.has(song._id);
+    });
+    setQueueStatus(newQueueStatus);
+  }, [queue, songs]);
 
   const handleSongClick = (index) => {
-    // Play immediately in global player and navigate to full player page
     playPlaylist(songs, index);
     navigate("/player", { state: { songs, startIndex: index } });
   };
 
   const handleAddToQueue = (e, song) => {
     e.stopPropagation();
+    
+    // Trigger animation
+    setAnimatingSong(song._id);
+    setTimeout(() => setAnimatingSong(null), 500);
+    
     addToQueue(song);
     
     // Show mini notification
@@ -28,7 +46,6 @@ export default function BrowseSongLists({ songs, photo }) {
     e.stopPropagation();
     playPlaylist(songs, index);
     
-    // Show mini notification
     showNotification(`▶ Playing: ${song.title}`, '#ffa500');
   };
 
@@ -41,7 +58,6 @@ export default function BrowseSongLists({ songs, photo }) {
     setTimeout(() => notification.remove(), 2000);
   };
 
-  // Check if a song is currently playing
   const isSongPlaying = (song) => {
     return currentSong?._id === song._id;
   };
@@ -82,17 +98,21 @@ export default function BrowseSongLists({ songs, photo }) {
               </div>
             )}
             
-            <span className="browse-songs__item-title" onClick={(e) => handlePlayNow(e, song, index)}>{song.title}</span>
+            <span className="browse-songs__item-title" onClick={(e) => handlePlayNow(e, song, index)}>
+              {song.title}
+            </span>
             
             <div className="browse-songs__item-actions">
-              
-              
               <button 
-                className="browse-songs__item-add-btn"
+                className={`browse-songs__item-add-btn ${queueStatus[song._id] ? 'browse-songs__item-add-btn--added' : ''} ${animatingSong === song._id ? 'browse-songs__item-add-btn--animating' : ''}`}
                 onClick={(e) => handleAddToQueue(e, song)}
-                title="Add to queue"
+                title={queueStatus[song._id] ? "Added to queue" : "Add to queue"}
               >
-                <i className="fa-regular fa-square-plus"></i>
+                {queueStatus[song._id] ? (
+                  <i className="fa-regular fa-square-check"></i> 
+                ) : (
+                  <i className="fa-regular fa-square-plus"></i>
+                )}
               </button>
             </div>
           </div>

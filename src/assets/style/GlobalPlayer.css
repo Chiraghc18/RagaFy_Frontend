@@ -6,12 +6,22 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: linear-gradient(135deg, #0a1f44, #1e3c72, #2a5298, #3a6ea5, #ff8c5a, #ff6b4a, #ff3b3b);
+  background-size: 300% 300%;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(20px);
   z-index: 1000;
   box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.3);
   transition: transform 0.3s ease;
+  animation: playerGradient 14s ease infinite;
+}
+
+@keyframes playerGradient {
+    0% { background-position: 0% 0%; }
+    25% { background-position: 50% 50%; }
+    50% { background-position: 100% 100%; }
+    75% { background-position: 50% 50%; }
+    100% { background-position: 0% 0%; }
 }
 
 /* Collapsed state for mobile */

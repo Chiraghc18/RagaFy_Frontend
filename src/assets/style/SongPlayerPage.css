@@ -37,10 +37,12 @@
     }
 }
 
-/* Main Player Layout */
+  /* Main Body */
+
 .ragafy-player {
     min-height: 100vh;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #ff7e5f 100%);
+    background: linear-gradient(135deg, #0a1f44, #1e3c72, #2a5298, #3a6ea5, #ff8c5a, #ff6b4a, #ff3b3b);
+    background-size: 300% 300%;
     color: white;
     padding: 30px;
     display: grid;
@@ -48,6 +50,15 @@
     gap: 30px;
     position: relative;
     font-family: 'Inter', sans-serif;
+    animation: sunsetFlow 14s ease infinite;
+}
+
+@keyframes sunsetFlow {
+    0% { background-position: 0% 0%; }
+    25% { background-position: 50% 50%; }
+    50% { background-position: 100% 100%; }
+    75% { background-position: 50% 50%; }
+    100% { background-position: 0% 0%; }
 }
 
 .ragafy-player::before {
@@ -1915,3 +1926,4 @@
     margin-right: 0; /* Reset any margin that might be added */
   }
 }
+
