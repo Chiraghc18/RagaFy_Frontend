@@ -116,8 +116,9 @@ export default function AllSongs() {
                   <div className="all-songs__info">
                     <div className="all-songs__title">{song.title}</div>
                     <div className="all-songs__meta">
-                      {song.singers?.map((s) => s.name).join(", ") ||
-                        "Unknown Artist"}
+                      {song.artist?.name || 
+                      (song.singers?.map((s) => s.name).join(", ")) || 
+                      "Unknown Artist"}
                     </div>
                   </div>
                   <div className="all-songs__play-icon">▶</div>

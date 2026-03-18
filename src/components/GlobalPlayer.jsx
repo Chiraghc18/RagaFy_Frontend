@@ -205,8 +205,8 @@ export default function GlobalPlayer() {
                 <span className="global-player__playlist-count">
                   {currentPlaylist.length}
                 </span>
-              </button>
-            )}
+              </button> 
+            )} 
 
             {/* Volume Control */}
             
