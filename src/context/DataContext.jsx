@@ -1,50 +1,92 @@
 // context/DataContext.jsx
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useMemo,
+  useCallback,
+} from "react";
 import axios from "axios";
+
 import fetchSongs from "../services/songService/fetchSongs";
 import { fetchPlaylists } from "../services/playlistService";
 import { fetchAllFilters } from "../services/songService/songFilterService";
 
 const DataContext = createContext(null);
 
+// ─────────────────────────────────────────────────────────────
 // localStorage keys
+// ─────────────────────────────────────────────────────────────
 const STORAGE_KEYS = {
-  QUEUE: 'ragafy_queue',
-  QUEUE_INDEX: 'ragafy_queue_index',
-  QUEUE_HISTORY: 'ragafy_queue_history'
+  QUEUE: "ragafy_queue",
+  QUEUE_INDEX: "ragafy_queue_index",
+  QUEUE_PLAYBACK_HISTORY: "ragafy_queue_playback_history",
 };
 
+// ─────────────────────────────────────────────────────────────
+// Safe localStorage helpers
+// ─────────────────────────────────────────────────────────────
+const getStorageItem = (key, fallback) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const setStorageItem = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    console.error(`Failed to save ${key}:`, err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// Provider
+// ─────────────────────────────────────────────────────────────
 export function DataProvider({ children }) {
+  // ───────────────────────────────────────────────────────────
+  // Global states
+  // ───────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [songs, setSongs] = useState([]);
   const [photos, setPhotos] = useState({});
   const [playlists, setPlaylists] = useState([]);
   const [filterOptions, setFilterOptions] = useState({});
-  
-  // Queue state with localStorage initialization
-  const [queue, setQueue] = useState(() => {
-    const savedQueue = localStorage.getItem(STORAGE_KEYS.QUEUE);
-    return savedQueue ? JSON.parse(savedQueue) : [];
-  });
-  
+
+  // ───────────────────────────────────────────────────────────
+  // Queue states
+  // ───────────────────────────────────────────────────────────
+  const [queue, setQueue] = useState(() =>
+    getStorageItem(STORAGE_KEYS.QUEUE, [])
+  );
+
   const [currentQueueIndex, setCurrentQueueIndex] = useState(() => {
-    const savedIndex = localStorage.getItem(STORAGE_KEYS.QUEUE_INDEX);
-    return savedIndex ? parseInt(savedIndex, 10) : 0;
-  });
-  
-  const [currentQueueSong, setCurrentQueueSong] = useState(null);
-  
-  const [queueHistory, setQueueHistory] = useState(() => {
-    const savedHistory = localStorage.getItem(STORAGE_KEYS.QUEUE_HISTORY);
-    return savedHistory ? JSON.parse(savedHistory) : [];
+    try {
+      const index = localStorage.getItem(STORAGE_KEYS.QUEUE_INDEX);
+      return index ? parseInt(index, 10) : 0;
+    } catch {
+      return 0;
+    }
   });
 
-  // Save queue to localStorage whenever it changes
+  const [queueHistory, setQueueHistory] = useState(() =>
+    getStorageItem(STORAGE_KEYS.QUEUE_PLAYBACK_HISTORY, [])
+  );
+
+  const [currentQueueSong, setCurrentQueueSong] = useState(null);
+
+  // ───────────────────────────────────────────────────────────
+  // Sync queue to localStorage
+  // ───────────────────────────────────────────────────────────
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(queue));
-    
-    // Update currentQueueSong when queue or index changes
+    setStorageItem(STORAGE_KEYS.QUEUE, queue);
+
     if (queue.length > 0 && currentQueueIndex < queue.length) {
       setCurrentQueueSong(queue[currentQueueIndex]);
     } else {
@@ -52,60 +94,77 @@ export function DataProvider({ children }) {
     }
   }, [queue, currentQueueIndex]);
 
-  // Save queue index to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.QUEUE_INDEX, currentQueueIndex.toString());
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.QUEUE_INDEX,
+        currentQueueIndex.toString()
+      );
+    } catch (err) {
+      console.error("Failed to save queue index:", err);
+    }
   }, [currentQueueIndex]);
 
-  // Save history to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.QUEUE_HISTORY, JSON.stringify(queueHistory));
+    setStorageItem(
+      STORAGE_KEYS.QUEUE_PLAYBACK_HISTORY,
+      queueHistory
+    );
   }, [queueHistory]);
 
-  // Load all data
+  // ───────────────────────────────────────────────────────────
+  // Load remote data
+  // ───────────────────────────────────────────────────────────
   useEffect(() => {
     const loadAllData = async () => {
       try {
         setLoading(true);
 
-        const [songRes, plRes, filterRes] = await Promise.allSettled([
-          fetchSongs(),
-          fetchPlaylists(),
-          fetchAllFilters(),
-        ]);
+        const [songRes, playlistRes, filterRes] =
+          await Promise.allSettled([
+            fetchSongs(),
+            fetchPlaylists(),
+            fetchAllFilters(),
+          ]);
 
-        let allSongs = [];
+        // Songs
         if (songRes.status === "fulfilled") {
-          allSongs = songRes.value.data || [];
+          const allSongs = songRes.value.data || [];
+
           setSongs(allSongs);
 
+          // Fetch photos
           const photoMap = {};
+
           await Promise.all(
             allSongs.map(async (song) => {
               try {
                 const res = await axios.get(
                   `https://ragafy-backend.onrender.com/songs/${song._id}/photo`
                 );
+
                 photoMap[song._id] = res.data.url;
               } catch {
                 photoMap[song._id] = null;
               }
             })
           );
+
           setPhotos(photoMap);
         }
 
-        if (plRes.status === "fulfilled") {
-          setPlaylists(plRes.value.data || []);
+        // Playlists
+        if (playlistRes.status === "fulfilled") {
+          setPlaylists(playlistRes.value.data || []);
         }
 
+        // Filters
         if (filterRes.status === "fulfilled") {
-          setFilterOptions(filterRes.value);
+          setFilterOptions(filterRes.value || {});
         }
-
-      } catch (e) {
-        console.error("Failed to load global data:", e);
-        setError(e.message);
+      } catch (err) {
+        console.error("Failed loading global data:", err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -114,212 +173,346 @@ export function DataProvider({ children }) {
     loadAllData();
   }, []);
 
-  // Queue functions with localStorage auto-save (handled by useEffect)
-  const addToQueue = (song) => {
-    setQueue(prev => {
-      // Check if song already exists in queue (optional)
-      const exists = prev.some(s => s._id === song._id);
-      if (exists) {
-        // Option: Move existing song to end instead of duplicate
-        const filtered = prev.filter(s => s._id !== song._id);
-        return [...filtered, song];
-      }
+  // ───────────────────────────────────────────────────────────
+  // Queue functions
+  // ───────────────────────────────────────────────────────────
+
+  // Add single song
+  const addToQueue = useCallback((song) => {
+    setQueue((prev) => {
+      const exists = prev.some((s) => s._id === song._id);
+
+      if (exists) return prev;
+
       return [...prev, song];
     });
-  };
+  }, []);
 
-  const addMultipleToQueue = (newSongs) => {
-    setQueue(prev => {
-      // Remove duplicates based on song._id
-      const existingIds = new Set(prev.map(s => s._id));
-      const uniqueNewSongs = newSongs.filter(song => !existingIds.has(song._id));
-      return [...prev, ...uniqueNewSongs];
+  // Add multiple songs
+  const addMultipleToQueue = useCallback((newSongs) => {
+    setQueue((prev) => {
+      const existingIds = new Set(prev.map((s) => s._id));
+
+      const uniqueSongs = newSongs.filter(
+        (song) => !existingIds.has(song._id)
+      );
+
+      return [...prev, ...uniqueSongs];
     });
-  };
+  }, []);
 
-  const addToQueueNext = (song) => {
-    setQueue(prev => {
-      const newQueue = [...prev];
-      // Insert after current index
-      newQueue.splice(currentQueueIndex + 1, 0, song);
-      return newQueue;
-    });
-  };
+  // Add next
+  const addToQueueNext = useCallback(
+    (song) => {
+      setQueue((prev) => {
+        const exists = prev.some((s) => s._id === song._id);
 
-  const removeFromQueue = (songId) => {
-    setQueue(prev => {
-      const newQueue = prev.filter(song => song._id !== songId);
-      
-      // Adjust current index if needed
-      if (currentQueueIndex >= newQueue.length) {
-        setCurrentQueueIndex(Math.max(0, newQueue.length - 1));
-      }
-      
-      return newQueue;
-    });
-  };
+        if (exists) return prev;
 
-  const clearQueue = () => {
+        const newQueue = [...prev];
+
+        newQueue.splice(currentQueueIndex + 1, 0, song);
+
+        return newQueue;
+      });
+    },
+    [currentQueueIndex]
+  );
+
+  // Remove song
+  const removeFromQueue = useCallback(
+    (songId) => {
+      setQueue((prev) => {
+        const removedIndex = prev.findIndex(
+          (song) => song._id === songId
+        );
+
+        const newQueue = prev.filter(
+          (song) => song._id !== songId
+        );
+
+        setCurrentQueueIndex((curr) => {
+          if (newQueue.length === 0) return 0;
+
+          // Removed current song
+          if (removedIndex === curr) {
+            return curr >= newQueue.length
+              ? newQueue.length - 1
+              : curr;
+          }
+
+          // Removed before current
+          if (removedIndex < curr) {
+            return curr - 1;
+          }
+
+          return curr;
+        });
+
+        return newQueue;
+      });
+    },
+    []
+  );
+
+  // Clear queue
+  const clearQueue = useCallback(() => {
     setQueue([]);
     setCurrentQueueIndex(0);
     setCurrentQueueSong(null);
     setQueueHistory([]);
-    
-    // Also clear from localStorage
+
     localStorage.removeItem(STORAGE_KEYS.QUEUE);
     localStorage.removeItem(STORAGE_KEYS.QUEUE_INDEX);
-    localStorage.removeItem(STORAGE_KEYS.QUEUE_HISTORY);
-  };
+    localStorage.removeItem(
+      STORAGE_KEYS.QUEUE_PLAYBACK_HISTORY
+    );
+  }, []);
 
-  const playQueue = (index = 0) => {
-    if (queue.length > 0 && index < queue.length) {
+  // Play queue
+  const playQueue = useCallback(
+    (index = 0) => {
+      if (queue.length === 0) return false;
+
+      if (index >= queue.length) return false;
+
       setCurrentQueueIndex(index);
-      setCurrentQueueSong(queue[index]);
-      return true;
-    }
-    return false;
-  };
 
-  const playNext = () => {
-    if (currentQueueIndex < queue.length - 1) {
-      // Add current song to history before moving
-      setQueueHistory(prev => [...prev, queue[currentQueueIndex]]);
-      setCurrentQueueIndex(prev => prev + 1);
       return true;
-    } else if (queue.length > 0) {
-      // Loop back to start
-      setQueueHistory(prev => [...prev, queue[currentQueueIndex]]);
-      setCurrentQueueIndex(0);
-      return true;
-    }
-    return false;
-  };
+    },
+    [queue]
+  );
 
-  const playPrevious = () => {
+  // Next song
+  const playNext = useCallback(() => {
+    if (queue.length === 0) return false;
+
+    setQueueHistory((prev) => [
+      ...prev,
+      queue[currentQueueIndex],
+    ]);
+
+    const nextIndex =
+      (currentQueueIndex + 1) % queue.length;
+
+    setCurrentQueueIndex(nextIndex);
+
+    return true;
+  }, [queue, currentQueueIndex]);
+
+  // Previous song
+  const playPrevious = useCallback(() => {
+    // Go previous in queue
     if (currentQueueIndex > 0) {
-      setCurrentQueueIndex(prev => prev - 1);
+      setCurrentQueueIndex((prev) => prev - 1);
       return true;
-    } else if (queueHistory.length > 0) {
-      // Go to last played from history
-      const lastPlayed = queueHistory[queueHistory.length - 1];
-      const lastPlayedIndex = queue.findIndex(s => s._id === lastPlayed?._id);
+    }
+
+    // Use history
+    if (queueHistory.length > 0) {
+      const lastPlayed =
+        queueHistory[queueHistory.length - 1];
+
+      const lastPlayedIndex = queue.findIndex(
+        (song) => song._id === lastPlayed?._id
+      );
+
       if (lastPlayedIndex !== -1) {
-        setQueueHistory(prev => prev.slice(0, -1));
+        setQueueHistory((prev) => prev.slice(0, -1));
+
         setCurrentQueueIndex(lastPlayedIndex);
+
         return true;
       }
     }
-    return false;
-  };
 
-  const shuffleQueue = () => {
+    return false;
+  }, [currentQueueIndex, queueHistory, queue]);
+
+  // Shuffle queue
+  const shuffleQueue = useCallback(() => {
     if (queue.length <= 1) return;
-    
+
     const shuffled = [...queue];
-    // Fisher-Yates shuffle
+
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+
+      [shuffled[i], shuffled[j]] = [
+        shuffled[j],
+        shuffled[i],
+      ];
     }
-    
+
     setQueue(shuffled);
     setCurrentQueueIndex(0);
     setQueueHistory([]);
-  };
+  }, [queue]);
 
-  const moveSongInQueue = (fromIndex, toIndex) => {
-    if (fromIndex === toIndex) return;
-    
-    setQueue(prev => {
-      const newQueue = [...prev];
-      const [movedSong] = newQueue.splice(fromIndex, 1);
-      newQueue.splice(toIndex, 0, movedSong);
-      
-      // Adjust current index if affected
-      if (currentQueueIndex === fromIndex) {
-        setCurrentQueueIndex(toIndex);
-      } else if (
-        currentQueueIndex > fromIndex && 
-        currentQueueIndex <= toIndex
-      ) {
-        setCurrentQueueIndex(prev => prev - 1);
-      } else if (
-        currentQueueIndex < fromIndex && 
-        currentQueueIndex >= toIndex
-      ) {
-        setCurrentQueueIndex(prev => prev + 1);
-      }
-      
-      return newQueue;
-    });
-  };
+  // Move song
+  const moveSongInQueue = useCallback(
+    (fromIndex, toIndex) => {
+      if (fromIndex === toIndex) return;
 
-  const getNextSongs = (count = 5) => {
-    if (queue.length === 0) return [];
-    
-    const nextSongs = [];
-    for (let i = 1; i <= count; i++) {
-      const nextIndex = (currentQueueIndex + i) % queue.length;
-      nextSongs.push({
-        ...queue[nextIndex],
-        position: i
+      setQueue((prev) => {
+        const newQueue = [...prev];
+
+        const [movedSong] = newQueue.splice(
+          fromIndex,
+          1
+        );
+
+        newQueue.splice(toIndex, 0, movedSong);
+
+        setCurrentQueueIndex((curr) => {
+          if (curr === fromIndex) return toIndex;
+
+          if (
+            curr > fromIndex &&
+            curr <= toIndex
+          ) {
+            return curr - 1;
+          }
+
+          if (
+            curr < fromIndex &&
+            curr >= toIndex
+          ) {
+            return curr + 1;
+          }
+
+          return curr;
+        });
+
+        return newQueue;
       });
-    }
-    return nextSongs;
-  };
+    },
+    []
+  );
 
-  const getPreviousSongs = (count = 5) => {
-    if (queue.length === 0) return [];
-    
-    const prevSongs = [];
-    for (let i = 1; i <= count; i++) {
-      const prevIndex = (currentQueueIndex - i + queue.length) % queue.length;
-      prevSongs.push({
-        ...queue[prevIndex],
-        position: i
-      });
-    }
-    return prevSongs;
-  };
+  // Next songs
+  const getNextSongs = useCallback(
+    (count = 5) => {
+      if (queue.length === 0) return [];
 
-  const value = {
-    loading,
-    error,
-    songs,
-    photos,
-    playlists,
-    filterOptions,
-    // Queue state
-    queue,
-    currentQueueIndex,
-    currentQueueSong,
-    queueHistory,
-    // Queue functions
-    addToQueue,
-    addMultipleToQueue,
-    addToQueueNext,
-    removeFromQueue,
-    clearQueue,
-    playQueue,
-    playNext,
-    playPrevious,
-    shuffleQueue,
-    moveSongInQueue,
-    getNextSongs,
-    getPreviousSongs,
-    // Queue stats
-    queueLength: queue.length,
-    hasQueue: queue.length > 0,
-    isQueuePlaying: currentQueueSong !== null,
-  };
+      return Array.from(
+        { length: Math.min(count, queue.length - 1) },
+        (_, i) => ({
+          ...queue[
+            (currentQueueIndex + i + 1) %
+              queue.length
+          ],
+          position: i + 1,
+        })
+      );
+    },
+    [queue, currentQueueIndex]
+  );
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  // Previous songs
+  const getPreviousSongs = useCallback(
+    (count = 5) => {
+      if (queue.length === 0) return [];
+
+      return Array.from(
+        { length: Math.min(count, queue.length - 1) },
+        (_, i) => ({
+          ...queue[
+            (currentQueueIndex -
+              i -
+              1 +
+              queue.length) %
+              queue.length
+          ],
+          position: i + 1,
+        })
+      );
+    },
+    [queue, currentQueueIndex]
+  );
+
+  // ───────────────────────────────────────────────────────────
+  // Context value (memoized)
+  // ───────────────────────────────────────────────────────────
+  const value = useMemo(
+    () => ({
+      // Global state
+      loading,
+      error,
+      songs,
+      photos,
+      playlists,
+      filterOptions,
+
+      // Queue state
+      queue,
+      currentQueueIndex,
+      currentQueueSong,
+      queueHistory,
+
+      // Queue functions
+      addToQueue,
+      addMultipleToQueue,
+      addToQueueNext,
+      removeFromQueue,
+      clearQueue,
+      playQueue,
+      playNext,
+      playPrevious,
+      shuffleQueue,
+      moveSongInQueue,
+      getNextSongs,
+      getPreviousSongs,
+
+      // Stats
+      queueLength: queue.length,
+      hasQueue: queue.length > 0,
+      isQueuePlaying: currentQueueSong !== null,
+    }),
+    [
+      loading,
+      error,
+      songs,
+      photos,
+      playlists,
+      filterOptions,
+      queue,
+      currentQueueIndex,
+      currentQueueSong,
+      queueHistory,
+      addToQueue,
+      addMultipleToQueue,
+      addToQueueNext,
+      removeFromQueue,
+      clearQueue,
+      playQueue,
+      playNext,
+      playPrevious,
+      shuffleQueue,
+      moveSongInQueue,
+      getNextSongs,
+      getPreviousSongs,
+    ]
+  );
+
+  return (
+    <DataContext.Provider value={value}>
+      {children}
+    </DataContext.Provider>
+  );
 }
 
+// ─────────────────────────────────────────────────────────────
+// Hook
+// ─────────────────────────────────────────────────────────────
 export const useData = () => {
   const context = useContext(DataContext);
+
   if (context === null) {
-    throw new Error("useData must be used within a DataProvider");
+    throw new Error(
+      "useData must be used within a DataProvider"
+    );
   }
+
   return context;
 };

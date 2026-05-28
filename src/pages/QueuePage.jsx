@@ -6,9 +6,9 @@ import '../assets/style/QueuePage.css';
 
 const QueuePage = () => {
   const navigate = useNavigate();
-  const { 
-    queue, 
-    photos, 
+  const {
+    queue,
+    photos,
     currentQueueSong,
     currentQueueIndex,
     removeFromQueue,
@@ -19,7 +19,7 @@ const QueuePage = () => {
     addMultipleToQueue,
     queueHistory
   } = useData();
-  
+
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -73,9 +73,9 @@ const QueuePage = () => {
 
   const handlePlayNow = (index) => {
     if (playQueue(index)) {
-      navigate('/player', { 
-        state: { 
-          songs: queue, 
+      navigate('/player', {
+        state: {
+          songs: queue,
           startIndex: index,
           fromQueue: true
         }
@@ -85,9 +85,9 @@ const QueuePage = () => {
 
   const handlePlayAll = () => {
     if (playQueue(0)) {
-      navigate('/player', { 
-        state: { 
-          songs: queue, 
+      navigate('/player', {
+        state: {
+          songs: queue,
           startIndex: 0,
           fromQueue: true
         }
@@ -95,17 +95,19 @@ const QueuePage = () => {
     }
   };
 
+  // FIX: shuffleQueue updates state asynchronously; capture the result
+  // and navigate in the same tick using the current queue snapshot.
   const handleShufflePlay = () => {
     shuffleQueue();
-    setTimeout(() => {
-      navigate('/player', { 
-        state: { 
-          songs: queue, 
-          startIndex: 0,
-          fromQueue: true
-        }
-      });
-    }, 100);
+    // Navigate immediately — the shuffled queue state will be picked up
+    // by the player via DataContext, not via location.state.songs.
+    navigate('/player', {
+      state: {
+        startIndex: 0,
+        fromQueue: true,
+        shuffled: true
+      }
+    });
   };
 
   const handleSaveSession = () => {
@@ -135,11 +137,11 @@ const QueuePage = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const calculateTotalDuration = (queue) => {
-    const totalSeconds = queue.reduce((acc, song) => acc + (song.duration || 0), 0);
+  const calculateTotalDuration = (songs) => {
+    const totalSeconds = songs.reduce((acc, song) => acc + (song.duration || 0), 0);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours} hr ${minutes} min`;
     }
@@ -154,7 +156,7 @@ const QueuePage = () => {
         </button>
         <h1>Queue</h1>
         <div className="queue-header-actions">
-          <button 
+          <button
             className={`queue-history-toggle ${showHistory ? 'active' : ''}`}
             onClick={() => setShowHistory(!showHistory)}
           >
@@ -199,7 +201,7 @@ const QueuePage = () => {
                       </span>
                     )}
                   </div>
-                  <button 
+                  <button
                     className="queue-history-restore"
                     onClick={() => handleRestoreSession(session)}
                   >
@@ -221,11 +223,11 @@ const QueuePage = () => {
               <i className="fa-solid fa-music"></i>
               <h2>Your queue is empty</h2>
               <p>Add songs from browse, search, or playlists</p>
-              
+
               {previousSessions.length > 0 && (
                 <div className="queue-restore-option">
                   <p>Or restore a previous session:</p>
-                  <button 
+                  <button
                     className="queue-restore-btn"
                     onClick={() => setShowHistory(true)}
                   >
@@ -234,7 +236,7 @@ const QueuePage = () => {
                   </button>
                 </div>
               )}
-              
+
               <button className="queue-browse-btn" onClick={() => navigate('/browse')}>
                 Browse Songs
               </button>
@@ -278,10 +280,14 @@ const QueuePage = () => {
                 </div>
 
                 {queue.map((song, index) => (
+                  // FIX: All children (index, info, actions) are now correctly
+                  // inside this single .queue-item div, matching the 3-column grid.
                   <div
                     key={`${song._id}-${index}`}
                     className={`queue-item ${
-                      index === currentQueueIndex ? "queue-item-current" : ""
+                      index === currentQueueIndex ? 'queue-item-current' : ''
+                    } ${draggedItem === index ? 'dragging' : ''} ${
+                      dragOverItem === index ? 'queue-item-drag-over' : ''
                     }`}
                     draggable
                     onDragStart={() => handleDragStart(index)}
@@ -311,40 +317,39 @@ const QueuePage = () => {
                           <i className="fa-solid fa-music"></i>
                         </div>
                       )}
-
                       <div>
                         <div className="queue-item-title">{song.title}</div>
-
-              
                       </div>
                     </div>
 
-                      {/* ACTIONS */}
-                      <div
-                        className="queue-item-actions"
-                        onClick={(e) => e.stopPropagation()}
+                    {/* ACTIONS */}
+                    <div
+                      className="queue-item-actions"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        className="queue-item-btn play-now"
+                        title="Play now"
+                        onClick={() => handlePlayNow(index)}
                       >
-                        <button
-                          className="queue-item-btn play-now"
-                          onClick={() => handlePlayNow(index)}
-                        >
-                          <i className="fa-solid fa-play"></i>
-                        </button>
+                        <i className="fa-solid fa-play"></i>
+                      </button>
 
-                        <button
-                          className="queue-item-btn remove"
-                          onClick={() => removeFromQueue(song._id)}
-                        >
-                          <i className="fa-solid fa-xmark"></i>
-                        </button>
+                      <button
+                        className="queue-item-btn remove"
+                        title="Remove"
+                        onClick={() => removeFromQueue(song._id)}
+                      >
+                        <i className="fa-solid fa-xmark"></i>
+                      </button>
 
-                        <span className="queue-drag-handle">
-                          <i className="fa-solid fa-grip-lines"></i>
-                        </span>
-                      </div>
+                      <span className="queue-drag-handle" title="Drag to reorder">
+                        <i className="fa-solid fa-grip-lines"></i>
+                      </span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
 
               {queueHistory.length > 0 && (
                 <div className="queue-history-section">

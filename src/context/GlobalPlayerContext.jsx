@@ -11,11 +11,16 @@ import React, {
 
 const GlobalPlayerContext = createContext(null);
 
-// localStorage keys
+// =========================
+// LOCAL STORAGE KEYS
+// =========================
+
 const STORAGE_KEYS = {
   PLAYLIST: 'ragafy_global_playlist',
   CURRENT_INDEX: 'ragafy_global_index',
-  VOLUME: 'ragafy_global_volume'
+  VOLUME: 'ragafy_global_volume',
+  SHUFFLE: 'ragafy_global_shuffle',
+  REPEAT: 'ragafy_global_repeat'
 };
 
 export function GlobalPlayerProvider({ children }) {
@@ -26,8 +31,9 @@ export function GlobalPlayerProvider({ children }) {
 
   const [currentPlaylist, setCurrentPlaylist] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PLAYLIST);
-      return saved ? JSON.parse(saved) : [];
+      return JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.PLAYLIST)
+      ) || [];
     } catch {
       return [];
     }
@@ -35,8 +41,10 @@ export function GlobalPlayerProvider({ children }) {
 
   const [currentIndex, setCurrentIndex] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_INDEX);
-      return saved ? parseInt(saved, 10) : 0;
+      return parseInt(
+        localStorage.getItem(STORAGE_KEYS.CURRENT_INDEX),
+        10
+      ) || 0;
     } catch {
       return 0;
     }
@@ -44,10 +52,11 @@ export function GlobalPlayerProvider({ children }) {
 
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const [volume, setVolume] = useState(() => {
+  const [volume, setVolumeState] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.VOLUME);
-      return saved ? parseFloat(saved) : 1;
+      return parseFloat(
+        localStorage.getItem(STORAGE_KEYS.VOLUME)
+      ) || 1;
     } catch {
       return 1;
     }
@@ -55,8 +64,37 @@ export function GlobalPlayerProvider({ children }) {
 
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // =========================
+  // SHUFFLE & REPEAT
+  // =========================
+
+  const [shuffleMode, setShuffleMode] = useState(() => {
+    try {
+      return localStorage.getItem(
+        STORAGE_KEYS.SHUFFLE
+      ) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [repeatMode, setRepeatMode] = useState(() => {
+  try {
+    return (
+      localStorage.getItem(
+        STORAGE_KEYS.REPEAT
+      ) || 'all'
+    );
+  } catch {
+    return 'all';
+  }
+});
+
+  const [shuffleOrder, setShuffleOrder] = useState([]);
 
   // =========================
   // CURRENT SONG
@@ -72,14 +110,143 @@ export function GlobalPlayerProvider({ children }) {
   const progressInterval = useRef(null);
 
   // =========================
+  // BUILD SHUFFLE ORDER
+  // =========================
+
+  useEffect(() => {
+
+    if (
+      shuffleMode &&
+      currentPlaylist.length > 0
+    ) {
+
+      const indices =
+        currentPlaylist.map((_, i) => i);
+
+      const rest = indices.filter(
+        i => i !== currentIndex
+      );
+
+      for (
+        let i = rest.length - 1;
+        i > 0;
+        i--
+      ) {
+        const j = Math.floor(
+          Math.random() * (i + 1)
+        );
+
+        [rest[i], rest[j]] =
+          [rest[j], rest[i]];
+      }
+
+      setShuffleOrder([
+        currentIndex,
+        ...rest
+      ]);
+    }
+
+  }, [
+    shuffleMode,
+    currentPlaylist.length,
+    currentIndex
+  ]);
+
+  // =========================
+  // NEXT INDEX
+  // =========================
+
+  const getNextIndex = useCallback(() => {
+
+    if (repeatMode === 'one') {
+      return currentIndex;
+    }
+
+    if (
+      shuffleMode &&
+      shuffleOrder.length > 0
+    ) {
+
+      const pos =
+        shuffleOrder.indexOf(currentIndex);
+
+      if (pos === shuffleOrder.length - 1) {
+          return shuffleOrder[0];
+      }
+
+      return shuffleOrder[pos + 1];
+    }
+
+    if (
+      currentIndex + 1 >=
+      currentPlaylist.length
+    ) {
+      return 0;
+    }
+
+    return currentIndex + 1;
+
+  }, [
+    currentIndex,
+    currentPlaylist,
+    shuffleMode,
+    shuffleOrder,
+    repeatMode
+  ]);
+
+  // =========================
+  // PREVIOUS INDEX
+  // =========================
+
+  const getPrevIndex = useCallback(() => {
+
+    if (repeatMode === 'one') {
+      return currentIndex;
+    }
+
+    if (
+      shuffleMode &&
+      shuffleOrder.length > 0
+    ) {
+
+      const pos =
+        shuffleOrder.indexOf(currentIndex);
+
+      if (pos === 0) {
+  return shuffleOrder[
+    shuffleOrder.length - 1
+  ];
+}
+
+      return shuffleOrder[pos - 1];
+    }
+
+    if (currentIndex - 1 < 0) {
+        return currentPlaylist.length - 1;
+    }
+
+    return currentIndex - 1;
+
+  }, [
+    currentIndex,
+    currentPlaylist,
+    shuffleMode,
+    shuffleOrder,
+    repeatMode
+  ]);
+
+  // =========================
   // SONG END
   // =========================
 
   const handleSongEnd = useCallback(() => {
-    if (!currentPlaylist || currentPlaylist.length === 0) return;
 
-    const nextIndex =
-      (currentIndex + 1) % currentPlaylist.length;
+    const nextIndex = getNextIndex();
+
+    if (nextIndex === null) {
+      setIsPlaying(false);
+      return;
+    }
 
     setProgress(0);
     setDuration(0);
@@ -88,17 +255,19 @@ export function GlobalPlayerProvider({ children }) {
     setCurrentIndex(nextIndex);
     setIsPlaying(true);
 
-  }, [currentIndex, currentPlaylist]);
+  }, [getNextIndex]);
 
   // =========================
   // NEXT SONG
   // =========================
 
   const handleNext = useCallback(() => {
-    if (!currentPlaylist || currentPlaylist.length === 0) return;
 
-    const nextIndex =
-      (currentIndex + 1) % currentPlaylist.length;
+    if (!currentPlaylist?.length) return;
+
+    const nextIndex = getNextIndex();
+
+    if (nextIndex === null) return;
 
     setProgress(0);
     setDuration(0);
@@ -107,18 +276,32 @@ export function GlobalPlayerProvider({ children }) {
     setCurrentIndex(nextIndex);
     setIsPlaying(true);
 
-  }, [currentIndex, currentPlaylist]);
+  }, [
+    currentPlaylist,
+    getNextIndex
+  ]);
 
   // =========================
   // PREVIOUS SONG
   // =========================
 
   const handlePrevious = useCallback(() => {
-    if (!currentPlaylist || currentPlaylist.length === 0) return;
 
-    const prevIndex =
-      (currentIndex - 1 + currentPlaylist.length) %
-      currentPlaylist.length;
+    if (!currentPlaylist?.length) return;
+
+    // Restart song if >3 sec
+    if (
+      audioRef.current &&
+      audioRef.current.currentTime > 3
+    ) {
+      audioRef.current.currentTime = 0;
+      setProgress(0);
+      return;
+    }
+
+    const prevIndex = getPrevIndex();
+
+    if (prevIndex === null) return;
 
     setProgress(0);
     setDuration(0);
@@ -127,25 +310,37 @@ export function GlobalPlayerProvider({ children }) {
     setCurrentIndex(prevIndex);
     setIsPlaying(true);
 
-  }, [currentIndex, currentPlaylist]);
+  }, [
+    currentPlaylist,
+    getPrevIndex
+  ]);
 
   // =========================
   // SEEK
   // =========================
 
   const seekTo = useCallback((time) => {
-    if (audioRef.current && isAudioReady) {
+
+    if (
+      audioRef.current &&
+      isAudioReady
+    ) {
       audioRef.current.currentTime = time;
       setProgress(time);
     }
+
   }, [isAudioReady]);
 
   // =========================
   // PLAY PLAYLIST
   // =========================
 
-  const playPlaylist = useCallback((songs, startIndex = 0) => {
-    if (!songs || songs.length === 0) return;
+  const playPlaylist = useCallback((
+    songs,
+    startIndex = 0
+  ) => {
+
+    if (!songs?.length) return;
 
     setProgress(0);
     setDuration(0);
@@ -153,6 +348,7 @@ export function GlobalPlayerProvider({ children }) {
 
     setCurrentPlaylist(songs);
     setCurrentIndex(startIndex);
+
     setIsPlaying(true);
 
   }, []);
@@ -161,22 +357,28 @@ export function GlobalPlayerProvider({ children }) {
   // PLAY SINGLE SONG
   // =========================
 
-  const playSong = useCallback((song, playlist = [], index = 0) => {
+  const playSong = useCallback((
+    song,
+    playlist = [],
+    index = 0
+  ) => {
 
     if (!song) return;
-
-    console.log('🎵 Playing selected song:', song.title);
 
     setProgress(0);
     setDuration(0);
     setIsLoading(true);
 
     if (playlist.length > 0) {
+
       setCurrentPlaylist(playlist);
       setCurrentIndex(index);
+
     } else {
+
       setCurrentPlaylist([song]);
       setCurrentIndex(0);
+
     }
 
     setIsPlaying(true);
@@ -188,14 +390,19 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   const addToPlaylist = useCallback((songs) => {
+
     setCurrentPlaylist(prev => {
 
       const newSongs = songs.filter(
-        song => !prev.some(s => s._id === song._id)
+        song =>
+          !prev.some(
+            s => s._id === song._id
+          )
       );
 
       return [...prev, ...newSongs];
     });
+
   }, []);
 
   // =========================
@@ -207,9 +414,14 @@ export function GlobalPlayerProvider({ children }) {
     setCurrentPlaylist(prev => {
 
       const newPlaylist =
-        prev.filter(song => song._id !== songId);
+        prev.filter(
+          song => song._id !== songId
+        );
 
-      if (currentIndex >= newPlaylist.length) {
+      if (
+        currentIndex >=
+        newPlaylist.length
+      ) {
         setCurrentIndex(0);
         setProgress(0);
         setDuration(0);
@@ -227,13 +439,16 @@ export function GlobalPlayerProvider({ children }) {
   const clearPlaylist = useCallback(() => {
 
     if (audioRef.current) {
+
       audioRef.current.pause();
       audioRef.current.src = '';
     }
 
     setCurrentPlaylist([]);
     setCurrentIndex(0);
+
     setIsPlaying(false);
+
     setProgress(0);
     setDuration(0);
 
@@ -252,11 +467,65 @@ export function GlobalPlayerProvider({ children }) {
   }, [currentSong]);
 
   // =========================
+  // SHUFFLE TOGGLE
+  // =========================
+
+  const toggleShuffle = useCallback(() => {
+
+    setShuffleMode(prev => {
+
+      const next = !prev;
+
+      localStorage.setItem(
+        STORAGE_KEYS.SHUFFLE,
+        String(next)
+      );
+
+      return next;
+    });
+
+  }, []);
+
+  // =========================
+  // REPEAT TOGGLE
+  // =========================
+
+  const toggleRepeat = useCallback(() => {
+
+  setRepeatMode(prev => {
+
+      const next =
+        prev === 'one'
+          ? 'all'
+          : 'one';
+
+      localStorage.setItem(
+        STORAGE_KEYS.REPEAT,
+        next
+      );
+
+      return next;
+    });
+
+  }, []);
+
+  // =========================
   // VOLUME
   // =========================
 
   const setVolumeLevel = useCallback((newVolume) => {
-    setVolume(newVolume);
+
+    setVolumeState(newVolume);
+
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+
+    localStorage.setItem(
+      STORAGE_KEYS.VOLUME,
+      String(newVolume)
+    );
+
   }, []);
 
   // =========================
@@ -272,7 +541,9 @@ export function GlobalPlayerProvider({ children }) {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
 
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs
+      .toString()
+      .padStart(2, '0')}`;
 
   }, []);
 
@@ -293,7 +564,9 @@ export function GlobalPlayerProvider({ children }) {
     return () => {
 
       if (progressInterval.current) {
-        clearInterval(progressInterval.current);
+        clearInterval(
+          progressInterval.current
+        );
       }
 
       audio.pause();
@@ -310,36 +583,39 @@ export function GlobalPlayerProvider({ children }) {
 
   useEffect(() => {
 
-    if (!audioRef.current || !isAudioReady) return;
+    if (
+      !audioRef.current ||
+      !isAudioReady
+    ) return;
 
     const audio = audioRef.current;
 
-    const handleLoadedMetadata = () => {
+    const onLoadedMetadata = () => {
+
       setDuration(audio.duration);
       setProgress(0);
       setIsLoading(false);
     };
 
-    const handleTimeUpdate = () => {
+    const onTimeUpdate = () => {
       setProgress(audio.currentTime);
     };
 
-    const handleEnded = () => {
+    const onEnded = () => {
       handleSongEnd();
     };
 
-    const handleError = (e) => {
-      console.error('Audio error:', e);
+    const onError = () => {
+
       setIsPlaying(false);
       setIsLoading(false);
     };
 
-    const handleCanPlay = () => {
+    const onCanPlay = () => {
 
       if (isPlaying) {
 
-        audio.play().catch(error => {
-          console.error(error);
+        audio.play().catch(() => {
           setIsPlaying(false);
         });
 
@@ -348,94 +624,107 @@ export function GlobalPlayerProvider({ children }) {
 
     audio.addEventListener(
       'loadedmetadata',
-      handleLoadedMetadata
+      onLoadedMetadata
     );
 
     audio.addEventListener(
       'timeupdate',
-      handleTimeUpdate
+      onTimeUpdate
     );
 
     audio.addEventListener(
       'ended',
-      handleEnded
+      onEnded
     );
 
     audio.addEventListener(
       'error',
-      handleError
+      onError
     );
 
     audio.addEventListener(
       'canplay',
-      handleCanPlay
+      onCanPlay
     );
 
     return () => {
 
       audio.removeEventListener(
         'loadedmetadata',
-        handleLoadedMetadata
+        onLoadedMetadata
       );
 
       audio.removeEventListener(
         'timeupdate',
-        handleTimeUpdate
+        onTimeUpdate
       );
 
       audio.removeEventListener(
         'ended',
-        handleEnded
+        onEnded
       );
 
       audio.removeEventListener(
         'error',
-        handleError
+        onError
       );
 
       audio.removeEventListener(
         'canplay',
-        handleCanPlay
+        onCanPlay
       );
     };
 
-  }, [isAudioReady, handleSongEnd, isPlaying]);
+  }, [
+    isAudioReady,
+    handleSongEnd,
+    isPlaying
+  ]);
 
   // =========================
-  // PROGRESS TRACKING
+  // PROGRESS INTERVAL
   // =========================
 
   useEffect(() => {
 
-    if (!audioRef.current || !isPlaying) return;
+    if (
+      !audioRef.current ||
+      !isPlaying
+    ) return;
 
     if (progressInterval.current) {
-      clearInterval(progressInterval.current);
+      clearInterval(
+        progressInterval.current
+      );
     }
 
-    progressInterval.current = setInterval(() => {
+    progressInterval.current =
+      setInterval(() => {
 
-      if (
-        audioRef.current &&
-        !audioRef.current.paused
-      ) {
-        setProgress(audioRef.current.currentTime);
-      }
+        if (
+          audioRef.current &&
+          !audioRef.current.paused
+        ) {
+          setProgress(
+            audioRef.current.currentTime
+          );
+        }
 
-    }, 500);
+      }, 500);
 
     return () => {
 
       if (progressInterval.current) {
-        clearInterval(progressInterval.current);
+        clearInterval(
+          progressInterval.current
+        );
       }
-
     };
 
   }, [isPlaying]);
 
   // =========================
-  // PLAY / PAUSE CONTROL
+  // PLAY / PAUSE EFFECT
   // =========================
 
   useEffect(() => {
@@ -451,8 +740,7 @@ export function GlobalPlayerProvider({ children }) {
 
     if (isPlaying) {
 
-      audio.play().catch(error => {
-        console.error(error);
+      audio.play().catch(() => {
         setIsPlaying(false);
       });
 
@@ -481,19 +769,18 @@ export function GlobalPlayerProvider({ children }) {
       !currentSong
     ) return;
 
-    const audio = audioRef.current;
-
     if (!currentSong.audioUrl) {
-      console.error('No audio URL');
+
       setIsLoading(false);
       return;
     }
 
-    audio.pause();
+    audioRef.current.pause();
 
-    audio.src = currentSong.audioUrl;
+    audioRef.current.src =
+      currentSong.audioUrl;
 
-    audio.load();
+    audioRef.current.load();
 
   }, [
     currentIndex,
@@ -507,14 +794,17 @@ export function GlobalPlayerProvider({ children }) {
 
   useEffect(() => {
 
-    if (audioRef.current && isAudioReady) {
+    if (
+      audioRef.current &&
+      isAudioReady
+    ) {
       audioRef.current.volume = volume;
     }
 
   }, [volume, isAudioReady]);
 
   // =========================
-  // SAVE LOCAL STORAGE
+  // SAVE TO LOCAL STORAGE
   // =========================
 
   useEffect(() => {
@@ -536,11 +826,7 @@ export function GlobalPlayerProvider({ children }) {
         volume.toString()
       );
 
-    } catch (error) {
-
-      console.error(error);
-
-    }
+    } catch {}
 
   }, [
     currentPlaylist,
@@ -549,37 +835,42 @@ export function GlobalPlayerProvider({ children }) {
   ]);
 
   // =========================
-  // MEDIA SESSION
+  // MEDIA SESSION API
   // =========================
 
   useEffect(() => {
 
-    if ("mediaSession" in navigator && currentSong) {
+    if (
+      'mediaSession' in navigator &&
+      currentSong
+    ) {
 
       navigator.mediaSession.metadata =
         new window.MediaMetadata({
           title: currentSong.title,
-          artist: currentSong.artist?.name || '',
-          album: currentSong.album?.name || '',
+          artist:
+            currentSong.artist?.name || '',
+          album:
+            currentSong.album?.name || ''
         });
 
       navigator.mediaSession.setActionHandler(
-        "play",
+        'play',
         () => setIsPlaying(true)
       );
 
       navigator.mediaSession.setActionHandler(
-        "pause",
+        'pause',
         () => setIsPlaying(false)
       );
 
       navigator.mediaSession.setActionHandler(
-        "previoustrack",
+        'previoustrack',
         handlePrevious
       );
 
       navigator.mediaSession.setActionHandler(
-        "nexttrack",
+        'nexttrack',
         handleNext
       );
     }
@@ -588,6 +879,155 @@ export function GlobalPlayerProvider({ children }) {
     currentSong,
     handleNext,
     handlePrevious
+  ]);
+
+  // =========================
+  // GLOBAL KEYBOARD SHORTCUTS
+  // =========================
+
+  useEffect(() => {
+
+    const handleKey = (e) => {
+
+      if (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+
+      if (!currentSong) return;
+
+      switch (e.code) {
+
+        case 'Space':
+          e.preventDefault();
+          togglePlayPause();
+          break;
+
+        case 'ArrowRight':
+
+          if (e.altKey) {
+
+            e.preventDefault();
+            handleNext();
+
+          } else if (e.shiftKey) {
+
+            e.preventDefault();
+
+            seekTo(
+              Math.min(
+                (
+                  audioRef.current
+                    ?.currentTime || 0
+                ) + 10,
+                duration
+              )
+            );
+          }
+
+          break;
+
+        case 'ArrowLeft':
+
+          if (e.altKey) {
+
+            e.preventDefault();
+            handlePrevious();
+
+          } else if (e.shiftKey) {
+
+            e.preventDefault();
+
+            seekTo(
+              Math.max(
+                (
+                  audioRef.current
+                    ?.currentTime || 0
+                ) - 10,
+                0
+              )
+            );
+          }
+
+          break;
+
+        case 'ArrowUp':
+
+          if (e.shiftKey) {
+
+            e.preventDefault();
+
+            setVolumeLevel(
+              Math.min(volume + 0.1, 1)
+            );
+          }
+
+          break;
+
+        case 'ArrowDown':
+
+          if (e.shiftKey) {
+
+            e.preventDefault();
+
+            setVolumeLevel(
+              Math.max(volume - 0.1, 0)
+            );
+          }
+
+          break;
+
+        case 'KeyS':
+
+          if (e.altKey) {
+
+            e.preventDefault();
+            toggleShuffle();
+          }
+
+          break;
+
+        case 'KeyR':
+
+          if (e.altKey) {
+
+            e.preventDefault();
+            toggleRepeat();
+          }
+
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener(
+      'keydown',
+      handleKey
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        'keydown',
+        handleKey
+      );
+    };
+
+  }, [
+    currentSong,
+    togglePlayPause,
+    handleNext,
+    handlePrevious,
+    seekTo,
+    volume,
+    duration,
+    toggleShuffle,
+    toggleRepeat,
+    setVolumeLevel
   ]);
 
   // =========================
@@ -605,6 +1045,8 @@ export function GlobalPlayerProvider({ children }) {
     progress,
     duration,
     isLoading,
+    shuffleMode,
+    repeatMode,
 
     // METHODS
     playPlaylist,
@@ -617,6 +1059,8 @@ export function GlobalPlayerProvider({ children }) {
     handlePrevious,
     seekTo,
     setVolume: setVolumeLevel,
+    toggleShuffle,
+    toggleRepeat,
 
     // UTILITIES
     formatTime
@@ -633,11 +1077,17 @@ export function GlobalPlayerProvider({ children }) {
   );
 }
 
+// =========================
+// HOOK
+// =========================
+
 export const useGlobalPlayer = () => {
 
-  const context = useContext(GlobalPlayerContext);
+  const context =
+    useContext(GlobalPlayerContext);
 
   if (!context) {
+
     throw new Error(
       'useGlobalPlayer must be used within GlobalPlayerProvider'
     );
