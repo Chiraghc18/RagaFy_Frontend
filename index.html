@@ -2,16 +2,44 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/ragafy-gemini.png" />
+    <link rel="icon" type="image/svg+xml" href="/blend.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <title>RagaFy Beats</title>
   </head>
   <body>
     <div id="root"></div>
+    
+    <script>
+      (function createBlendedFavicon() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        
+        // Orange to Blue gradient
+        const gradient = ctx.createLinearGradient(0, 0, 64, 64);
+        gradient.addColorStop(0, '#FF6B00');
+        gradient.addColorStop(1, '#0066FF');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+        
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+          // Change this to different blend modes
+          ctx.globalCompositeOperation = 'screen'; // Try: multiply, screen, overlay, soft-light, hard-light, difference, exclusion, color-dodge, color-burn
+          ctx.drawImage(img, 0, 0, 64, 64);
+          
+          const link = document.querySelector("link[rel='icon']");
+          if (link) {
+            link.href = canvas.toDataURL('image/png');
+          }
+        };
+        img.src = '/blend.png';
+      })();
+    </script>
+    
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
