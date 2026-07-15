@@ -332,58 +332,73 @@ export function GlobalPlayerProvider({ children }) {
   }, [isAudioReady]);
 
   // =========================
-  // PLAY PLAYLIST
-  // =========================
+// PLAY PLAYLIST
+// =========================
 
-  const playPlaylist = useCallback((
-    songs,
-    startIndex = 0
-  ) => {
+const playPlaylist = useCallback((songs, startIndex = 0) => {
 
-    if (!songs?.length) return;
+  if (!songs?.length) return;
 
-    setProgress(0);
-    setDuration(0);
-    setIsLoading(true);
+  const targetSong = songs[startIndex];
 
-    setCurrentPlaylist(songs);
-    setCurrentIndex(startIndex);
+  // If this exact song, at this exact position, in a playlist of the
+  // same length is already loaded — don't restart, just resume.
+  const alreadyLoaded =
+    currentSong &&
+    targetSong &&
+    currentSong._id === targetSong._id &&
+    currentIndex === startIndex &&
+    currentPlaylist.length === songs.length;
 
+  if (alreadyLoaded) {
     setIsPlaying(true);
+    return;
+  }
 
-  }, []);
+  setProgress(0);
+  setDuration(0);
+  setIsLoading(true);
 
-  // =========================
-  // PLAY SINGLE SONG
-  // =========================
+  setCurrentPlaylist(songs);
+  setCurrentIndex(startIndex);
 
-  const playSong = useCallback((
-    song,
-    playlist = [],
-    index = 0
-  ) => {
+  setIsPlaying(true);
 
-    if (!song) return;
+}, [currentSong, currentIndex, currentPlaylist]);
 
-    setProgress(0);
-    setDuration(0);
-    setIsLoading(true);
+// =========================
+// PLAY SINGLE SONG
+// =========================
 
-    if (playlist.length > 0) {
+const playSong = useCallback((song, playlist = [], index = 0) => {
 
-      setCurrentPlaylist(playlist);
-      setCurrentIndex(index);
+  if (!song) return;
 
-    } else {
+  const targetPlaylist = playlist.length > 0 ? playlist : [song];
+  const targetIndex = playlist.length > 0 ? index : 0;
 
-      setCurrentPlaylist([song]);
-      setCurrentIndex(0);
+  const alreadyLoaded =
+    currentSong &&
+    currentSong._id === song._id &&
+    currentIndex === targetIndex &&
+    currentPlaylist.length === targetPlaylist.length;
 
-    }
-
+  if (alreadyLoaded) {
     setIsPlaying(true);
+    return;
+  }
 
-  }, []);
+  setProgress(0);
+  setDuration(0);
+  setIsLoading(true);
+
+  setCurrentPlaylist(targetPlaylist);
+  setCurrentIndex(targetIndex);
+
+  setIsPlaying(true);
+
+}, [currentSong, currentIndex, currentPlaylist]);
+
 
   // =========================
   // ADD TO PLAYLIST

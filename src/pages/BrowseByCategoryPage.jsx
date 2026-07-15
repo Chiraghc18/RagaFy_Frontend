@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { categoryApiMap, fetchCategoryItems, fetchSongsByCategory } from "../services/songService/browseService";
 import CategorySelector from "../components/CategorySelector";
 import CategoryItems from "../components/CategoryItems";
 import BrowseSongLists from "../components/BrowseSongLists";
 import "../assets/style/BrowseByCategoryPage.css";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function BrowseByCategoryPage() {
   const [category, setCategory] = useState("");
@@ -17,25 +17,63 @@ export default function BrowseByCategoryPage() {
   const [selectedItemPhoto, setSelectedItemPhoto] = useState("");
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Fetch all items for the selected category
+  // Holds an item passed in via navigation state, consumed by the
+  // category-items effect below so we can jump straight to its songs.
+  const pendingItemRef = useRef(null);
+
+  // ── Read incoming navigation state (from AllSongs rails / "See all") ──
+  useEffect(() => {
+    const navState = location.state;
+    if (!navState?.category) return;
+
+    pendingItemRef.current = navState.item || null;
+    setCategory(navState.category);
+    setSelectedCategoryName(navState.category);
+
+    // Clear the nav state so refresh/back doesn't re-trigger this
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state]);
+
+  // ── Fetch items for the selected category ──
   useEffect(() => {
     if (!category) return;
-    setSongs([]);
-    setSelectedItemName("");
-    setSelectedItemPhoto("");
+
+    const pendingItem = pendingItemRef.current;
+    pendingItemRef.current = null; // consume once
+
+    // Always fetch the items grid too, so the back button still works
     fetchCategoryItems(category)
       .then(setItems)
       .catch((err) => console.error(err));
+
+    if (pendingItem) {
+      // Jump straight to this item's songs instead of resetting to the grid
+      setLoading(true);
+      fetchSongsByCategory(category, pendingItem._id)
+        .then((data) => {
+          setSongs(data);
+          setSelectedItemName(pendingItem.name || pendingItem.title || "Selected Item");
+          setSelectedItemPhoto(pendingItem.photo || pendingItem.imageUrl || "");
+        })
+        .catch((err) => console.error(err))
+        .finally(() => setLoading(false));
+      return;
+    }
+
+    setSongs([]);
+    setSelectedItemName("");
+    setSelectedItemPhoto("");
   }, [category]);
 
-  // Handle category selection
+  // Handle category selection (manual tile click — unchanged)
   const handleCategorySelect = (cat) => {
     setCategory(cat);
     setSelectedCategoryName(cat);
   };
 
-  // Fetch songs under selected item
+  // Fetch songs under selected item (manual item click — unchanged)
   const handleItemClick = async (item) => {
     setLoading(true);
     try {
@@ -49,7 +87,7 @@ export default function BrowseByCategoryPage() {
     setLoading(false);
   };
 
-  // Back button functionality
+  // Back button functionality (unchanged)
   const handleBack = () => {
     if (songs.length > 0) {
       setSongs([]);
