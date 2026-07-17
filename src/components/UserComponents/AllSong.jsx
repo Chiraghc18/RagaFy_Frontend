@@ -114,34 +114,6 @@ export default function AllSongs() {
         <p className="all-songs__eyebrow">{greeting()}</p>
       </div>
 
-      {/* Continue listening (from queue) */}
-      {queue && queue.length > 0 && (
-        <div className="all-songs__rail-section">
-          <h2 className="all-songs__section-title">Continue listening</h2>
-          <div className="all-songs__rail">
-            {queue.slice(0, 8).map((song, idx) => (
-              <div
-                key={song._id + idx}
-                className="all-songs__rail-card"
-                onClick={() => goToPlayer(queue, idx)}
-              >
-                <div className="all-songs__rail-cover">
-                  {photos[song._id] ? (
-                    <img src={photos[song._id]} alt={song.title} />
-                  ) : (
-                    <div className="all-songs__image--placeholder">🎵</div>
-                  )}
-                </div>
-                <div className="all-songs__rail-title">{song.title}</div>
-                <div className="all-songs__rail-sub">
-                  {song.artist?.name || song.singers?.[0]?.name || "Unknown"}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Recently played */}
       {recentlyPlayed.length > 0 && (
         <div className="all-songs__rail-section">
@@ -180,6 +152,34 @@ export default function AllSongs() {
                 key={song._id}
                 className="all-songs__rail-card"
                 onClick={() => goToPlayer(madeForYou, idx)}
+              >
+                <div className="all-songs__rail-cover">
+                  {photos[song._id] ? (
+                    <img src={photos[song._id]} alt={song.title} />
+                  ) : (
+                    <div className="all-songs__image--placeholder">🎵</div>
+                  )}
+                </div>
+                <div className="all-songs__rail-title">{song.title}</div>
+                <div className="all-songs__rail-sub">
+                  {song.artist?.name || song.singers?.[0]?.name || "Unknown"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Continue listening (from queue) - MOVED HERE */}
+      {queue && queue.length > 0 && (
+        <div className="all-songs__rail-section">
+          <h2 className="all-songs__section-title">Continue listening</h2>
+          <div className="all-songs__rail">
+            {queue.slice(0, 8).map((song, idx) => (
+              <div
+                key={song._id + idx}
+                className="all-songs__rail-card"
+                onClick={() => goToPlayer(queue, idx)}
               >
                 <div className="all-songs__rail-cover">
                   {photos[song._id] ? (
