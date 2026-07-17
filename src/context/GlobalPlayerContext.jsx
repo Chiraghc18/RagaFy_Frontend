@@ -20,7 +20,8 @@ const STORAGE_KEYS = {
   CURRENT_INDEX: 'ragafy_global_index',
   VOLUME: 'ragafy_global_volume',
   SHUFFLE: 'ragafy_global_shuffle',
-  REPEAT: 'ragafy_global_repeat'
+  REPEAT: 'ragafy_global_repeat',
+  RECENTLY_PLAYED: 'ragafy_recently_played'
 };
 
 export function GlobalPlayerProvider({ children }) {
@@ -94,6 +95,15 @@ export function GlobalPlayerProvider({ children }) {
   }
 });
 
+// Add near the other useState calls
+const [recentlyPlayedIds, setRecentlyPlayedIds] = useState(() => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.RECENTLY_PLAYED)) || [];
+  } catch {
+    return [];
+  }
+});
+
   const [shuffleOrder, setShuffleOrder] = useState([]);
 
   // =========================
@@ -112,6 +122,22 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
   // BUILD SHUFFLE ORDER
   // =========================
+
+  // New effect — fires whenever the playing song actually changes
+useEffect(() => {
+  if (!currentSong?._id) return;
+
+  setRecentlyPlayedIds(prev => {
+    const withoutCurrent = prev.filter(id => id !== currentSong._id);
+    const next = [currentSong._id, ...withoutCurrent].slice(0, 20);
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.RECENTLY_PLAYED, JSON.stringify(next));
+    } catch {}
+
+    return next;
+  });
+}, [currentSong?._id]);
 
   useEffect(() => {
 
@@ -1062,6 +1088,7 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
     isLoading,
     shuffleMode,
     repeatMode,
+    recentlyPlayedIds,
 
     // METHODS
     playPlaylist,
@@ -1076,6 +1103,8 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
     setVolume: setVolumeLevel,
     toggleShuffle,
     toggleRepeat,
+
+    
 
     // UTILITIES
     formatTime

@@ -1,6 +1,8 @@
 // components/UserComponents/AllSong.jsx
 import React, { useMemo } from "react";
 import { useData } from "../../context/DataContext";
+import { useGlobalPlayer } from "../../context/GlobalPlayerContext";
+import { buildRadioQueue } from "../../services/songService/buildRadio";
 import "../../assets/style/UserPage/AllSongs.css";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -36,9 +38,18 @@ function pickRandom(arr, n) {
 export default function AllSongs() {
   // NOTE: fixed — was destructured as `err`, but DataContext exposes `error`
   const { songs, photos, playlists, filterOptions, queue, loading, error } = useData();
+  const { recentlyPlayedIds, playPlaylist } = useGlobalPlayer();
   const navigate = useNavigate();
 
   const madeForYou = useMemo(() => pickRandom(songs, 12), [songs.length]);
+
+  // Resolve stored recently-played IDs against the live song list,
+  // preserving the most-recent-first order they were stored in
+  const recentlyPlayed = useMemo(() => {
+    return recentlyPlayedIds
+      .map((id) => songs.find((s) => s._id === id))
+      .filter(Boolean);
+  }, [recentlyPlayedIds, songs]);
 
   const handleSongClick = (song) => {
     const filteredSameCategory = songs.filter(
@@ -56,6 +67,14 @@ export default function AllSongs() {
 
   const goToCategory = (categoryKey, item) => {
     navigate("/browse", { state: { category: categoryKey, item } });
+  };
+
+  // Build a scored "radio" queue seeded from the clicked song and start
+  // playing it immediately via the global player
+  const handleStartRadio = (seedSong, e) => {
+    e.stopPropagation(); // don't also trigger the card's onClick / navigation
+    const radioQueue = buildRadioQueue(seedSong, songs);
+    if (radioQueue.length) playPlaylist(radioQueue, 0);
   };
 
   if (loading)
@@ -105,6 +124,34 @@ export default function AllSongs() {
                 key={song._id + idx}
                 className="all-songs__rail-card"
                 onClick={() => goToPlayer(queue, idx)}
+              >
+                <div className="all-songs__rail-cover">
+                  {photos[song._id] ? (
+                    <img src={photos[song._id]} alt={song.title} />
+                  ) : (
+                    <div className="all-songs__image--placeholder">🎵</div>
+                  )}
+                </div>
+                <div className="all-songs__rail-title">{song.title}</div>
+                <div className="all-songs__rail-sub">
+                  {song.artist?.name || song.singers?.[0]?.name || "Unknown"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recently played */}
+      {recentlyPlayed.length > 0 && (
+        <div className="all-songs__rail-section">
+          <h2 className="all-songs__section-title">Recently played</h2>
+          <div className="all-songs__rail">
+            {recentlyPlayed.map((song, idx) => (
+              <div
+                key={song._id}
+                className="all-songs__rail-card"
+                onClick={() => goToPlayer(recentlyPlayed, idx)}
               >
                 <div className="all-songs__rail-cover">
                   {photos[song._id] ? (
@@ -222,7 +269,7 @@ export default function AllSongs() {
         );
       })}
 
-      {/* Songs Section — your original full grid, unchanged */}
+      {/* Songs Section — your original full grid, unchanged, + radio button */}
       <div className="all-songs__songs">
         <h2 className="all-songs__section-title">All Songs</h2>
         <div className="all-songs__grid">
@@ -254,6 +301,17 @@ export default function AllSongs() {
                     </div>
                   </div>
                   <div className="all-songs__play-icon">▶</div>
+                </div>
+
+                {/* Radio button — starts a scored queue seeded from this song */}
+                <div className="all-songs__card-actions">
+                  <button
+                    className="all-songs__add-to-queue all-songs__start-radio"
+                    onClick={(e) => handleStartRadio(song, e)}
+                    title="Start radio from this song"
+                  >
+                    <i className="fa-solid fa-tower-broadcast"></i>
+                  </button>
                 </div>
               </div>
             ))

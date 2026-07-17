@@ -746,3 +746,8 @@
   font-size: 12px;
   color: white;
 }
+
+.all-songs__start-radio:hover {
+  background: #1e90ff;
+  transform: scale(1.1);
+}
