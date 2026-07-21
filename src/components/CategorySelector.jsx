@@ -20,14 +20,17 @@ const images = {
 
 export default function CategorySelector({ category, setCategory, categories }) {
   return (
-    <div className="browse__category-selector">
+    <div className="cs-grid">
       {Object.keys(categories).map((cat) => (
         <div
           key={cat}
           onClick={() => setCategory(cat)}
-          className={`browse__category-button ${category === cat ? "browse__category-button--active" : ""}`}
+          className={`cs-card ${category === cat ? "cs-card--active" : ""}`}
         >
-          <img src={images[cat]} alt={cat} className="browse__category-image" />
+          <img src={images[cat]} alt={cat} className="cs-card__img" />
+          <span className="cs-card__name">
+            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+          </span>
         </div>
       ))}
     </div>

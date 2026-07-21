@@ -1,0 +1,133 @@
+/* ============================================ */
+/* GLOBAL APP STYLES - RAGAFY BEATS */
+/* Color Palette: #FF6B00 (Orange) → #0066FF (Blue) */
+/* ============================================ */
+
+:root {
+  /* Primary Colors */
+  --orange-primary: #FF6B00;
+  --orange-light: #FF8C3D;
+  --orange-dark: #CC5500;
+  --blue-primary: #0066FF;
+  --blue-light: #3388FF;
+  --blue-dark: #0044CC;
+  
+  /* Background Colors */
+  --bg-primary: #0A0A14;
+  --bg-secondary: #12121F;
+  --bg-tertiary: #1A1A2E;
+  --bg-card: rgba(26, 26, 46, 0.6);
+  --bg-card-hover: rgba(26, 26, 46, 0.9);
+  
+  /* Text Colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-tertiary: rgba(255, 255, 255, 0.5);
+  
+  /* Accent Gradients */
+  --accent-gradient: linear-gradient(135deg, #FF6B00, #FF8C3D, #0066FF, #3388FF);
+  --orange-gradient: linear-gradient(135deg, #FF6B00, #FF8C3D);
+  --blue-gradient: linear-gradient(135deg, #0066FF, #3388FF);
+  
+  /* Glass Effect */
+  --glass-bg: rgba(18, 18, 34, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(20px);
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-orange: 0 4px 20px rgba(255, 107, 0, 0.3);
+  --shadow-blue: 0 4px 20px rgba(0, 102, 255, 0.3);
+  
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 50%;
+  
+  /* Transitions */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--orange-primary), var(--blue-primary));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--orange-light), var(--blue-light));
+}
+
+/* Text Selection */
+::selection {
+  background: rgba(255, 107, 0, 0.3);
+  color: #fff;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Links */
+a {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--orange-light);
+}
+
+/* Buttons */
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid var(--orange-primary);
+  outline-offset: 2px;
+}

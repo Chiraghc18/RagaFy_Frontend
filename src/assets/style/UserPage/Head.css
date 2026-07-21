@@ -1,42 +1,331 @@
-/* Head.css */
-.user-header {
+/* ============================================ */
+/* HEADER - DISCOVER PAGE */
+/* ============================================ */
+
+.head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 0;
+  padding: 20px 10px;
   margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
 }
 
-.user-header-title {
-  font-size: 32px;
-  font-weight: bold;
-  background: linear-gradient(45deg, #ffa500, #ffd700);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  margin: 0;
+/* Left side - Logo + Brand */
+.head__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.user-header .fa-magnifying-glass {
-  font-size: 24px;
-  color: white;
-  background: linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(30, 144, 255, 0.3));
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
+/* Logo wrapper */
+.head__logo-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(0, 102, 255, 0.08));
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  -webkit-backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  cursor: pointer;
+  overflow: visible;
 }
 
-.user-header .fa-magnifying-glass:hover {
-  background: linear-gradient(135deg, rgba(255, 165, 0, 0.5), rgba(30, 144, 255, 0.5));
+/* Center glow behind the logo image */
+.head__logo-wrap::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, 
+    rgba(255, 107, 0, 0.5) 0%, 
+    rgba(255, 140, 61, 0.3) 30%, 
+    rgba(0, 102, 255, 0.15) 60%, 
+    transparent 100%
+  );
+  filter: blur(6px);
+  z-index: 0;
+  animation: logo-center-glow 2s ease-in-out infinite;
+}
+
+@keyframes logo-center-glow {
+  0%, 100% { 
+    opacity: 0.5; 
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% { 
+    opacity: 0.9; 
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+}
+
+/* Secondary subtle ring */
+.head__logo-wrap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 107, 0, 0.2);
+  z-index: 0;
+  animation: logo-ring 3s ease-in-out infinite;
+}
+
+@keyframes logo-ring {
+  0%, 100% { 
+    opacity: 0.3; 
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% { 
+    opacity: 0.6; 
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+.head__logo-wrap:hover {
+  border-color: rgba(255, 107, 0, 0.4);
+  box-shadow: 0 0 25px rgba(255, 107, 0, 0.25);
+  transform: scale(1.05);
+}
+
+.head__logo-wrap:hover::before {
+  animation: none;
+  opacity: 1;
+  width: 32px;
+  height: 32px;
+  background: radial-gradient(circle, 
+    rgba(255, 107, 0, 0.6) 0%, 
+    rgba(255, 140, 61, 0.4) 40%, 
+    rgba(0, 102, 255, 0.2) 70%, 
+    transparent 100%
+  );
+  filter: blur(8px);
+}
+
+.head__logo-wrap:hover::after {
+  animation: none;
+  opacity: 0.8;
+  border-color: rgba(255, 107, 0, 0.5);
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+/* Logo image */
+.head__logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  filter: brightness(1.3) contrast(1.1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: all 0.3s ease;
+}
+
+.head__logo-wrap:hover .head__logo {
+  filter: brightness(1.5) contrast(1.15) drop-shadow(0 0 10px rgba(255, 107, 0, 0.4));
   transform: scale(1.1);
-  border-color: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 6px 20px rgba(255, 165, 0, 0.3);
+}
+
+/* Brand name */
+.head__brand-text {
+  font-size: clamp(16px, 3vw, 20px);
+  font-weight: 800;
+  background: linear-gradient(135deg, #FF6B00, #FF8C3D, #0066FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
+}
+
+/* Right side - Discover + Search */
+.head__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 8px 8px 18px;
+  border-radius: 50px;
+  background: rgba(18, 18, 34, 0.4);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s ease;
+}
+
+.head__right:hover {
+  background: rgba(255, 107, 0, 0.1);
+  border-color: rgba(255, 107, 0, 0.2);
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.15);
+}
+
+/* Discover text */
+.head__discover-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  transition: color 0.3s ease;
+  white-space: nowrap;
+}
+
+.head__right:hover .head__discover-text {
+  color: #fff;
+}
+
+/* Search button */
+.head__search-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #FF6B00, #FF8C3D);
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.head__right:hover .head__search-btn {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
+}
+
+.head__search-btn i {
+  transition: transform 0.3s ease;
+}
+
+.head__right:hover .head__search-btn i {
+  transform: rotate(-10deg);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .head {
+    padding: 15px 5px;
+    margin-bottom: 15px;
+  }
+
+  .head__left {
+    gap: 10px;
+  }
+
+  .head__logo-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+  }
+
+  .head__logo-wrap::before {
+    width: 24px;
+    height: 24px;
+  }
+
+  .head__logo-wrap::after {
+    width: 30px;
+    height: 30px;
+  }
+
+  .head__logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .head__brand-text {
+    font-size: 16px;
+  }
+
+  .head__right {
+    padding: 6px 6px 6px 14px;
+    gap: 6px;
+  }
+
+  .head__discover-text {
+    font-size: 13px;
+  }
+
+  .head__search-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .head {
+    padding: 12px 2px;
+    margin-bottom: 12px;
+  }
+
+  .head__left {
+    gap: 8px;
+  }
+
+  .head__logo-wrap {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .head__logo-wrap::before {
+    width: 20px;
+    height: 20px;
+    filter: blur(4px);
+  }
+
+  .head__logo-wrap::after {
+    width: 26px;
+    height: 26px;
+  }
+
+  .head__logo {
+    width: 24px;
+    height: 24px;
+  }
+
+  .head__brand-text {
+    font-size: 14px;
+  }
+
+  .head__right {
+    padding: 5px 5px 5px 10px;
+    gap: 4px;
+    border-radius: 40px;
+  }
+
+  .head__discover-text {
+    font-size: 12px;
+  }
+
+  .head__search-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+}
+
+/* Hide Discover text on very small screens */
+@media (max-width: 360px) {
+  .head__right {
+    padding: 5px;
+  }
+
+  .head__discover-text {
+    display: none;
+  }
 }

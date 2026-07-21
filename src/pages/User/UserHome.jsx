@@ -1,10 +1,9 @@
 import React from "react";
 import "../../assets/style/UserPage/UserHome.css";
 import { useNavigate } from "react-router-dom";
-
 import Head from "../../components/UserComponents/Head";
 import Selector from "../../components/UserComponents/Selector";
-import HomeSections from "../../components/UserComponents/HomeSections"; // NEW
+import HomeSections from "../../components/UserComponents/HomeSections";
 import AllSongs from "../../components/UserComponents/AllSong";
 import SplashScreen from "../../components/UserComponents/SplashScreen";
 import { useData } from "../../context/DataContext";
@@ -19,8 +18,8 @@ const UserHome = () => {
     <div className="user-home">
       <Head onSearchClick={() => navigate("/user")} />
       <Selector />
-      <HomeSections /> {/* NEW - contains greeting, recently played, made for you, playlists, categories */}
-      <AllSongs />   {/* Only the full songs grid */}
+      <HomeSections />
+      <AllSongs />
     </div>
   );
 };

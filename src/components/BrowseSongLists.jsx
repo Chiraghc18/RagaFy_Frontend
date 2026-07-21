@@ -1,16 +1,14 @@
-// components/BrowseSongLists.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useGlobalPlayer } from "../context/GlobalPlayerContext";
-// import '../assets/style/BrowseSongList.css';
+import "../assets/style/BrowseSongList.css";
 
 export default function BrowseSongLists({ songs, photo }) {
   const navigate = useNavigate();
-  const { photos, addToQueue, queue } = useData(); // Added queue
+  const { photos, addToQueue, queue } = useData();
   const { playPlaylist, currentSong } = useGlobalPlayer();
   
-  // Local state to track which songs are in queue with animation
   const [queueStatus, setQueueStatus] = useState({});
   const [animatingSong, setAnimatingSong] = useState(null);
 
@@ -31,27 +29,21 @@ export default function BrowseSongLists({ songs, photo }) {
 
   const handleAddToQueue = (e, song) => {
     e.stopPropagation();
-    
-    // Trigger animation
     setAnimatingSong(song._id);
     setTimeout(() => setAnimatingSong(null), 500);
-    
     addToQueue(song);
-    
-    // Show mini notification
     showNotification('✓ Added to queue', '#4CAF50');
   };
 
   const handlePlayNow = (e, song, index) => {
     e.stopPropagation();
     playPlaylist(songs, index);
-    
-    showNotification(`▶ Playing: ${song.title}`, '#ffa500');
+    showNotification(`▶ Playing: ${song.title}`, '#FF6B00');
   };
 
   const showNotification = (message, color) => {
     const notification = document.createElement('div');
-    notification.className = 'browse-songs__notification';
+    notification.className = 'bsl-notification';
     notification.textContent = message;
     notification.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
     document.body.appendChild(notification);
@@ -63,55 +55,63 @@ export default function BrowseSongLists({ songs, photo }) {
   };
 
   return (
-    <div className="browse-songs">
+    <div className="bsl-container">
       {photo && (
-        <div className="browse-songs__selected">
+        <div className="bsl-selected-photo-wrap">
           <img
             src={photo}
             alt="Selected item"
-            className="browse-songs__selected-photo"
+            className="bsl-selected-photo"
           />
         </div>
       )}
 
-      <div className="browse-songs__list">
+      <div className="bsl-song-list">
         {songs.map((song, index) => (
           <div
             key={song._id}
             onClick={() => handleSongClick(index)}
-            className={`browse-songs__item ${isSongPlaying(song) ? 'browse-songs__item--playing' : ''}`}
+            className={`bsl-song-item ${isSongPlaying(song) ? 'bsl-song-item--playing' : ''}`}
           >
+            {/* Song image */}
             {photos[song._id] ? (
               <img
                 src={photos[song._id]}
                 alt={song.title}
-                className="browse-songs__item-image"
+                className="bsl-song-img"
               />
             ) : (
-              <div className="browse-songs__item-placeholder">🎵</div>
+              <div className="bsl-song-img-placeholder">
+                <i className="fa-solid fa-music"></i>
+              </div>
             )}
             
             {/* Playing indicator */}
             {isSongPlaying(song) && (
-              <div className="browse-songs__playing-indicator">
+              <div className="bsl-playing-dot">
                 <i className="fa-solid fa-volume-high"></i>
               </div>
             )}
             
-            <span className="browse-songs__item-title" onClick={(e) => handlePlayNow(e, song, index)}>
-              {song.title}
-            </span>
+            {/* Song info */}
+            <div className="bsl-song-info" onClick={(e) => handlePlayNow(e, song, index)}>
+              <span className="bsl-song-title">{song.title}</span>
+              <span className="bsl-song-artist">
+                {song.artist?.name || song.singers?.[0]?.name || 'Unknown'}
+              </span>
+            </div>
             
-            <div className="browse-songs__item-actions">
+            {/* Add to queue button */}
+            <div className="bsl-song-actions">
               <button 
-                className={`browse-songs__item-add-btn ${queueStatus[song._id] ? 'browse-songs__item-add-btn--added' : ''} ${animatingSong === song._id ? 'browse-songs__item-add-btn--animating' : ''}`}
+                className={`bsl-add-btn ${queueStatus[song._id] ? 'bsl-add-btn--added' : ''} ${animatingSong === song._id ? 'bsl-add-btn--animating' : ''}`}
                 onClick={(e) => handleAddToQueue(e, song)}
-                title={queueStatus[song._id] ? "Added to queue" : "Add to queue"}
+                title={queueStatus[song._id] ? "Remove from queue" : "Add to queue"}
               >
                 {queueStatus[song._id] ? (
-                  <i className="fa-regular fa-square-check"></i> 
+                  <i className="fa-solid fa-check"></i>
                 ) : (
-                  <i className="fa-regular fa-square-plus"></i>
+                  <i className="fa-solid fa-plus"></i>
                 )}
               </button>
             </div>

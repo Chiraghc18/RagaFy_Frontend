@@ -1,18 +1,18 @@
 export default function CategoryItems({ items, onSelect }) {
   return (
-    <div className="browse__category-items">
+    <div className="ci-grid">
       {items.map((item) => (
         <div
           key={item._id}
           onClick={() => onSelect(item)}
-          className="browse__category-item"
+          className="ci-card"
         >
           <img
-            src={item.photo}
+            src={item.photo || item.imageUrl}
             alt={item.name || item.title}
-            className="browse__category-item-image"
+            className="ci-card__img"
           />
-          <span className="browse__category-item-name">
+          <span className="ci-card__name">
             {item.name || item.title}
           </span>
         </div>

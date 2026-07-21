@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 export default function SongFilterSearch({ filters, options, handleChange }) {
   const currentYear = new Date().getFullYear();
@@ -6,14 +6,14 @@ export default function SongFilterSearch({ filters, options, handleChange }) {
 
   return (
     <div className="sfs-filter">
-      {/* Song Title */}
+      {/* Song Title - Simple Text Input */}
       <div className="sfs-filter__field">
         <label className="sfs-filter__label">Song Title</label>
         <div className="sfs-filter__search-wrapper">
           <input
             type="text"
             name="name"
-            placeholder="Enter song title..."
+            placeholder="Search by song title..."
             value={filters.name || ""}
             onChange={handleChange}
             className="sfs-filter__input"
@@ -22,120 +22,229 @@ export default function SongFilterSearch({ filters, options, handleChange }) {
         </div>
       </div>
 
-      {/* Genre */}
-      <div className="sfs-filter__field">
-        <label className="sfs-filter__label">Genre</label>
-        <input
-          type="text"
-          name="genreName"
-          placeholder="Search genre..."
-          value={filters.genreName || ""}
+      {/* Row: Genre + Language */}
+      <div className="sfs-filter__row">
+        <ComboBoxField
+          label="Genre"
+          searchName="genreName"
+          selectName="genre"
+          options={options.genres || []}
+          searchValue={filters.genreName || ""}
+          selectValue={filters.genre || ""}
           onChange={handleChange}
-          className="sfs-filter__input"
+          placeholder="Search or select genre..."
         />
-        <div className="sfs-filter__select-wrapper">
-          <select
-            name="genre"
-            value={filters.genre || ""}
-            onChange={handleChange}
-            className="sfs-filter__select"
-          >
-            <option value="">-- Select Genre --</option>
-            {(options.genres || [])
-              .filter((g) =>
-                g.name.toLowerCase().includes((filters.genreName || "").toLowerCase())
-              )
-              .map((g) => (
-                <option key={g._id} value={g._id}>
-                  {g.name}
-                </option>
-              ))}
-          </select>
-        </div>
+        <ComboBoxField
+          label="Language"
+          searchName="languageName"
+          selectName="language"
+          options={options.languages || []}
+          searchValue={filters.languageName || ""}
+          selectValue={filters.language || ""}
+          onChange={handleChange}
+          placeholder="Search or select language..."
+        />
       </div>
 
-      {/* Language */}
-      <div className="sfs-filter__field">
-        <label className="sfs-filter__label">Language</label>
-        <input
-          type="text"
-          name="languageName"
-          placeholder="Search language..."
-          value={filters.languageName || ""}
+      {/* Row: Singer + Year */}
+      <div className="sfs-filter__row">
+        <ComboBoxField
+          label="Singer"
+          searchName="singerName"
+          selectName="singer"
+          options={options.singers || []}
+          searchValue={filters.singerName || ""}
+          selectValue={filters.singer || ""}
           onChange={handleChange}
-          className="sfs-filter__input"
+          placeholder="Search or select singer..."
         />
-        <div className="sfs-filter__select-wrapper">
-          <select
-            name="language"
-            value={filters.language || ""}
-            onChange={handleChange}
-            className="sfs-filter__select"
-          >
-            <option value="">-- Select Language --</option>
-            {(options.languages || [])
-              .filter((l) =>
-                l.name.toLowerCase().includes((filters.languageName || "").toLowerCase())
-              )
-              .map((l) => (
-                <option key={l._id} value={l._id}>
-                  {l.name}
-                </option>
+        <div className="sfs-filter__field sfs-filter__field--half">
+          <label className="sfs-filter__label">Release Year</label>
+          <div className="sfs-filter__select-wrapper">
+            <select
+              name="releaseYear"
+              value={filters.releaseYear || ""}
+              onChange={handleChange}
+              className="sfs-filter__select"
+            >
+              <option value="">All Years</option>
+              {years.map((year) => (
+                <option key={year} value={year}>{year}</option>
               ))}
-          </select>
+            </select>
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Singer */}
-      <div className="sfs-filter__field">
-        <label className="sfs-filter__label">Singer</label>
-        <input
-          type="text"
-          name="singerName"
-          placeholder="Search singer..."
-          value={filters.singerName || ""}
-          onChange={handleChange}
-          className="sfs-filter__input"
-        />
-        <div className="sfs-filter__select-wrapper">
-          <select
-            name="singer"
-            value={filters.singer || ""}
-            onChange={handleChange}
-            className="sfs-filter__select"
-          >
-            <option value="">-- Select Singer --</option>
-            {(options.singers || [])
-              .filter((s) =>
-                s.name.toLowerCase().includes((filters.singerName || "").toLowerCase())
-              )
-              .map((s) => (
-                <option key={s._id} value={s._id}>
-                  {s.name}
-                </option>
-              ))}
-          </select>
+// ComboBox Component - Shows suggestions as you type
+function ComboBoxField({ label, searchName, selectName, options, searchValue, selectValue, onChange, placeholder }) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const wrapperRef = useRef(null);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Filter options based on typed text
+  const filteredOptions = options.filter((opt) =>
+    opt.name.toLowerCase().includes((searchValue || "").toLowerCase())
+  );
+
+  // Show dropdown when typing OR when focused and there are options
+  const showDropdown = isFocused && filteredOptions.length > 0;
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setIsFocused(false);
+        setHighlightIndex(-1);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Scroll highlighted option into view
+  useEffect(() => {
+    if (highlightIndex >= 0 && dropdownRef.current) {
+      const highlighted = dropdownRef.current.querySelector('.sfs-combo__option--highlighted');
+      if (highlighted) {
+        highlighted.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [highlightIndex]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (filteredOptions.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setIsFocused(true);
+        setHighlightIndex((prev) => Math.min(prev + 1, filteredOptions.length - 1));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setHighlightIndex((prev) => Math.max(prev - 1, 0));
+        break;
+      case "Enter":
+        if (highlightIndex >= 0 && filteredOptions[highlightIndex]) {
+          handleSelect(filteredOptions[highlightIndex]);
+        }
+        e.preventDefault();
+        break;
+      case "Escape":
+        setIsFocused(false);
+        setHighlightIndex(-1);
+        inputRef.current?.blur();
+        break;
+    }
+  };
+
+  const handleSelect = (option) => {
+    onChange({ target: { name: searchName, value: option.name } });
+    onChange({ target: { name: selectName, value: option._id } });
+    setIsFocused(false);
+    setHighlightIndex(-1);
+    inputRef.current?.blur();
+  };
+
+  const handleInputChange = (e) => {
+    onChange(e);
+    setIsFocused(true);
+    setHighlightIndex(-1);
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onChange({ target: { name: searchName, value: "" } });
+    onChange({ target: { name: selectName, value: "" } });
+    setHighlightIndex(-1);
+    setIsFocused(true);
+    inputRef.current?.focus();
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    setHighlightIndex(-1);
+  };
+
+  const toggleDropdown = (e) => {
+    e.stopPropagation();
+    if (isFocused) {
+      setIsFocused(false);
+    } else {
+      setIsFocused(true);
+      inputRef.current?.focus();
+    }
+  };
+
+  return (
+    <div className="sfs-filter__field sfs-filter__field--half">
+      <label className="sfs-filter__label">{label}</label>
+      <div className="sfs-combo" ref={wrapperRef}>
+        <div className="sfs-combo__input-wrap">
+          <input
+            ref={inputRef}
+            type="text"
+            name={searchName}
+            placeholder={placeholder}
+            value={searchValue}
+            onChange={handleInputChange}
+            onFocus={handleFocus}
+            onKeyDown={handleKeyDown}
+            className="sfs-combo__input"
+            autoComplete="off"
+          />
+          <div className="sfs-combo__icons">
+            {searchValue && (
+              <i 
+                className="fa-solid fa-xmark sfs-combo__clear" 
+                onMouseDown={handleClear}
+              ></i>
+            )}
+            <i
+              className={`fa-solid fa-chevron-down sfs-combo__arrow ${isFocused ? 'sfs-combo__arrow--open' : ''}`}
+              onMouseDown={toggleDropdown}
+            ></i>
+          </div>
         </div>
-      </div>
 
-      {/* Release Year */}
-      <div className="sfs-filter__field">
-        <label className="sfs-filter__label">Release Year</label>
-        <div className="sfs-filter__select-wrapper">
-          <select
-            name="releaseYear"
-            value={filters.releaseYear || ""}
-            onChange={handleChange}
-            className="sfs-filter__select"
-          >
-            <option value="">-- Select Year --</option>
-            {years.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
+        {showDropdown && (
+          <div className="sfs-combo__dropdown" ref={dropdownRef}>
+            {filteredOptions.map((option, index) => (
+              <div
+                key={option._id}
+                className={`sfs-combo__option ${index === highlightIndex ? 'sfs-combo__option--highlighted' : ''} ${selectValue === option._id ? 'sfs-combo__option--selected' : ''}`}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(option); }}
+                onMouseEnter={() => setHighlightIndex(index)}
+              >
+                <span>{option.name}</span>
+                {selectValue === option._id && (
+                  <i className="fa-solid fa-check sfs-combo__check"></i>
+                )}
+              </div>
             ))}
-          </select>
-        </div>
+          </div>
+        )}
+
+        {/* Hidden select for form data */}
+        <select
+          name={selectName}
+          value={selectValue}
+          onChange={onChange}
+          className="sfs-combo__hidden-select"
+        >
+          <option value="">All {label}s</option>
+          {options.map((opt) => (
+            <option key={opt._id} value={opt._id}>{opt.name}</option>
+          ))}
+        </select>
       </div>
     </div>
   );

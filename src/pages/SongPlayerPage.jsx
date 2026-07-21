@@ -1,5 +1,4 @@
-// pages/SongPlayerPage.jsx
-import React, { useState, useEffect ,useRef} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useGlobalPlayer } from "../context/GlobalPlayerContext";
@@ -9,7 +8,7 @@ export default function SongPlayerPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { songs = [], startIndex = 0 } = location.state || {};
-  
+
   const { photos, queue, addToQueue, removeFromQueue, clearQueue } = useData();
   const {
     currentPlaylist,
@@ -34,11 +33,11 @@ export default function SongPlayerPage() {
   const [volume, setVolume] = useState(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [animatingSong, setAnimatingSong] = useState(null);
-  
+
   const queuePanelRef = useRef(null);
   const volumeRef = useRef(null);
+  const audioRef = useRef(null);
 
-  // Create a Set of queue song IDs for quick lookup
   const queueSongIds = new Set(queue.map(song => song._id));
 
   // Initialize player with songs from location if provided
@@ -46,21 +45,30 @@ export default function SongPlayerPage() {
     if (songs && songs.length > 0) {
       playPlaylist(songs, startIndex);
     }
-  }, [songs, startIndex]);
+  }, []);
+
+  // Set volume on audio element
+  useEffect(() => {
+    const audio = document.querySelector('audio');
+    if (audio) {
+      audio.volume = volume;
+      audioRef.current = audio;
+    }
+  }, [volume]);
 
   // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (queuePanelRef.current && !queuePanelRef.current.contains(event.target) && 
-          !event.target.closest('.ragafy-player__queue-toggle')) {
+      if (queuePanelRef.current && !queuePanelRef.current.contains(event.target) &&
+        !event.target.closest('.ragafy-player__queue-toggle')) {
         setShowQueue(false);
       }
       if (volumeRef.current && !volumeRef.current.contains(event.target) &&
-          !event.target.closest('.ragafy-player__volume-icon')) {
+        !event.target.closest('.ragafy-player__volume-icon')) {
         setShowVolumeSlider(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -75,17 +83,10 @@ export default function SongPlayerPage() {
   };
 
   const handleAddToQueue = (song, playNext = false) => {
-    // Trigger animation
     setAnimatingSong(song._id);
     setTimeout(() => setAnimatingSong(null), 500);
-    
-    if (playNext) {
-      addToQueue(song);
-      showNotification('✓ Added to play next', '#4CAF50');
-    } else {
-      addToQueue(song);
-      showNotification('✓ Added to queue', '#4CAF50');
-    }
+    addToQueue(song);
+    showNotification(playNext ? '✓ Added to play next' : '✓ Added to queue', '#4CAF50');
   };
 
   const handleAddAllToQueue = () => {
@@ -101,44 +102,67 @@ export default function SongPlayerPage() {
     }
   };
 
-  const isSongInQueue = (songId) => {
-    return queueSongIds.has(songId);
-  };
+  const isSongInQueue = (songId) => queueSongIds.has(songId);
 
   if (!currentPlaylist.length || !currentSong) {
     return (
-      <div className="ragafy-player__empty">
-        <i className="fa-solid fa-music"></i>
-        <h2>No song playing</h2>
-        <p>Select a song to start playing</p>
-        <button onClick={() => navigate('/browse')} className="ragafy-player__browse-btn">
-          Browse Songs
-        </button>
+      <div className="ragafy-player">
+        <div className="ragafy-player__back" onClick={() => navigate(-1)}>
+          <i className="fa-solid fa-arrow-left"></i>
+          <span>Back</span>
+        </div>
+        <div className="ragafy-player__empty">
+          <i className="fa-solid fa-music"></i>
+          <h2>No song playing</h2>
+          <p>Select a song to start playing</p>
+          <button onClick={() => navigate('/')} className="ragafy-player__browse-btn">
+            Browse Songs
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="ragafy-player__back" onClick={() => navigate(-1)}>
-        <i className="fa-solid fa-arrow-left"></i>
-      </div>
+      {/* Replace the old back button with this */}
+<div className="ragafy-player__back" onClick={() => navigate(-1)}>
+  <div className="ragafy-player__back-icon">
+    <i className="fa-solid fa-arrow-left"></i>
+  </div>
+  <span className="ragafy-player__back-text">Back</span>
+</div>
 
       <div className="ragafy-player">
         {/* Main Player Content */}
         <div className="ragafy-player__main">
+          {/* Header */}
           <div className="ragafy-player__header">
-            {photos[currentSong._id] ? (
-              <img
-                src={photos[currentSong._id]}
-                alt={currentSong.title}
-                className="ragafy-player__photo"
-              />
-            ) : (
-              <div className="ragafy-player__photo-placeholder">
-                <i className="fa-solid fa-music"></i>
-              </div>
-            )}
+            <div className="ragafy-player__art-container">
+              {photos[currentSong._id] ? (
+                <img
+                  src={photos[currentSong._id]}
+                  alt={currentSong.title}
+                  className={`ragafy-player__photo ${isPlaying ? 'playing' : 'paused'}`}
+                />
+              ) : (
+                <div className={`ragafy-player__photo-placeholder ${isPlaying ? 'playing' : ''}`}>
+                  <i className="fa-solid fa-music"></i>
+                </div>
+              )}
+
+              {/* Playing bars overlay */}
+              {isPlaying && (
+                <div className="ragafy-player__art-overlay">
+                  <div className="playing-bars">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <h2 className="ragafy-player__title">{currentSong.title}</h2>
 
@@ -157,21 +181,22 @@ export default function SongPlayerPage() {
             <div className="ragafy-player__mode-indicators">
               {shuffleMode && (
                 <span className="mode-indicator shuffle">
-                  <i className="fa-solid fa-shuffle"></i> Shuffle on
+                  <i className="fa-solid fa-shuffle"></i> Shuffle
                 </span>
               )}
               {repeatMode === 'one' && (
                 <span className="mode-indicator repeat-one">
-                  <i className="fa-solid fa-repeat-1"></i> Repeat one
+                  <i className="fa-solid fa-repeat"></i> Repeat One
                 </span>
               )}
               {repeatMode === 'all' && (
                 <span className="mode-indicator repeat-all">
-                  <i className="fa-solid fa-repeat"></i> Repeat all
+                  <i className="fa-solid fa-repeat"></i> Repeat All
                 </span>
               )}
             </div>
 
+            {/* Meta Grid */}
             <div className="ragafy-player__meta-grid">
               {currentSong.album?.name && (
                 <div className="ragafy-player__meta-item">
@@ -200,6 +225,7 @@ export default function SongPlayerPage() {
             </div>
           </div>
 
+          {/* Audio Container */}
           <div className="ragafy-player__audio-container">
             {/* Time Display */}
             <div className="ragafy-player__time-display">
@@ -219,7 +245,7 @@ export default function SongPlayerPage() {
 
             {/* Main Controls */}
             <div className="ragafy-player__controls">
-              <button 
+              <button
                 className={`ragafy-player__control-btn shuffle ${shuffleMode ? 'active' : ''}`}
                 onClick={toggleShuffle}
                 title={shuffleMode ? 'Disable shuffle' : 'Enable shuffle'}
@@ -227,73 +253,69 @@ export default function SongPlayerPage() {
                 <i className="fa-solid fa-shuffle"></i>
               </button>
 
-              <button 
+              <button
                 className="ragafy-player__control-btn previous"
                 onClick={handlePrevious}
+                title="Previous"
               >
                 <i className="fa-solid fa-backward-step"></i>
               </button>
 
-              <button 
+              <button
                 className="ragafy-player__control-btn play-pause"
                 onClick={togglePlayPause}
+                title={isPlaying ? 'Pause' : 'Play'}
               >
                 <i className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`}></i>
               </button>
 
-              <button 
+              <button
                 className="ragafy-player__control-btn next"
                 onClick={handleNext}
+                title="Next"
               >
                 <i className="fa-solid fa-forward-step"></i>
               </button>
 
-              <button 
-                className={`ragafy-player__control-btn repeat ${
-                  repeatMode !== 'none' ? 'active' : ''
-                }`}
+              <button
+                className={`ragafy-player__control-btn repeat ${repeatMode !== 'none' ? 'active' : ''}`}
                 onClick={toggleRepeat}
                 title={
-                  repeatMode === 'one' 
-                    ? 'Repeat one' 
-                    : repeatMode === 'all' 
-                    ? 'Repeat all' 
-                    : 'Repeat off'
+                  repeatMode === 'one' ? 'Repeat one' :
+                    repeatMode === 'all' ? 'Repeat all' : 'Repeat off'
                 }
               >
-                <i className={`fa-solid ${
-                  repeatMode === 'one' ? 'fa-repeat-1' : 'fa-repeat'
-                }`}></i>
+                <i className={`fa-solid ${repeatMode === 'one' ? 'fa-repeat' : 'fa-repeat'}`}></i>
                 {repeatMode === 'one' && <span className="repeat-one-indicator">1</span>}
               </button>
             </div>
 
             {/* Bottom Controls */}
             <div className="ragafy-player__bottom-controls">
-              {/* Queue Toggle */}
-              <button 
+              <button
                 className={`ragafy-player__queue-toggle ${showQueue ? 'active' : ''}`}
                 onClick={() => setShowQueue(!showQueue)}
+                title="Toggle queue"
               >
                 <i className="fa-solid fa-list"></i>
                 <span className="ragafy-player__queue-count">{queue.length}</span>
               </button>
 
-              {/* Volume Control */}
               <div className="ragafy-player__volume-control" ref={volumeRef}>
-                <button 
+                <button
                   className="ragafy-player__volume-icon"
                   onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+                  title="Volume"
                 >
                   {volume === 0 ? (
-                    <i className="fa-solid fa-volume-off"></i>
+                    <i className="fa-solid fa-volume-xmark"></i>
                   ) : volume < 0.5 ? (
                     <i className="fa-solid fa-volume-low"></i>
                   ) : (
                     <i className="fa-solid fa-volume-high"></i>
                   )}
                 </button>
-                
+
                 {showVolumeSlider && (
                   <input
                     type="range"
@@ -319,7 +341,7 @@ export default function SongPlayerPage() {
                 Queue
                 <span className="ragafy-player__queue-count-badge">{queue.length}</span>
               </h3>
-              <button 
+              <button
                 className="ragafy-player__queue-close"
                 onClick={() => setShowQueue(false)}
               >
@@ -327,13 +349,13 @@ export default function SongPlayerPage() {
               </button>
             </div>
 
-            {/* Now Playing */}
+            {/* Now Playing in Queue */}
             <div className="ragafy-player__queue-now-playing">
-              <span className="ragafy-player__queue-label">NOW PLAYING</span>
+              <span className="ragafy-player__queue-label">Now Playing</span>
               <div className="ragafy-player__queue-current">
                 {photos[currentSong._id] && (
-                  <img 
-                    src={photos[currentSong._id]} 
+                  <img
+                    src={photos[currentSong._id]}
                     alt={currentSong.title}
                     className="ragafy-player__queue-current-image"
                   />
@@ -343,70 +365,56 @@ export default function SongPlayerPage() {
                     {currentSong.title}
                   </span>
                   <span className="ragafy-player__queue-current-artist">
-                    {currentSong.artist?.name || currentSong.singers?.[0]?.name}
+                    {currentSong.artist?.name || currentSong.singers?.[0]?.name || 'Unknown'}
                   </span>
                 </div>
-                <button 
-                  className="ragafy-player__queue-add-next"
-                  onClick={() => handleAddToQueue(currentSong, true)}
-                  title="Play next"
-                >
-                  <i className="fa-solid fa-forward"></i>
-                </button>
               </div>
             </div>
 
             {/* Queue List */}
             <div className="ragafy-player__queue-list">
-              <span className="ragafy-player__queue-label">NEXT IN QUEUE</span>
-              
+              <span className="ragafy-player__queue-label">Next in Queue</span>
+
               {queue.length === 0 ? (
                 <div className="ragafy-player__queue-empty">
                   <i className="fa-solid fa-music"></i>
                   <p>Queue is empty</p>
-                  <button 
+                  <button
                     className="ragafy-player__queue-browse"
-                    onClick={() => navigate('/browse')}
+                    onClick={() => navigate('/')}
                   >
                     Browse Songs
                   </button>
                 </div>
               ) : (
                 queue.map((song, index) => (
-                  <div 
+                  <div
                     key={`${song._id}-${index}`}
                     className="ragafy-player__queue-item"
                   >
                     <span className="ragafy-player__queue-item-index">
                       {index + 1}
                     </span>
-                    
+
                     {photos[song._id] && (
-                      <img 
-                        src={photos[song._id]} 
+                      <img
+                        src={photos[song._id]}
                         alt={song.title}
                         className="ragafy-player__queue-item-image"
                       />
                     )}
-                    
+
                     <div className="ragafy-player__queue-item-info">
                       <span className="ragafy-player__queue-item-title">
                         {song.title}
                       </span>
                       <span className="ragafy-player__queue-item-artist">
-                        {song.artist?.name || song.singers?.[0]?.name}
+                        {song.artist?.name || song.singers?.[0]?.name || 'Unknown'}
                       </span>
                     </div>
 
                     <div className="ragafy-player__queue-item-actions">
-                      <button 
-                        className="ragafy-player__queue-item-btn play-next"
-                        onClick={() => handleAddToQueue(song, true)}
-                        title="Play next"
-                      >
-                        <i className="fa-solid fa-forward"></i>
-                      </button>
-                      <button 
+                      <button
                         className="ragafy-player__queue-item-btn remove"
                         onClick={() => removeFromQueue(song._id)}
                         title="Remove from queue"
@@ -422,7 +430,7 @@ export default function SongPlayerPage() {
             {/* Queue Actions */}
             {queue.length > 0 && (
               <div className="ragafy-player__queue-actions">
-                <button 
+                <button
                   className="ragafy-player__queue-action"
                   onClick={() => {
                     navigate('/queue');
@@ -432,7 +440,7 @@ export default function SongPlayerPage() {
                   <i className="fa-solid fa-expand"></i>
                   View Full Queue
                 </button>
-                <button 
+                <button
                   className="ragafy-player__queue-action clear"
                   onClick={handleClearQueue}
                 >
@@ -444,11 +452,11 @@ export default function SongPlayerPage() {
           </div>
         )}
 
-        {/* Playlist */}
+        {/* Playlist / Song List */}
         <div className="ragafy-player__song-list">
           <div className="ragafy-player__song-list-header">
             <h3>
-              <i className="fa-regular fa-rectangle-list"></i>
+              <i className="fa-solid fa-list-ol"></i>
               Playlist
               {shuffleMode && (
                 <span className="shuffle-indicator">
@@ -457,30 +465,25 @@ export default function SongPlayerPage() {
               )}
               {repeatMode === 'one' && (
                 <span className="repeat-one-indicator-header">
-                  <i className="fa-solid fa-repeat-1"></i>
-                </span>
-              )}
-              {repeatMode === 'all' && (
-                <span className="repeat-all-indicator-header">
-                  <i className="fa-solid fa-repeat"></i>
+                  <i className="fa-solid fa-repeat"></i> 1
                 </span>
               )}
             </h3>
-            <button 
+            <button
               className="ragafy-player__add-all-btn"
               onClick={handleAddAllToQueue}
               title="Add all to queue"
             >
-              <i className="fa-regular fa-square-plus"></i>
+              <i className="fa-solid fa-plus"></i>
               Add All
             </button>
           </div>
-          
+
           <div className="ragafy-player__song-list-items">
             {currentPlaylist.map((song, idx) => {
               const inQueue = isSongInQueue(song._id);
               const isAnimating = animatingSong === song._id;
-              
+
               return (
                 <div
                   key={song._id}
@@ -493,35 +496,47 @@ export default function SongPlayerPage() {
                       replace: true
                     });
                   }}
-                  className={`ragafy-player__song-item ${
-                    idx === currentIndex ? "active" : ""
-                  }`}
+                  className={`ragafy-player__song-item ${idx === currentIndex ? "active" : ""} ${isAnimating ? "animating" : ""}`}
                 >
-                  {photos && photos[song._id] && (
-                    <img 
-                      src={photos[song._id]} 
-                      alt={song.title} 
-                      className="ragafy-player__song-item-image" 
+                  {photos && photos[song._id] ? (
+                    <img
+                      src={photos[song._id]}
+                      alt={song.title}
+                      className="ragafy-player__song-item-image"
                     />
+                  ) : (
+                    <div className="ragafy-player__song-item-image-placeholder">
+                      <i className="fa-solid fa-music"></i>
+                    </div>
                   )}
+
                   <div className="ragafy-player__song-item-info">
                     <span className="ragafy-player__song-item-title">
                       {song.title}
+                      {idx === currentIndex && (
+                        <span className="now-playing-badge">NOW PLAYING</span>
+                      )}
                     </span>
                     <span className="ragafy-player__song-item-subtitle">
-                      {song.artist?.name || song.singers?.[0]?.name}
+                      {song.artist?.name || song.singers?.[0]?.name || 'Unknown'}
                     </span>
                   </div>
-                  
-                  {/* Add play indicator for current song */}
-                  {idx === currentIndex && (
+
+                  {/* Playing indicator */}
+                  {idx === currentIndex && isPlaying && (
                     <div className="ragafy-player__song-item-playing">
                       <i className="fa-solid fa-volume-high"></i>
                     </div>
                   )}
-                  
-                  <button 
-                    className={`ragafy-player__song-item-add ${inQueue ? 'added' : ''} ${isAnimating ? 'animating' : ''}`}
+                  {idx === currentIndex && !isPlaying && (
+                    <div className="ragafy-player__song-item-paused">
+                      <i className="fa-solid fa-pause"></i>
+                    </div>
+                  )}
+
+                  {/* Add to queue button */}
+                  <button
+                    className={`ragafy-player__song-item-add ${inQueue ? 'added' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAddToQueue(song);
@@ -529,9 +544,9 @@ export default function SongPlayerPage() {
                     title={inQueue ? "Added to queue" : "Add to queue"}
                   >
                     {inQueue ? (
-                      <i className="fa-regular fa-square-check"></i> // Square check icon when added
+                      <i className="fa-solid fa-check"></i>
                     ) : (
-                      <i className="fa-regular fa-square-plus"></i> // Square plus icon when not added
+                      <i className="fa-solid fa-plus"></i>
                     )}
                   </button>
                 </div>

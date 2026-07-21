@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchPlaylistById } from "../../services/playlistService";
-// import { fetchSongById } from "../../services/songService/songService"; // No longer needed
-import { useData } from "../../context/DataContext"; // <-- IMPORT
+import { useData } from "../../context/DataContext";
 import BrowseSongLists from "../BrowseSongLists";
+import "../../assets/style/UserPage/UserPlayList.css";
 
 export default function UserPlaylistDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  // Get all songs from context
-  const { songs: allSongs, loading: dataLoading } = useData(); 
+  const { songs: allSongs, loading: dataLoading } = useData();
 
   const [playlist, setPlaylist] = useState(null);
   const [songsDetails, setSongsDetails] = useState([]);
@@ -24,14 +22,9 @@ export default function UserPlaylistDetails() {
         setLoading(true);
         const res = await fetchPlaylistById(id);
         setPlaylist(res.data);
-
-        // --- PERFORMANCE FIX ---
-        // Instead of fetching each song, find them in our global list
-        const songIdsInPlaylist = res.data.songs.map(s => s._id); 
+        const songIdsInPlaylist = res.data.songs.map(s => s._id);
         const details = allSongs.filter(song => songIdsInPlaylist.includes(song._id));
         setSongsDetails(details);
-        // -------------------------
-
       } catch (e) {
         console.error("fetch playlist error:", e.response?.data || e.message);
         setErr(e.response?.data?.error || e.message);
@@ -39,12 +32,11 @@ export default function UserPlaylistDetails() {
         setLoading(false);
       }
     };
-    
-    // Only run this if the global data is ready
+
     if (!dataLoading && allSongs.length > 0) {
       loadPlaylist();
     }
-  }, [id, allSongs, dataLoading]); // Add dependencies
+  }, [id, allSongs, dataLoading]);
 
   const handlePlayPlaylist = () => {
     if (songsDetails.length > 0) {
@@ -54,17 +46,20 @@ export default function UserPlaylistDetails() {
     }
   };
 
-  // ... (rest of your component: handleEdit, loading/error/null JSX) ...
-  // ... The rest of your return JSX is unchanged ...
-  
   if (loading || dataLoading) return (
     <div className="upd">
       <div className="upd__loading">Loading playlist...</div>
     </div>
   );
-  
+
   if (err) return (
     <div className="upd">
+      <div className="upd-back-btn" onClick={() => navigate(-1)}>
+        <div className="upd-back-btn__icon">
+          <i className="fa-solid fa-arrow-left"></i>
+        </div>
+        <span className="upd-back-btn__text">Back</span>
+      </div>
       <div className="upd__error">
         <div className="upd__error-icon">⚠️</div>
         <div className="upd__error-text">Failed to load playlist</div>
@@ -75,9 +70,15 @@ export default function UserPlaylistDetails() {
       </div>
     </div>
   );
-  
+
   if (!playlist) return (
     <div className="upd">
+      <div className="upd-back-btn" onClick={() => navigate(-1)}>
+        <div className="upd-back-btn__icon">
+          <i className="fa-solid fa-arrow-left"></i>
+        </div>
+        <span className="upd-back-btn__text">Back</span>
+      </div>
       <div className="upd__not-found">
         <div className="upd__not-found-icon">🎵</div>
         <div className="upd__not-found-text">Playlist not found</div>
@@ -90,9 +91,12 @@ export default function UserPlaylistDetails() {
 
   return (
     <div className="upd">
-      {/* Back Button */}
-      <div className="upd__back" onClick={() => navigate(-1)}>
-        <i className="fa-solid fa-arrow-left"></i>
+      {/* Unique back button */}
+      <div className="upd-back-btn" onClick={() => navigate(-1)}>
+        <div className="upd-back-btn__icon">
+          <i className="fa-solid fa-arrow-left"></i>
+        </div>
+        <span className="upd-back-btn__text">Back</span>
       </div>
 
       {/* Playlist Header */}
@@ -106,15 +110,15 @@ export default function UserPlaylistDetails() {
             />
           ) : (
             <div className="upd__cover-placeholder">
-              <i className="fa-solid fa-music" style={{fontSize: '3rem', marginBottom: '10px'}}></i>
+              <i className="fa-solid fa-music" style={{ fontSize: '3rem', marginBottom: '10px' }}></i>
               <div>No cover</div>
             </div>
           )}
         </div>
-        
+
         <div className="upd__info">
           <h2 className="upd__title">{playlist.name}</h2>
-          
+
           <div className="upd__meta">
             <div className="upd__meta-item">
               <i className="upd__meta-icon fa-solid fa-music"></i>
@@ -131,7 +135,7 @@ export default function UserPlaylistDetails() {
           )}
 
           <div className="upd__actions">
-            <button 
+            <button
               className="upd__action-btn upd__action-btn--play"
               onClick={handlePlayPlaylist}
               disabled={songsDetails.length === 0}
@@ -148,12 +152,11 @@ export default function UserPlaylistDetails() {
         <h3 className="upd__songs-title">
           Songs {songsDetails.length > 0 && `(${songsDetails.length})`}
         </h3>
-        
+
         {songsDetails.length === 0 ? (
           <div className="upd__empty-songs">
             <div className="upd__empty-icon">🎵</div>
             <div className="upd__empty-text">No songs in this playlist yet</div>
-            <div className="upd__empty-subtext">Add some songs to get started!</div>
           </div>
         ) : (
           <BrowseSongLists songs={songsDetails} />

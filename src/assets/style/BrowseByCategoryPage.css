@@ -1,911 +1,523 @@
-/* BrowseByCategoryPage.css */
-.browse__back {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 100;
+/* ============================================ */
+/* BROWSE BY CATEGORY PAGE - BRC PREFIX */
+/* ============================================ */
+
+/* ===== BACK BUTTON ===== */
+.brc__back {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-radius: 50px;
+  background: rgba(15, 15, 28, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  background: rgba(255, 165, 0, 0.2);
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.brc__back:hover {
+  background: rgba(22, 22, 40, 0.95);
+  border-color: rgba(255, 107, 0, 0.3);
+  transform: translateX(-4px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
+}
+
+.brc__back:active {
+  transform: scale(0.96);
+}
+
+.brc__back-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 165, 0, 0.4);
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B00, #FF8C3D);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(255, 107, 0, 0.3);
 }
 
-.browse__back:hover {
-  background: rgba(255, 165, 0, 0.3);
-  transform: scale(1.1);
-  border-color: rgba(255, 165, 0, 0.6);
-  box-shadow: 0 6px 20px rgba(255, 165, 0, 0.3);
-}
-
-.browse__back-icon {
+.brc__back-icon i {
   color: white;
-  font-size: 18px;
+  font-size: 12px;
 }
 
-.browse__page {
+.brc__back-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+/* ===== PAGE ===== */
+.brc {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #ff7e5f 100%);
+  background: transparent;
   color: white;
   padding: 80px 20px 40px;
+  padding-bottom: 110px;
   position: relative;
 }
 
-.browse__page::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: radial-gradient(circle at 20% 80%, rgba(255, 165, 0, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 80% 20%, rgba(30, 144, 255, 0.1) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.browse__header {
-  text-align: center;
-  margin-bottom: 40px;
+.brc > * {
   position: relative;
   z-index: 1;
 }
 
-.browse__title {
-  font-size: 3rem;
+/* ===== HEADER ===== */
+.brc__header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.brc__title {
+  font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
-  background: linear-gradient(45deg, #ffa500, #ffd700, #1e90ff);
+  background: linear-gradient(45deg, #FF6B00, #FF8C3D, #0066FF);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 10px;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.browse__subtitle {
-   font-size: 3rem;
+.brc__subtitle {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
   font-weight: 800;
-  background: linear-gradient(45deg, #ffa500, #ffd700, #1e90ff);
+  background: linear-gradient(45deg, #FF6B00, #FF8C3D, #0066FF);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-top: 35px;
   margin-bottom: 10px;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.browse__loading-text {
-  text-align: center;
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 15px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Category Selector Styles */
-.browse__category-selector {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 25px;
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.browse__category-button {
-  background: linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(30, 144, 255, 0.15));
-  backdrop-filter: blur(15px);
+/* ===== LOADING ===== */
+.brc__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px;
+  color: rgba(255, 255, 255, 0.7);
+  gap: 15px;
+  background: rgba(18, 18, 34, 0.4);
   border-radius: 20px;
-  width: fit-content;
-  padding: 20px 15px;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  max-width: 400px;
+  margin: 0 auto;
 }
 
-.browse__category-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.6s;
+.brc__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top: 3px solid #FF6B00;
+  border-radius: 50%;
+  animation: brc-spin 0.8s linear infinite;
 }
 
-.browse__category-button:hover::before {
-  left: 100%;
+@keyframes brc-spin {
+  to { transform: rotate(360deg); }
 }
 
-.browse__category-button:hover {
-  transform: translateY(-8px) scale(1.05);
-  border-color: rgba(255, 165, 0, 0.6);
-  box-shadow: 0 15px 40px rgba(255, 165, 0, 0.25);
-  background: linear-gradient(135deg, rgba(255, 165, 0, 0.25), rgba(30, 144, 255, 0.25));
-}
+/* ============================================ */
+/* CATEGORY SELECTOR - CS PREFIX */
+/* ============================================ */
 
-.browse__category-button--active {
-  border-color: #ffa500;
-  background: linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(30, 144, 255, 0.3));
-  box-shadow: 0 10px 35px rgba(255, 165, 0, 0.3);
-  transform: scale(1.05);
-}
-
-.browse__category-image {
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
-  transition: all 0.3s ease;
-}
-
-.browse__category-button:hover .browse__category-image {
-  transform: scale(1.1);
-}
-
-.browse__category-button--active .browse__category-image {
-  /* filter: brightness(0) invert(0.7) sepia(1) saturate(5) hue-rotate(0deg); */
-}
-
-/* Category Items Styles */
-.browse__category-items {
+.cs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 20px;
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 20px;
 }
 
-.browse__category-item {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+.cs-card {
+  background: rgba(18, 18, 34, 0.5);
   backdrop-filter: blur(15px);
-  border-radius: 15px;
-  padding: 20px;
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 22px 15px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
-.browse__category-item::before {
+.cs-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #ffa500, #1e90ff);
+  height: 2px;
+  background: linear-gradient(90deg, #FF6B00, #0066FF);
   transform: scaleX(0);
   transition: transform 0.3s ease;
 }
 
-.browse__category-item:hover::before {
+.cs-card:hover::before {
   transform: scaleX(1);
 }
 
-.browse__category-item:hover {
-  transform: translateY(-5px);
-  border-color: rgba(255, 165, 0, 0.4);
-  box-shadow: 0 12px 30px rgba(255, 165, 0, 0.2);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1));
+.cs-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255, 107, 0, 0.3);
+  box-shadow: 0 15px 35px rgba(255, 107, 0, 0.2);
+  background: rgba(255, 107, 0, 0.08);
 }
 
-.browse__category-item-image {
+.cs-card:active {
+  transform: translateY(-2px) scale(0.97);
+}
+
+.cs-card--active {
+  border-color: #FF6B00;
+  background: rgba(255, 107, 0, 0.15);
+  box-shadow: 0 10px 30px rgba(255, 107, 0, 0.25);
+}
+
+.cs-card--active::before {
+  transform: scaleX(1);
+}
+
+.cs-card__img {
   width: 120px;
   height: 120px;
-  object-fit:cover;
-  border-radius: 12px;
-  margin-bottom: 15px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  object-fit: contain;
   transition: all 0.3s ease;
 }
 
-.browse__category-item:hover .browse__category-item-image {
+.cs-card:hover .cs-card__img {
   transform: scale(1.1);
-  border-color: #ffa500;
 }
 
-.browse__category-item-name {
-  font-size: 1.1rem;
+.cs-card__name {
+  font-size: 14px;
   font-weight: 600;
-  color: white;
-  display: block;
-  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: capitalize;
+  transition: color 0.3s ease;
 }
 
-/* Browse Song Lists Styles */
-.browse__song-lists {
-  max-width: 800px;
+.cs-card:hover .cs-card__name {
+  color: #FF6B00;
+}
+
+/* ============================================ */
+/* CATEGORY ITEMS - CI PREFIX */
+/* ============================================ */
+
+.ci-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 18px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 20px;
 }
 
-/* Responsive Design */
+.ci-card {
+  background: rgba(18, 18, 34, 0.5);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ci-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #FF6B00, #0066FF);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.ci-card:hover::before {
+  transform: scaleX(1);
+}
+
+.ci-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 107, 0, 0.3);
+  box-shadow: 0 12px 30px rgba(255, 107, 0, 0.2);
+  background: rgba(255, 107, 0, 0.08);
+}
+
+.ci-card:active {
+  transform: translateY(-2px) scale(0.97);
+}
+
+.ci-card__img {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ci-card:hover .ci-card__img {
+  transform: scale(1.08);
+  border-color: #FF6B00;
+}
+
+.ci-card__name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  line-height: 1.3;
+  transition: color 0.3s ease;
+}
+
+.ci-card:hover .ci-card__name {
+  color: #FF6B00;
+}
+
+/* ============================================ */
+/* RESPONSIVE - TABLET */
+/* ============================================ */
 @media (max-width: 768px) {
-  .browse__page {
-    padding: 70px 15px 30px;
+  .brc {
+    padding: 70px 15px 100px;
   }
 
-  .browse__title {
-    font-size: 2.2rem;
+  .brc__back {
+    top: 14px;
+    left: 14px;
+    padding: 8px 16px;
+    gap: 7px;
   }
 
-  .browse__subtitle {
-    font-size: 2rem;
+  .brc__back-icon {
+    width: 26px;
+    height: 26px;
   }
 
-  .browse__category-selector {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 15px;
+  .brc__back-icon i {
+    font-size: 11px;
+  }
+
+  .brc__back-text {
+    font-size: 13px;
+  }
+
+  .brc__title {
+    font-size: 1.8rem;
+  }
+
+  .brc__subtitle {
+    font-size: 1.6rem;
+  }
+
+  .cs-grid {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 14px;
     padding: 15px;
   }
 
-  .browse__category-button {
-    padding: 15px 10px;
-    width: max-content;
+  .cs-card {
+    padding: 16px 10px;
   }
 
-  .browse__category-image {
-    width: 110px;
-    height: 110px;
-  }
-
-  .browse__category-items {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
-    padding: 15px;
-  }
-
-  .browse__category-item-image {
+  .cs-card__img {
     width: 80px;
     height: 80px;
   }
 
-  .browse__category-item-name {
-    font-size: 1rem;
+  .cs-card__name {
+    font-size: 12px;
+  }
+
+  .ci-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+    padding: 15px;
+  }
+
+  .ci-card__img {
+    width: 80px;
+    height: 80px;
+  }
+
+  .ci-card__name {
+    font-size: 0.9rem;
   }
 }
 
+/* ============================================ */
+/* RESPONSIVE - MOBILE */
+/* ============================================ */
 @media (max-width: 480px) {
-  .browse__page {
-    padding: 30px 10px 20px;
+  .brc {
+    padding: 60px 10px 90px;
   }
 
-  .browse__back {
-    top: 15px;
-    left: 15px;
-    width: 40px;
-    height: 40px;
+  .brc__back {
+    top: 10px;
+    left: 10px;
+    padding: 7px 12px;
+    gap: 5px;
   }
 
-  .browse__back-icon {
-    font-size: 16px;
+  .brc__back-icon {
+    width: 24px;
+    height: 24px;
   }
 
-  .browse__title {
-    font-size: 1.8rem;
+  .brc__back-icon i {
+    font-size: 10px;
   }
 
-  .browse__subtitle {
-    font-size: 1.8rem;
-  }
-  .browse__category-button {
-    width: unset;
+  .brc__back-text {
+    font-size: 12px;
   }
 
-  .browse__category-selector {
+  .brc__title {
+    font-size: 1.5rem;
+  }
+
+  .brc__subtitle {
+    font-size: 1.3rem;
+  }
+
+  .cs-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
-  }
-
-  .browse__category-items {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-  }
-
-  .browse__category-item {
     padding: 10px;
   }
 
-  .browse__category-item-image {
-    width: 125px;
-    height: 125px;
-  }
-}
-
-/* Loading Animation */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.browse__category-selector,
-.browse__category-items,
-.browse__song-lists {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-/* Scrollbar Styling */
-.browse__category-items::-webkit-scrollbar {
-  width: 8px;
-}
-
-.browse__category-items::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-.browse__category-items::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #ffa500, #1e90ff);
-  border-radius: 4px;
-}
-
-.browse__category-items::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #ff8c00, #007bff);
-}
-
-/* Empty State */
-.browse__empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 15px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin: 20px;
-}
-
-.browse__empty-icon {
-  font-size: 4rem;
-  margin-bottom: 20px;
-  opacity: 0.5;
-}
-
-.browse__empty-text {
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-}
-
-.browse__empty-subtext {
-  font-size: 1rem;
-  opacity: 0.8;
-}
-
-
-/* Browse Songs List Styles */
-
-
-.browse-songs {
-    padding: 20px;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #ff7e5f 100%);
-    color: white;
-    position: relative;
-}
-
-.browse-songs::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 100%;
-    background: radial-gradient(circle at 20% 80%, rgba(255, 165, 0, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(30, 144, 255, 0.1) 0%, transparent 50%);
-    pointer-events: none;
-}
-
-/* Selected Item Banner */
-.browse-songs__selected {
-    margin-bottom: 30px;
-    border-radius: 20px;
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.browse-songs__selected-photo {
-    width: 100%;
-    max-height: 300px;
-    object-fit: cover;
-    border-radius: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.2);
-    transition: transform 0.3s ease;
-}
-
-.browse-songs__selected-photo:hover {
-    transform: scale(1.02);
-    border-color: rgba(255, 165, 0, 0.5);
-}
-
-/* Songs Grid */
-.browse-songs__list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-    padding: 10px 0;
-    position: relative;
-    z-index: 1;
-}
-
-/* Song Card */
-.browse-songs__item {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
+  .cs-card {
+    padding: 14px 8px;
     border-radius: 16px;
-    padding: 15px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
+    gap: 8px;
+  }
 
-.browse-songs__item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #ffa500, #1e90ff);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
-}
-
-.browse-songs__item:hover::before {
-    transform: scaleX(1);
-}
-
-.browse-songs__item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-5px) scale(1.02);
-    border-color: rgba(255, 165, 0, 0.3);
-    box-shadow: 0 10px 30px rgba(255, 165, 0, 0.2);
-}
-
-/* Song Image */
-.browse-songs__item-image {
+  .cs-card__img {
     width: 60px;
     height: 60px;
-    border-radius: 10px;
-    object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
-}
+  }
 
-.browse-songs__item:hover .browse-songs__item-image {
-    border-color: #ffa500;
-    transform: scale(1.05);
-}
-
-.browse-songs__item-placeholder {
-    width: 60px;
-    height: 60px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #ffa50033, #1e90ff33);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: rgba(255, 255, 255, 0.5);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Song Title */
-.browse-songs__item-title {
-    flex: 1;
-    font-size: 16px;
-    font-weight: 500;
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: color 0.3s ease;
-}
-
-.browse-songs__item:hover .browse-songs__item-title {
-    color: #ffa500;
-}
-
-/* Add to Queue Button */
-.browse-songs__item-add-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    opacity: 1;
-    transform: scale(0.8);
-}
-
-.browse-songs__item:hover .browse-songs__item-add-btn {
-    opacity: 1;
-    transform: scale(1);
-}
-
-.browse-songs__item-add-btn:hover {
-    background: linear-gradient(135deg, #4CAF50, #45a049);
-    transform: scale(1.1) rotate(90deg);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-.browse-songs__item-add-btn i {
-    font-size: 16px;
-}
-
-/* Loading State */
-.browse-songs__loading {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-    padding: 20px;
-}
-
-.browse-songs__skeleton {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
-.browse-songs__skeleton-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.browse-songs__skeleton-text {
-    flex: 1;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
-
-/* Empty State */
-.browse-songs__empty {
-    text-align: center;
-    padding: 60px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    grid-column: 1 / -1;
-}
-
-.browse-songs__empty i {
-    font-size: 64px;
-    color: rgba(255, 165, 0, 0.3);
-    margin-bottom: 20px;
-}
-
-.browse-songs__empty p {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 16px;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .browse-songs {
-        padding: 15px;
-    }
-
-    .browse-songs__list {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 15px;
-    }
-
-    .browse-songs__selected-photo {
-        max-height: 200px;
-    }
-
-    .browse-songs__item {
-        padding: 12px;
-    }
-
-    .browse-songs__item-image,
-    .browse-songs__item-placeholder {
-        width: 50px;
-        height: 50px;
-    }
-
-    .browse-songs__item-title {
-        font-size: 14px;
-    }
-
-    .browse-songs__item-add-btn {
-        width: 32px;
-        height: 32px;
-        opacity: 1; /* Always visible on mobile */
-        transform: scale(1);
-        background: rgba(76, 175, 80, 0.3);
-    }
-}
-
-@media (max-width: 480px) {
-    .browse-songs {
-        padding: 10px;
-    }
-
-    .browse-songs__list {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-
-    .browse-songs__selected-photo {
-        max-height: 150px;
-    }
-
-    .browse-songs__item {
-        padding: 10px;
-    }
-
-    .browse-songs__item-image,
-    .browse-songs__item-placeholder {
-        width: 45px;
-        height: 45px;
-    }
-
-    .browse-songs__item-title {
-        font-size: 13px;
-    }
-
-    .browse-songs__item-add-btn {
-        width: 30px;
-        height: 30px;
-    }
-
-    .browse-songs__item-add-btn i {
-        font-size: 14px;
-    }
-}
-
-/* Queue Added Animation */
-@keyframes queuePulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-.browse-songs__item-add-btn:active {
-    animation: queuePulse 0.3s ease;
-}
-
-/* Scrollbar Styling */
-.browse-songs__list::-webkit-scrollbar {
-    width: 8px;
-}
-
-.browse-songs__list::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-}
-
-.browse-songs__list::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, #ffa500, #1e90ff);
-    border-radius: 10px;
-}
-
-.browse-songs__list::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #ff8c00, #007bff);
-}
-
-/* Tooltip for Add Button */
-.browse-songs__item-add-btn[title] {
-    position: relative;
-}
-
-.browse-songs__item-add-btn[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
+  .cs-card__name {
     font-size: 11px;
-    white-space: nowrap;
-    z-index: 1000;
-    margin-bottom: 5px;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 165, 0, 0.3);
+  }
+
+  .ci-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .ci-card {
+    padding: 12px;
+    border-radius: 14px;
+    gap: 8px;
+  }
+
+  .ci-card__img {
+    width: 90px;
+    height: 90px;
+  }
+
+  .ci-card__name {
+    font-size: 0.8rem;
+  }
 }
 
-/* Category/Filter Indicator */
-.browse-songs__filter-indicator {
-    display: inline-block;
-    padding: 6px 12px;
-    background: rgba(255, 165, 0, 0.2);
-    border-radius: 20px;
-    font-size: 12px;
-    color: #ffa500;
-    margin-bottom: 15px;
-    border: 1px solid rgba(255, 165, 0, 0.3);
-}
-
-.browse-songs__filter-indicator i {
-    margin-right: 5px;
-}
-
-/* Add to BrowseSongLists.css */
-
-.browse-songs__item--playing {
-    border: 2px solid #ffa500;
-    background: linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(255, 140, 0, 0.2));
-    animation: glow 2s infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.4); }
-    50% { box-shadow: 0 0 30px rgba(255, 165, 0, 0.7); }
-}
-
-.browse-songs__playing-indicator {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #ffa500;
-    color: white;
-    width: 28px;
-    height: 28px;
+/* ============================================ */
+/* ICON ONLY BACK BUTTON */
+/* ============================================ */
+@media (max-width: 380px) {
+  .brc__back {
+    padding: 7px;
+    gap: 0;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
+    width: 34px;
+    height: 34px;
     justify-content: center;
-    animation: pulse 1.5s infinite;
-    border: 2px solid white;
-    z-index: 2;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.8; }
-    50% { transform: scale(1.1); opacity: 1; }
-}
-
-/* Add to BrowseSongList.css */
-
-/* Queue added button state */
-.browse-songs__item-add-btn--added {
-  background: linear-gradient(135deg, #4CAF50, #45a049);
-  border-color: rgba(255, 255, 255, 0.3);
-  cursor: default;
-  opacity: 1;
-  transform: scale(1);
-}
-
-.browse-songs__item-add-btn--added:hover {
-  background: linear-gradient(135deg, #4CAF50, #45a049);
-  transform: scale(1);
-  cursor: default;
-}
-
-.browse-songs__item-add-btn--added i {
-  color: white;
-}
-
-/* Animation for when song is added */
-.browse-songs__item-add-btn--animating {
-  animation: addToQueuePop 0.5s ease;
-}
-
-@keyframes addToQueuePop {
-  0% {
-    transform: scale(1);
   }
-  30% {
-    transform: scale(1.3);
-    background: linear-gradient(135deg, #4CAF50, #45a049);
+
+  .brc__back-text {
+    display: none;
   }
-  60% {
-    transform: scale(0.9);
+
+  .cs-grid {
+    gap: 8px;
+    padding: 8px;
   }
-  100% {
-    transform: scale(1);
+
+  .cs-card__img {
+    width: 50px;
+    height: 50px;
+  }
+
+  .ci-grid {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .ci-card__img {
+    width: 70px;
+    height: 70px;
   }
 }
 
-/* Disabled button state */
-.browse-songs__item-add-btn:disabled {
-  opacity: 1;
-  cursor: default;
-  pointer-events: none;
+/* ============================================ */
+/* ANIMATIONS */
+/* ============================================ */
+@keyframes brc-fade-in {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Update tooltip for added state */
-.browse-songs__item-add-btn--added[title]:hover::after {
-  content: attr(title);
-  background: rgba(76, 175, 80, 0.9);
-  border-color: rgba(255, 255, 255, 0.3);
+.cs-grid,
+.ci-grid {
+  animation: brc-fade-in 0.6s ease-out;
 }
 
-/* Success checkmark animation */
-@keyframes checkmarkAppear {
-  0% {
-    transform: scale(0);
-    opacity: 0;
+/* ============================================ */
+/* iOS SAFE AREA */
+/* ============================================ */
+@supports (-webkit-touch-callout: none) {
+  .brc__back {
+    top: max(14px, env(safe-area-inset-top, 14px));
   }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
 
-.browse-songs__item-add-btn--added i {
-  animation: checkmarkAppear 0.3s ease;
-}
-
-/* Mobile styles update */
-@media (max-width: 768px) {
-  .browse-songs__item-add-btn--added {
-    background: linear-gradient(135deg, #4CAF50, #45a049);
+  .brc {
+    padding-top: max(80px, env(safe-area-inset-top, 80px));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px) + 90px);
   }
-}
-
-/* Optional: Add a small queue count badge if you want */
-.browse-songs__queue-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #4CAF50;
-  color: white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid white;
-  font-weight: bold;
 }
 

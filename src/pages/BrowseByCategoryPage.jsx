@@ -19,11 +19,9 @@ export default function BrowseByCategoryPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Holds an item passed in via navigation state, consumed by the
-  // category-items effect below so we can jump straight to its songs.
   const pendingItemRef = useRef(null);
 
-  // ── Read incoming navigation state (from AllSongs rails / "See all") ──
+  // Read incoming navigation state
   useEffect(() => {
     const navState = location.state;
     if (!navState?.category) return;
@@ -32,24 +30,21 @@ export default function BrowseByCategoryPage() {
     setCategory(navState.category);
     setSelectedCategoryName(navState.category);
 
-    // Clear the nav state so refresh/back doesn't re-trigger this
     navigate(location.pathname, { replace: true, state: null });
   }, [location.state]);
 
-  // ── Fetch items for the selected category ──
+  // Fetch items for the selected category
   useEffect(() => {
     if (!category) return;
 
     const pendingItem = pendingItemRef.current;
-    pendingItemRef.current = null; // consume once
+    pendingItemRef.current = null;
 
-    // Always fetch the items grid too, so the back button still works
     fetchCategoryItems(category)
       .then(setItems)
       .catch((err) => console.error(err));
 
     if (pendingItem) {
-      // Jump straight to this item's songs instead of resetting to the grid
       setLoading(true);
       fetchSongsByCategory(category, pendingItem._id)
         .then((data) => {
@@ -67,13 +62,11 @@ export default function BrowseByCategoryPage() {
     setSelectedItemPhoto("");
   }, [category]);
 
-  // Handle category selection (manual tile click — unchanged)
   const handleCategorySelect = (cat) => {
     setCategory(cat);
     setSelectedCategoryName(cat);
   };
 
-  // Fetch songs under selected item (manual item click — unchanged)
   const handleItemClick = async (item) => {
     setLoading(true);
     try {
@@ -87,7 +80,6 @@ export default function BrowseByCategoryPage() {
     setLoading(false);
   };
 
-  // Back button functionality (unchanged)
   const handleBack = () => {
     if (songs.length > 0) {
       setSongs([]);
@@ -101,8 +93,9 @@ export default function BrowseByCategoryPage() {
 
   return (
     <>
+      {/* Back Button */}
       <div
-        className="browse__back"
+        className="brc__back"
         onClick={() => {
           if (!category) {
             navigate(-1);
@@ -111,22 +104,25 @@ export default function BrowseByCategoryPage() {
           }
         }}
       >
-        <i className="browse__back-icon fa-solid fa-arrow-left"></i>
+        <div className="brc__back-icon">
+          <i className="fa-solid fa-arrow-left"></i>
+        </div>
+        <span className="brc__back-text">Back</span>
       </div>
 
-      <div className="browse__page">
-        <div className="browse__header">
-          {!category && <h1 className="browse__title">Category</h1>}
+      <div className="brc">
+        <div className="brc__header">
+          {!category && <h1 className="brc__title">Categories</h1>}
 
           {category && !songs.length && (
-            <h2 className="browse__subtitle">
+            <h2 className="brc__subtitle">
               {selectedCategoryName.charAt(0).toUpperCase() + selectedCategoryName.slice(1)}
             </h2>
           )}
 
           {songs.length > 0 && (
-            <h2 className="browse__subtitle">
-              {selectedItemName.charAt(0).toUpperCase() + selectedItemName.slice(1)}
+            <h2 className="brc__subtitle">
+              {selectedItemName}
             </h2>
           )}
         </div>
@@ -136,20 +132,22 @@ export default function BrowseByCategoryPage() {
             category={category}
             setCategory={handleCategorySelect}
             categories={categoryApiMap}
-            className="browse__category-selector"
           />
         )}
 
         {category && !songs.length && items.length > 0 && (
-          <CategoryItems items={items} onSelect={handleItemClick} className="browse__category-items" />
+          <CategoryItems items={items} onSelect={handleItemClick} />
         )}
 
         {songs.length > 0 && (
           <>
             {loading ? (
-              <p className="browse__loading-text">Loading songs...</p>
+              <div className="brc__loading">
+                <div className="brc__spinner"></div>
+                <p>Loading songs...</p>
+              </div>
             ) : (
-              <BrowseSongLists songs={songs} photo={selectedItemPhoto} className="browse__song-lists" />
+              <BrowseSongLists songs={songs} photo={selectedItemPhoto} />
             )}
           </>
         )}
