@@ -731,3 +731,123 @@
     height: 50px;
   }
 }
+
+/* ===== RAIL WRAPPER & SCROLL BUTTONS ===== */
+.all-songs__rail-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.all-songs__scroll-btn {
+  position: absolute;
+  top: 42%; /* Adjusted from 35% to 42% for better positioning */
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-card, rgba(255, 255, 255, 0.9));
+  backdrop-filter: var(--glass-blur, blur(10px));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 20;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.all-songs__scroll-btn:hover {
+  background: var(--orange-primary, #ff6b00);
+  color: white;
+  border-color: var(--orange-primary, #ff6b00);
+  box-shadow: 0 6px 16px rgba(255, 107, 0, 0.3);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.all-songs__scroll-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.all-songs__scroll-btn--left {
+  left: -20px;
+}
+
+.all-songs__scroll-btn--right {
+  right: -20px;
+}
+
+.all-songs__scroll-btn i {
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* Update rail padding to accommodate buttons */
+.all-songs__rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 10px 25px;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  width: 100%;
+}
+
+.all-songs__rail::-webkit-scrollbar { 
+  display: none; 
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 768px) {
+  .all-songs__scroll-btn {
+    width: 36px;
+    height: 36px;
+    top: 42%; /* Keep consistent positioning */
+  }
+  
+  .all-songs__scroll-btn--left {
+    left: -15px;
+  }
+  
+  .all-songs__scroll-btn--right {
+    right: -15px;
+  }
+  
+  .all-songs__scroll-btn i {
+    font-size: 14px;
+  }
+  
+  .all-songs__rail {
+    padding: 10px 20px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .all-songs__scroll-btn {
+    width: 32px;
+    height: 32px;
+    top: 42%; /* Keep consistent positioning */
+  }
+  
+  .all-songs__scroll-btn--left {
+    left: -10px;
+  }
+  
+  .all-songs__scroll-btn--right {
+    right: -10px;
+  }
+  
+  .all-songs__scroll-btn i {
+    font-size: 12px;
+  }
+  
+  .all-songs__rail {
+    padding: 10px 15px;
+    gap: 10px;
+  }
+}
