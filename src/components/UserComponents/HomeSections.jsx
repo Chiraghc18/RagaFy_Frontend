@@ -26,7 +26,6 @@ const GENRE_GROUPS = {
       "melody",
       "emotional",
       "pathos",
-      "epic folk ballad",
       "folk-classical",
     ],
   },
@@ -78,7 +77,6 @@ const GENRE_GROUPS = {
     icon: "fa-om",
     genres: [
       "devotional",
-      "yakshagana",
       "epic folk-devotional",
     ],
   },
