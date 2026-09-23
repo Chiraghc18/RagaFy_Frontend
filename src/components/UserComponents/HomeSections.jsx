@@ -13,32 +13,142 @@ const CATEGORY_RAILS = [
   { key: "artist", dataKey: "artists", label: "Artists", icon: "fa-user-music" },
 ];
 
-// Genre groupings for custom sections
+// ─────────────────────────────────────────────────────
+// GENRE GROUPS — 7 rails, all 24 genres placed
+// ─────────────────────────────────────────────────────
 const GENRE_GROUPS = {
-  // Section 1: Melody + Romantic + Romantic Pop
+  // 1. Melody — emotional / classical / ballad-leaning
+  melody: {
+    key: "melody",
+    label: "Melody",
+    icon: "fa-music",
+    genres: [
+      "melody",
+      "emotional",
+      "pathos",
+      "epic folk ballad",
+      "folk-classical",
+    ],
+  },
+
+  // 2. Melody & Romance — love songs
   melodyRomantic: {
     key: "melody-romantic",
     label: "Melody & Romance",
     icon: "fa-heart",
-    genres: ["melody", "romantic", "romantic pop"]
+    genres: ["romantic", "romantic pop"],
   },
-  // Section 2: Pop-based (excluding romantic pop, electronic dance pop, folk pop fusion)
+
+  // 3. Dance & Electronic
+  danceElectronic: {
+    key: "dance-electronic",
+    label: "Dance & Electronic",
+    icon: "fa-bolt",
+    genres: [
+      "electronic dance-pop",
+      "electronic dance-rock",
+      "folk-fusion",
+      "folk-pop fusion",
+    ],
+  },
+
+  // 4. Pop Collection — mainstream / upbeat / crowd-pleasers
   popBased: {
     key: "pop-based",
     label: "Pop Collection",
     icon: "fa-music",
-    genres: ["pop", "pop rock", "pop energetic", "pop emotional", "pop melodies", "hip-hop"],
-    excludeGenres: ["romantic pop", "electronic dance-pop", "folk-pop fusion"]
+    genres: [
+      "pop",
+      "pop rock",
+      "pop energetic",
+      "pop emotional",
+      "pop melodies",
+      "item song",
+      "mass",
+      "hip-hop",
+    ],
+    // Don't double-count romantic pop songs (they belong to Melody & Romance)
+    excludeGenres: ["romantic pop"],
   },
-  // Section 3: Everything else (excluding jazz, yakshagana, devotional, epic folk-devotional)
+
+  // 5. Devotional & Traditional
+  devotional: {
+    key: "devotional",
+    label: "Devotional & Traditional",
+    icon: "fa-om",
+    genres: [
+      "devotional",
+      "yakshagana",
+      "epic folk-devotional",
+    ],
+  },
+
+  // 6. Evergreen Classics
+  evergreen: {
+    key: "evergreen",
+    label: "Evergreen Classics",
+    icon: "fa-clock-rotate-left",
+    genres: ["evergreen kannada songs"],
+  },
+
+  // 7. Jazz
+  jazz: {
+    key: "jazz",
+    label: "Jazz",
+    icon: "fa-music",
+    genres: ["jazz"],
+  },
+
+  // 8. More to Explore — catch-all (should be empty unless a new genre is added)
   otherGenres: {
     key: "other-genres",
     label: "More to Explore",
     icon: "fa-compass",
-    excludeGenres: ["jazz", "yakshagana", "devotional", "epic folk-devotional", "melody", "romantic", "romantic pop", "pop", "pop rock", "pop energetic", "pop emotional", "pop melodies", "evergreen kannada songs", "hip-hop",]
-  }
+    excludeGenres: [
+      // Melody
+      "melody",
+      "emotional",
+      "pathos",
+      "epic folk ballad",
+      "folk-classical",
+      // Melody & Romance
+      "romantic",
+      "romantic pop",
+      // Pop Collection
+      "pop",
+      "pop rock",
+      "pop energetic",
+      "pop emotional",
+      "pop melodies",
+      "item song",
+      "mass",
+      "hip-hop",
+      // Dance & Electronic
+      "electronic dance-pop",
+      "electronic dance-rock",
+      "folk-fusion",
+      "folk-pop fusion",
+      // Devotional & Traditional
+      "devotional",
+      "yakshagana",
+      "epic folk-devotional",
+      // Evergreen
+      "evergreen kannada songs",
+      // Jazz
+      "jazz",
+    ],
+  },
 };
 
+// How many songs each rail picks per cycle
+const RAIL_SIZE = 29;
+
+// localStorage key for globally played song ids
+const PLAYED_STORAGE_KEY = "ragafy_home_played_ids";
+
+// ─────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────
 function greeting() {
   const h = new Date().getHours();
   if (h < 5) return "Still up late";
@@ -48,7 +158,7 @@ function greeting() {
   return "Good night";
 }
 
-// Fisher-Yates shuffle, used only to pick "Made for you"
+// Fisher-Yates shuffle
 function pickRandom(arr, n) {
   if (!arr || arr.length === 0) return [];
   const copy = [...arr];
@@ -59,47 +169,72 @@ function pickRandom(arr, n) {
   return copy.slice(0, n);
 }
 
-// Helper function to get genre name from a song
+// Filter out played, then randomly pick n.
+// Returns { picks, poolSize, exhausted }.
+function pickUnplayed(pool, n, playedSet) {
+  const poolSize = pool?.length || 0;
+  if (poolSize === 0) {
+    return { picks: [], poolSize: 0, exhausted: false };
+  }
+  const unplayed = pool.filter((s) => !playedSet.has(s._id));
+  const picks = pickRandom(unplayed, n);
+  return {
+    picks,
+    poolSize,
+    exhausted: unplayed.length === 0,
+  };
+}
+
+// ── localStorage helpers ──────────────────────────────
+function loadPlayedIds() {
+  try {
+    const raw = localStorage.getItem(PLAYED_STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function savePlayedIds(set) {
+  try {
+    localStorage.setItem(PLAYED_STORAGE_KEY, JSON.stringify([...set]));
+  } catch {}
+}
+
+// ── Genre matching ────────────────────────────────────
+// Normalizes: lowercase, hyphens → spaces, collapse whitespace.
+// Makes "Folk-Fusion" and "Folk Fusion" both match "folk fusion".
 function getSongGenre(song) {
-  if (song.genre?.name) {
-    return song.genre.name.toLowerCase();
-  }
-  
+  const norm = (s) =>
+    s.toLowerCase().replace(/-/g, " ").replace(/\s+/g, " ").trim();
+
+  if (song.genre?.name) return norm(song.genre.name);
   if (Array.isArray(song.genres)) {
-    return song.genres.map(g => g?.name?.toLowerCase()).filter(Boolean);
+    return song.genres.map((g) => g?.name && norm(g.name)).filter(Boolean);
   }
-  
-  if (typeof song.genre === "string") {
-    return song.genre.toLowerCase();
-  }
-  
+  if (typeof song.genre === "string") return norm(song.genre);
   return "";
 }
 
-// Helper function to check if song matches any genre in a list
 function songMatchesGenres(song, genreList) {
-  const songGenre = getSongGenre(song);
-  
-  if (Array.isArray(songGenre)) {
-    return songGenre.some(g => genreList.includes(g));
-  }
-  
-  return genreList.includes(songGenre);
+  const g = getSongGenre(song);
+  const list = genreList.map((x) => x.toLowerCase().replace(/-/g, " "));
+  if (Array.isArray(g)) return g.some((x) => list.includes(x));
+  return list.includes(g);
 }
 
-// Helper function to check if song should be excluded
 function songMatchesExcludedGenres(song, excludeGenres) {
-  const songGenre = getSongGenre(song);
-  
-  if (Array.isArray(songGenre)) {
-    return songGenre.some(g => excludeGenres.includes(g));
-  }
-  
-  return excludeGenres.includes(songGenre);
+  const g = getSongGenre(song);
+  const list = excludeGenres.map((x) => x.toLowerCase().replace(/-/g, " "));
+  if (Array.isArray(g)) return g.some((x) => list.includes(x));
+  return list.includes(g);
 }
 
-// Reusable Rail component with scroll functionality
-function Rail({ items, photos, onItemClick, renderItem }) {
+// ─────────────────────────────────────────────────────
+// Rail (horizontal scroll container)
+// ─────────────────────────────────────────────────────
+function Rail({ items, renderItem }) {
   const railRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -114,21 +249,17 @@ function Rail({ items, photos, onItemClick, renderItem }) {
 
   useEffect(() => {
     checkScroll();
-    // Add resize listener to recheck scroll
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
   }, [items]);
 
   const scrollRail = (direction) => {
     if (railRef.current) {
-      const scrollAmount = railRef.current.clientWidth * 0.8; // Scroll 80% of visible width
-      const newScrollPosition = railRef.current.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount);
-      railRef.current.scrollTo({
-        left: newScrollPosition,
-        behavior: 'smooth'
-      });
-      
-      // Update button visibility after scroll
+      const scrollAmount = railRef.current.clientWidth * 0.8;
+      const newScrollPosition =
+        railRef.current.scrollLeft +
+        (direction === "right" ? scrollAmount : -scrollAmount);
+      railRef.current.scrollTo({ left: newScrollPosition, behavior: "smooth" });
       setTimeout(checkScroll, 100);
     }
   };
@@ -136,27 +267,23 @@ function Rail({ items, photos, onItemClick, renderItem }) {
   return (
     <div className="all-songs__rail-wrapper">
       {canScrollLeft && (
-        <button 
+        <button
           className="all-songs__scroll-btn all-songs__scroll-btn--left"
-          onClick={() => scrollRail('left')}
+          onClick={() => scrollRail("left")}
           aria-label="Scroll left"
         >
           <i className="fa-solid fa-chevron-left"></i>
         </button>
       )}
-      
-      <div 
-        className="all-songs__rail" 
-        ref={railRef}
-        onScroll={checkScroll}
-      >
+
+      <div className="all-songs__rail" ref={railRef} onScroll={checkScroll}>
         {items.map((item, idx) => renderItem(item, idx))}
       </div>
-      
+
       {canScrollRight && (
-        <button 
+        <button
           className="all-songs__scroll-btn all-songs__scroll-btn--right"
-          onClick={() => scrollRail('right')}
+          onClick={() => scrollRail("right")}
           aria-label="Scroll right"
         >
           <i className="fa-solid fa-chevron-right"></i>
@@ -166,69 +293,179 @@ function Rail({ items, photos, onItemClick, renderItem }) {
   );
 }
 
+// Placeholder shown when all songs in a section have been played
+function ExhaustedPlaceholder({ onReset }) {
+  return (
+    <div className="all-songs__exhausted">
+      <div className="all-songs__exhausted-inner">
+        <i className="fa-solid fa-circle-check all-songs__exhausted-icon"></i>
+        <p className="all-songs__exhausted-title">You've heard them all</p>
+        <p className="all-songs__exhausted-text">
+          Hit <strong>Reset</strong> to start this section again.
+        </p>
+        <button className="all-songs__exhausted-btn" onClick={onReset}>
+          <i className="fa-solid fa-rotate-left"></i> Reset
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────
 export default function HomeSections() {
   const { songs, photos, playlists, filterOptions, queue } = useData();
   const { recentlyPlayedIds } = useGlobalPlayer();
   const navigate = useNavigate();
 
-  // Made for you - random selection (unchanged)
-  const madeForYou = useMemo(() => pickRandom(songs, 12), [songs.length]);
+  // ── Global played tracking ──────────────────────────
+  const [playedIds, setPlayedIds] = useState(() => loadPlayedIds());
 
-  // Custom genre sections
+  // Bumping this re-runs the pick memos → new random selection
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    savePlayedIds(playedIds);
+  }, [playedIds]);
+
+  // Auto-reset once 80% of all songs have been played
+  useEffect(() => {
+    if (songs.length === 0) return;
+    if (playedIds.size >= Math.floor(songs.length * 0.8)) {
+      setPlayedIds(new Set());
+    }
+  }, [playedIds, songs.length]);
+
+  const markPlayed = (songId) => {
+    if (!songId) return;
+    setPlayedIds((prev) => {
+      if (prev.has(songId)) return prev;
+      const next = new Set(prev);
+      next.add(songId);
+      return next;
+    });
+  };
+
+  const resetPlayed = () => {
+    setPlayedIds(new Set());
+  };
+
+  const reloadSections = () => {
+    setReloadKey((k) => k + 1);
+  };
+
+  // ── Made for you ────────────────────────────────────
+  const madeForYouResult = useMemo(
+    () => pickUnplayed(songs, RAIL_SIZE, playedIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [songs, playedIds, reloadKey]
+  );
+
+  // ── Genre sections (7 rails) ────────────────────────
+  // Order: Melody → Melody & Romance → Dance & Electronic →
+  //        Pop Collection → Devotional & Traditional →
+  //        Evergreen Classics → More to Explore
   const genreSections = useMemo(() => {
     const sections = [];
-    
-    // Section 1: Melody + Romantic + Romantic Pop
-    const melodyRomanticSongs = songs.filter(song => 
+
+    // 1. Melody
+    const melodyPool = songs.filter((song) =>
+      songMatchesGenres(song, GENRE_GROUPS.melody.genres)
+    );
+    sections.push({
+      ...GENRE_GROUPS.melody,
+      ...pickUnplayed(melodyPool, RAIL_SIZE, playedIds),
+    });
+
+    // 2. Melody & Romance
+    const melodyRomanticPool = songs.filter((song) =>
       songMatchesGenres(song, GENRE_GROUPS.melodyRomantic.genres)
     );
-    if (melodyRomanticSongs.length > 0) {
-      sections.push({
-        ...GENRE_GROUPS.melodyRomantic,
-        songs: pickRandom(melodyRomanticSongs, 12)
-      });
-    }
-    
-    // Section 2: Pop-based (excluding certain pop genres)
-    const popBasedSongs = songs.filter(song => {
-      const matchesPopGenres = songMatchesGenres(song, GENRE_GROUPS.popBased.genres);
-      const matchesExcluded = songMatchesExcludedGenres(song, GENRE_GROUPS.popBased.excludeGenres);
-      return matchesPopGenres && !matchesExcluded;
+    sections.push({
+      ...GENRE_GROUPS.melodyRomantic,
+      ...pickUnplayed(melodyRomanticPool, RAIL_SIZE, playedIds),
     });
-    if (popBasedSongs.length > 0) {
-      sections.push({
-        ...GENRE_GROUPS.popBased,
-        songs: pickRandom(popBasedSongs, 12)
-      });
-    }
-    
-    // Section 3: Everything else (excluding jazz, yakshagana, devotional, epic folk-devotional and already included genres)
-    const otherGenresSongs = songs.filter(song => {
-      const matchesExcluded = songMatchesExcludedGenres(song, GENRE_GROUPS.otherGenres.excludeGenres);
-      const inMelodyRomantic = songMatchesGenres(song, GENRE_GROUPS.melodyRomantic.genres);
-      const inPopBased = songMatchesGenres(song, GENRE_GROUPS.popBased.genres) && 
-                        !songMatchesExcludedGenres(song, GENRE_GROUPS.popBased.excludeGenres);
-      
-      return !matchesExcluded && !inMelodyRomantic && !inPopBased;
-    });
-    if (otherGenresSongs.length > 0) {
-      sections.push({
-        ...GENRE_GROUPS.otherGenres,
-        songs: pickRandom(otherGenresSongs, 12)
-      });
-    }
-    
-    return sections;
-  }, [songs]);
 
-  // Resolve stored recently-played IDs against the live song list
+    // 3. Dance & Electronic
+    const dancePool = songs.filter((song) =>
+      songMatchesGenres(song, GENRE_GROUPS.danceElectronic.genres)
+    );
+    sections.push({
+      ...GENRE_GROUPS.danceElectronic,
+      ...pickUnplayed(dancePool, RAIL_SIZE, playedIds),
+    });
+
+    // 4. Pop Collection
+    const popBasedPool = songs.filter((song) => {
+      const matches = songMatchesGenres(song, GENRE_GROUPS.popBased.genres);
+      const excluded = songMatchesExcludedGenres(
+        song,
+        GENRE_GROUPS.popBased.excludeGenres
+      );
+      return matches && !excluded;
+    });
+    sections.push({
+      ...GENRE_GROUPS.popBased,
+      ...pickUnplayed(popBasedPool, RAIL_SIZE, playedIds),
+    });
+
+    // 5. Devotional & Traditional
+    const devotionalPool = songs.filter((song) =>
+      songMatchesGenres(song, GENRE_GROUPS.devotional.genres)
+    );
+    sections.push({
+      ...GENRE_GROUPS.devotional,
+      ...pickUnplayed(devotionalPool, RAIL_SIZE, playedIds),
+    });
+
+    // 6. Evergreen Classics
+    const evergreenPool = songs.filter((song) =>
+      songMatchesGenres(song, GENRE_GROUPS.evergreen.genres)
+    );
+    sections.push({
+      ...GENRE_GROUPS.evergreen,
+      ...pickUnplayed(evergreenPool, RAIL_SIZE, playedIds),
+    });
+
+    // 7. More to Explore — catch-all
+    const otherPool = songs.filter(
+      (song) =>
+        !songMatchesExcludedGenres(
+          song,
+          GENRE_GROUPS.otherGenres.excludeGenres
+        )
+    );
+    sections.push({
+      ...GENRE_GROUPS.otherGenres,
+      ...pickUnplayed(otherPool, RAIL_SIZE, playedIds),
+    });
+
+    return sections;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [songs, playedIds, reloadKey]);
+
+  // ── Jazz (own rail) ─────────────────────────────────
+  const jazzPool = useMemo(
+    () => songs.filter((song) => songMatchesGenres(song, ["jazz"])),
+    [songs]
+  );
+  const jazzResult = useMemo(
+    () => pickUnplayed(jazzPool, RAIL_SIZE, playedIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [jazzPool, playedIds, reloadKey]
+  );
+
+  // ── Recently played ────────────────────────────────
   const recentlyPlayed = useMemo(() => {
     return recentlyPlayedIds
       .map((id) => songs.find((s) => s._id === id))
       .filter(Boolean);
   }, [recentlyPlayedIds, songs]);
 
+  // ── Navigation ─────────────────────────────────────
   const goToPlayer = (songList, startIndex) => {
+    markPlayed(songList?.[startIndex]?._id);
     navigate("/player", { state: { songs: songList, startIndex } });
   };
 
@@ -236,29 +473,7 @@ export default function HomeSections() {
     navigate("/browse", { state: { category: categoryKey, item } });
   };
 
-  // Jazz songs
-  const jazzSongs = useMemo(() => {
-    return songs.filter((song) => {
-      // Handles different possible genre structures
-      if (song.genre?.name) {
-        return song.genre.name.toLowerCase() === "jazz";
-      }
-
-      if (Array.isArray(song.genres)) {
-        return song.genres.some(
-          (genre) => genre?.name?.toLowerCase() === "jazz"
-        );
-      }
-
-      if (typeof song.genre === "string") {
-        return song.genre.toLowerCase() === "jazz";
-      }
-
-      return false;
-    });
-  }, [songs]);
-
-  // Reusable song card renderer
+  // ── Reusable song card ─────────────────────────────
   const renderSongCard = (song, idx, songList) => (
     <div
       key={song._id}
@@ -279,50 +494,71 @@ export default function HomeSections() {
     </div>
   );
 
+  // ── Section renderer ───────────────────────────────
+  // hides if poolSize === 0 (no matches at all),
+  // shows placeholder if exhausted (all played),
+  // otherwise shows the rail.
+  const renderSection = (result, key, titleNode) => {
+    if (result.poolSize === 0) return null;
+
+    return (
+      <div className="all-songs__rail-section" key={key}>
+        <h2 className="all-songs__section-title">{titleNode}</h2>
+        {result.exhausted ? (
+          <ExhaustedPlaceholder onReset={resetPlayed} />
+        ) : (
+          <Rail
+            items={result.picks}
+            renderItem={(song, idx) =>
+              renderSongCard(song, idx, result.picks)
+            }
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="home-sections">
-      {/* Greeting */}
+      {/* Greeting + Reload (left) + Reset (right) */}
       <div className="all-songs__greeting">
+        <button
+          className="all-songs__reload-btn"
+          onClick={reloadSections}
+          aria-label="Reload sections"
+          title="Reload sections"
+        >
+          <i className="fa-solid fa-arrows-rotate"></i> Reload
+        </button>
+
         <p className="all-songs__eyebrow">{greeting()}</p>
+
+        <button
+          className="all-songs__reset-btn"
+          onClick={resetPlayed}
+          aria-label="Reset played songs"
+          title="Reset played songs"
+        >
+          <i className="fa-solid fa-rotate-left"></i> Reset
+        </button>
       </div>
 
-      {/* Made for you - General mix */}
-      {madeForYou.length > 0 && (
-        <div className="all-songs__rail-section">
-          <h2 className="all-songs__section-title">Made for you</h2>
-          <Rail
-            items={madeForYou}
-            photos={photos}
-            renderItem={(song, idx) => renderSongCard(song, idx, madeForYou)}
-          />
-        </div>
-      )}
+      {/* Made for you */}
+      {renderSection(madeForYouResult, "made-for-you", "Made for you")}
 
-      {/* Custom Genre Sections */}
-      {genreSections.map((section) => (
-        <div className="all-songs__rail-section" key={section.key}>
-          <h2 className="all-songs__section-title">
+      {/* Genre sections */}
+      {genreSections.map((section) =>
+        renderSection(
+          section,
+          section.key,
+          <>
             <i className={`fa-solid ${section.icon}`}></i> {section.label}
-          </h2>
-          <Rail
-            items={section.songs}
-            photos={photos}
-            renderItem={(song, idx) => renderSongCard(song, idx, section.songs)}
-          />
-        </div>
-      ))}
-
-      {/* Jazz Songs */}
-      {jazzSongs.length > 0 && (
-        <div className="all-songs__rail-section">
-          <h2 className="all-songs__section-title">Jazz</h2>
-          <Rail
-            items={jazzSongs.slice(0, 12)}
-            photos={photos}
-            renderItem={(song, idx) => renderSongCard(song, idx, jazzSongs)}
-          />
-        </div>
+          </>
+        )
       )}
+
+      {/* Jazz */}
+      {renderSection(jazzResult, "jazz", "Jazz")}
 
       {/* Recently played */}
       {recentlyPlayed.length > 0 && (
@@ -330,19 +566,19 @@ export default function HomeSections() {
           <h2 className="all-songs__section-title">Recently played</h2>
           <Rail
             items={recentlyPlayed}
-            photos={photos}
-            renderItem={(song, idx) => renderSongCard(song, idx, recentlyPlayed)}
+            renderItem={(song, idx) =>
+              renderSongCard(song, idx, recentlyPlayed)
+            }
           />
         </div>
       )}
 
-      {/* Continue listening (from queue) */}
+      {/* Continue listening */}
       {queue && queue.length > 0 && (
         <div className="all-songs__rail-section">
           <h2 className="all-songs__section-title">Continue listening</h2>
           <Rail
             items={queue.slice(0, 8)}
-            photos={photos}
             renderItem={(song, idx) => renderSongCard(song, idx, queue)}
           />
         </div>
@@ -380,7 +616,7 @@ export default function HomeSections() {
         </div>
       )}
 
-      {/* Category rails */}
+      {/* Category rails (unchanged) */}
       {CATEGORY_RAILS.map((rail) => {
         const items = filterOptions?.[rail.dataKey] || [];
         if (items.length === 0) return null;
@@ -399,7 +635,6 @@ export default function HomeSections() {
             </div>
             <Rail
               items={items.slice(0, 12)}
-              photos={photos}
               renderItem={(item, idx) => (
                 <div
                   key={item._id}

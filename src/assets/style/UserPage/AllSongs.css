@@ -851,3 +851,186 @@
     gap: 10px;
   }
 }
+
+.all-songs__exhausted {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 24px;
+}
+
+.all-songs__exhausted-inner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.all-songs__exhausted-icon {
+  font-size: 2rem;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.all-songs__exhausted-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.all-songs__exhausted-text {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.all-songs__exhausted-btn {
+  margin-top: 10px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: inherit;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.all-songs__exhausted-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ===== GREETING (with Reload + Reset) ===== */
+.all-songs__greeting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 30px;
+  padding-left: 10px;
+}
+
+.all-songs__greeting .all-songs__eyebrow {
+  flex: 1;
+  text-align: center;
+  padding-left: 0;
+  margin: 10px 0 20px;
+}
+
+/* Shared button style for both Reload and Reset */
+.all-songs__reload-btn,
+.all-songs__reset-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: inherit;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.all-songs__reload-btn:hover,
+.all-songs__reset-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.all-songs__reload-btn i {
+  transition: transform 0.4s ease;
+}
+
+.all-songs__reload-btn:hover i {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 480px) {
+  .all-songs__greeting {
+    padding-left: 5px;
+    gap: 8px;
+  }
+
+  .all-songs__reload-btn,
+  .all-songs__reset-btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+}
+
+/* ===== GREETING (Reload — Greeting — Reset) ===== */
+.all-songs__greeting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 30px;
+  padding-left: 10px;
+}
+
+.all-songs__greeting .all-songs__eyebrow {
+  flex: 1;
+  text-align: center;
+  padding-left: 0;
+  margin: 10px 0 20px;
+}
+
+/* Shared button style for both Reload and Reset */
+.all-songs__reload-btn,
+.all-songs__reset-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: inherit;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.all-songs__reload-btn:hover,
+.all-songs__reset-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.all-songs__reload-btn i {
+  transition: transform 0.4s ease;
+}
+
+.all-songs__reload-btn:hover i {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 480px) {
+  .all-songs__greeting {
+    padding-left: 5px;
+    gap: 8px;
+  }
+
+  .all-songs__reload-btn,
+  .all-songs__reset-btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+}
