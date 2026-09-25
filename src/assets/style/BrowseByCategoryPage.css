@@ -225,6 +225,11 @@
 /* CATEGORY ITEMS - CI PREFIX */
 /* ============================================ */
 
+.ci-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
 .ci-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -304,6 +309,93 @@
 
 .ci-card:hover .ci-card__name {
   color: #FF6B00;
+}
+
+/* ===== SEARCH BAR ===== */
+.ci-search {
+  position: relative;
+  max-width: 500px;
+  margin: 0 auto 25px;
+  display: flex;
+  align-items: center;
+}
+
+.ci-search__icon {
+  position: absolute;
+  left: 18px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.ci-search__input {
+  width: 100%;
+  padding: 14px 44px 14px 44px;
+  border-radius: 50px;
+  background: rgba(18, 18, 34, 0.6);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.ci-search__input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ci-search__input:focus {
+  border-color: rgba(255, 107, 0, 0.5);
+  background: rgba(18, 18, 34, 0.85);
+  box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.1);
+}
+
+.ci-search__clear {
+  position: absolute;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.ci-search__clear:hover {
+  background: rgba(255, 107, 0, 0.3);
+  color: white;
+}
+
+/* ===== EMPTY STATE ===== */
+.ci-empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(18, 18, 34, 0.4);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.ci-empty i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: rgba(255, 107, 0, 0.6);
+}
+
+.ci-empty p {
+  font-size: 14px;
+  margin: 0;
 }
 
 /* ============================================ */
@@ -454,6 +546,15 @@
   .ci-card__name {
     font-size: 0.8rem;
   }
+
+  .ci-search {
+    margin-bottom: 18px;
+  }
+
+  .ci-search__input {
+    padding: 12px 40px 12px 40px;
+    font-size: 13px;
+  }
 }
 
 /* ============================================ */
@@ -520,4 +621,3 @@
     padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px) + 90px);
   }
 }
-

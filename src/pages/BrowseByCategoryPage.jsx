@@ -1,10 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
-import { categoryApiMap, fetchCategoryItems, fetchSongsByCategory } from "../services/songService/browseService";
+import {
+  categoryApiMap,
+  fetchCategoryItems,
+  fetchSongsByCategory,
+} from "../services/songService/browseService";
 import CategorySelector from "../components/CategorySelector";
 import CategoryItems from "../components/CategoryItems";
 import BrowseSongLists from "../components/BrowseSongLists";
 import "../assets/style/BrowseByCategoryPage.css";
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
+
+// Category-aware sort strategies
+const SORT_STRATEGY = {
+  singer: "alpha",
+  artist: "alpha",
+  album: "alpha",
+  hero: "alpha",
+  heroine: "alpha",
+  movie: "latest",   // newest movies first
+  genre: "none",     // keep backend order
+  language: "none",  // keep backend order
+};
 
 export default function BrowseByCategoryPage() {
   const [category, setCategory] = useState("");
@@ -49,8 +65,12 @@ export default function BrowseByCategoryPage() {
       fetchSongsByCategory(category, pendingItem._id)
         .then((data) => {
           setSongs(data);
-          setSelectedItemName(pendingItem.name || pendingItem.title || "Selected Item");
-          setSelectedItemPhoto(pendingItem.photo || pendingItem.imageUrl || "");
+          setSelectedItemName(
+            pendingItem.name || pendingItem.title || "Selected Item"
+          );
+          setSelectedItemPhoto(
+            pendingItem.photo || pendingItem.imageUrl || ""
+          );
         })
         .catch((err) => console.error(err))
         .finally(() => setLoading(false));
@@ -116,14 +136,13 @@ export default function BrowseByCategoryPage() {
 
           {category && !songs.length && (
             <h2 className="brc__subtitle">
-              {selectedCategoryName.charAt(0).toUpperCase() + selectedCategoryName.slice(1)}
+              {selectedCategoryName.charAt(0).toUpperCase() +
+                selectedCategoryName.slice(1)}
             </h2>
           )}
 
           {songs.length > 0 && (
-            <h2 className="brc__subtitle">
-              {selectedItemName}
-            </h2>
+            <h2 className="brc__subtitle">{selectedItemName}</h2>
           )}
         </div>
 
@@ -136,7 +155,11 @@ export default function BrowseByCategoryPage() {
         )}
 
         {category && !songs.length && items.length > 0 && (
-          <CategoryItems items={items} onSelect={handleItemClick} />
+          <CategoryItems
+            items={items}
+            onSelect={handleItemClick}
+            sortBy={SORT_STRATEGY[category] || "alpha"}
+          />
         )}
 
         {songs.length > 0 && (
