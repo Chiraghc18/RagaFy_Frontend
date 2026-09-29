@@ -25,7 +25,6 @@ const GENRE_GROUPS = {
     genres: [
       "melody",
       "emotional",
-      "pathos",
       "folk-classical",
     ],
   },
@@ -62,8 +61,6 @@ const GENRE_GROUPS = {
       "pop energetic",
       "pop emotional",
       "pop melodies",
-      "item song",
-      "mass",
       "hip-hop",
     ],
     // Don't double-count romantic pop songs (they belong to Melody & Romance)
