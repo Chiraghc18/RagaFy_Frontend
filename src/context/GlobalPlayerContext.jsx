@@ -54,13 +54,16 @@ export function GlobalPlayerProvider({ children }) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [volume, setVolumeState] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.VOLUME);
-      return stored !== null ? parseFloat(stored) : 1;
-    } catch {
-      return 1;
-    }
-  });
+  const savedVolume = localStorage.getItem("ragafy_global_volume");
+
+  if (savedVolume === null) return 1;
+
+  const parsedVolume = Number(savedVolume);
+
+  return Number.isFinite(parsedVolume)
+    ? Math.max(0, Math.min(1, parsedVolume))
+    : 1;
+});
 
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -561,24 +564,23 @@ export function GlobalPlayerProvider({ children }) {
   // VOLUME
   // =========================
 
-  const setVolumeLevel = useCallback((newVolume) => {
-    const safeVolume = Math.max(0, Math.min(1, newVolume));
+  const setVolumeLevel = useCallback((value) => {
+  const newVolume = Math.max(
+    0,
+    Math.min(1, Number(value))
+  );
 
-    setVolumeState(safeVolume);
+  setVolumeState(newVolume);
 
-    if (audioRef.current) {
-      audioRef.current.volume = safeVolume;
-    }
+  if (audioRef.current) {
+    audioRef.current.volume = newVolume;
+  }
 
-    try {
-      localStorage.setItem(
-        STORAGE_KEYS.VOLUME,
-        String(safeVolume)
-      );
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
+  localStorage.setItem(
+    "ragafy_global_volume",
+    String(newVolume)
+  );
+}, []);
 
   // =========================
   // FORMAT TIME
@@ -761,6 +763,11 @@ export function GlobalPlayerProvider({ children }) {
     }
   }, [volume, isAudioReady]);
 
+  useEffect(() => {
+  if (audioRef.current) {
+    audioRef.current.volume = volume;
+  }
+}, [volume]);
   // =========================
   // SAVE PLAYER STATE
   // =========================
@@ -940,6 +947,7 @@ export function GlobalPlayerProvider({ children }) {
     currentSong,
     isPlaying,
     volume,
+    
     progress,
     duration,
     isLoading,

@@ -87,7 +87,7 @@ export default function AllSongs() {
                     <div className="all-songs__meta">
                       {song.artist?.name ||
                         song.singers?.map((s) => s.name).join(", ") ||
-                        "Unknown Artist"}
+                        " "}
                     </div>
                   </div>
                   <div className="all-songs__play-icon">▶</div>

@@ -11,27 +11,29 @@ export default function SongPlayerPage() {
 
   const { photos, queue, addToQueue, removeFromQueue, clearQueue } = useData();
   const {
-    currentPlaylist,
-    currentIndex,
-    currentSong,
-    isPlaying,
-    progress,
-    duration,
-    shuffleMode,
-    repeatMode,
-    togglePlayPause,
-    handleNext,
-    handlePrevious,
-    seekTo,
-    toggleShuffle,
-    toggleRepeat,
-    playPlaylist,
-    playSong,
-    formatTime
-  } = useGlobalPlayer();
+  currentPlaylist,
+  currentIndex,
+  currentSong,
+  isPlaying,
+  progress,
+  duration,
+  volume,
+  setVolume,
+  shuffleMode,
+  repeatMode,
+  togglePlayPause,
+  handleNext,
+  handlePrevious,
+  seekTo,
+  toggleShuffle,
+  toggleRepeat,
+  playPlaylist,
+  playSong,
+  formatTime,
+} = useGlobalPlayer();
 
   const [showQueue, setShowQueue] = useState(false);
-  const [volume, setVolume] = useState(1);
+  
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [animatingSong, setAnimatingSong] = useState(null);
   const [initialized, setInitialized] = useState(false);
@@ -41,6 +43,15 @@ export default function SongPlayerPage() {
   const audioRef = useRef(null);
 
   const queueSongIds = new Set(queue.map(song => song._id));
+
+  const handleSongPlayerVolume = (event) => {
+  const newVolume = Math.max(
+    0,
+    Math.min(1, Number(event.target.value))
+  );
+
+  setVolume(newVolume);
+};
 
   // Initialize player with songs from location if provided - ONLY ONCE
   useEffect(() => {
@@ -270,18 +281,27 @@ export default function SongPlayerPage() {
                 <span className="ragafy-player__queue-count">{queue.length}</span>
               </button>
 
-              <div className="ragafy-player__volume-control" ref={volumeRef}>
-                <button className="ragafy-player__volume-icon" onClick={() => setShowVolumeSlider(!showVolumeSlider)}>
-                  {volume === 0 ? <i className="fa-solid fa-volume-xmark"></i> :
-                   volume < 0.5 ? <i className="fa-solid fa-volume-low"></i> :
-                   <i className="fa-solid fa-volume-high"></i>}
-                </button>
-                {showVolumeSlider && (
-                  <input type="range" className="ragafy-player__volume-slider"
-                    min="0" max="1" step="0.01" value={volume}
-                    onChange={(e) => setVolume(parseFloat(e.target.value))} />
-                )}
-              </div>
+              <div className="song-player__volume-control">
+  <i className={`fa-solid ${
+    volume === 0
+      ? "fa-volume-xmark"
+      : volume < 0.5
+      ? "fa-volume-low"
+      : "fa-volume-high"
+  }`} />
+
+  <input
+    type="range"
+    min="0"
+    max="1"
+    step="0.01"
+    value={volume}
+    onChange={handleSongPlayerVolume}
+    aria-label="Song player volume"
+  />
+
+  <span>{Math.round(volume * 100)}%</span>
+</div>
             </div>
           </div>
         </div>
@@ -307,7 +327,7 @@ export default function SongPlayerPage() {
                 <div className="ragafy-player__queue-current-info">
                   <span className="ragafy-player__queue-current-title">{currentSong.title}</span>
                   <span className="ragafy-player__queue-current-artist">
-                    {currentSong.artist?.name || currentSong.singers?.[0]?.name || 'Unknown'}
+                    {currentSong.artist?.name || currentSong.singers?.[0]?.name || ' '}
                   </span>
                 </div>
               </div>
@@ -329,7 +349,7 @@ export default function SongPlayerPage() {
                     <div className="ragafy-player__queue-item-info">
                       <span className="ragafy-player__queue-item-title">{song.title}</span>
                       <span className="ragafy-player__queue-item-artist">
-                        {song.artist?.name || song.singers?.[0]?.name || 'Unknown'}
+                        {song.artist?.name || song.singers?.[0]?.name || ' '}
                       </span>
                     </div>
                     <div className="ragafy-player__queue-item-actions">
@@ -393,7 +413,7 @@ export default function SongPlayerPage() {
                       {idx === currentIndex && <span className="now-playing-badge">NOW PLAYING</span>}
                     </span>
                     <span className="ragafy-player__song-item-subtitle">
-                      {song.artist?.name || song.singers?.[0]?.name || 'Unknown'}
+                      {song.artist?.name || song.singers?.[0]?.name || ' '}
                     </span>
                   </div>
 

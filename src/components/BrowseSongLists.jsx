@@ -97,7 +97,7 @@ export default function BrowseSongLists({ songs, photo }) {
             <div className="bsl-song-info" onClick={(e) => handlePlayNow(e, song, index)}>
               <span className="bsl-song-title">{song.title}</span>
               <span className="bsl-song-artist">
-                {song.artist?.name || song.singers?.[0]?.name || 'Unknown'}
+                {song.artist?.name || song.singers?.[0]?.name || ' '}
               </span>
             </div>
             

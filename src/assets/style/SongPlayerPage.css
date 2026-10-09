@@ -1454,3 +1454,223 @@
     top: max(14px, env(safe-area-inset-top, 14px));
   }
 }
+
+/* ============================================ */
+/* SONG PLAYER - VOLUME CONTROL */
+/* Ragafy Beats: Orange → Blue Glassmorphism */
+/* ============================================ */
+
+.song-player__volume-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 200px;
+  margin: 18px auto;
+  padding: 12px 16px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.song-player__volume-control:hover {
+  border-color: rgba(255, 107, 0, 0.3);
+  box-shadow: 0 0 20px rgba(255, 107, 0, 0.12);
+}
+
+/* Volume icon */
+.song-player__volume-control > i {
+  flex-shrink: 0;
+  width: 22px;
+  font-size: 16px;
+  text-align: center;
+  color: var(--player-orange, #FF6B00);
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+.song-player__volume-control > i:hover {
+  color: var(--player-orange-light, #FF8C3D);
+  transform: scale(1.1);
+}
+
+/* Volume percentage */
+.song-player__volume-control span {
+  flex-shrink: 0;
+  min-width: 38px;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: "SF Mono", "Monaco", "Menlo", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Volume slider */
+.song-player__volume-control input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Chrome, Edge, Safari track */
+.song-player__volume-control input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--player-orange, #FF6B00),
+    var(--player-orange-light, #FF8C3D),
+    var(--player-blue, #0066FF)
+  );
+  border-radius: 10px;
+}
+
+/* Chrome, Edge, Safari thumb */
+.song-player__volume-control input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -4.5px;
+  background: var(--player-orange, #FF6B00);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.song-player__volume-control input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  box-shadow: var(--player-glow-orange, 0 0 20px rgba(255, 107, 0, 0.4));
+}
+
+/* Firefox track */
+.song-player__volume-control input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+}
+
+/* Firefox filled track */
+.song-player__volume-control input[type="range"]::-moz-range-progress {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--player-orange, #FF6B00),
+    var(--player-blue, #0066FF)
+  );
+  border-radius: 10px;
+}
+
+/* Firefox thumb */
+.song-player__volume-control input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: var(--player-orange, #FF6B00);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Keyboard accessibility */
+.song-player__volume-control input[type="range"]:focus-visible {
+  outline: 2px solid var(--player-blue-light, #3388FF);
+  outline-offset: 5px;
+}
+
+/* ============================================ */
+/* RESPONSIVE */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .song-player__volume-control {
+    max-width: 260px;
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 14px auto;
+  }
+
+  .song-player__volume-control > i {
+    font-size: 14px;
+  }
+
+  .song-player__volume-control span {
+    min-width: 34px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .song-player__volume-control {
+    max-width: 220px;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 12px;
+  }
+
+  .song-player__volume-control > i {
+    width: 18px;
+    font-size: 13px;
+  }
+
+  .song-player__volume-control span {
+    min-width: 30px;
+    font-size: 9px;
+  }
+}
+
+/* Volume control - right aligned and smaller */
+.song-player__volume-control {
+  max-width: 240px;
+  width: fit-content;
+  margin: 12px 0 12px auto;
+  padding: 8px 12px;
+  gap: 9px;
+  border-radius: 12px;
+}
+
+.song-player__volume-control > i {
+  width: 18px;
+  font-size: 14px;
+}
+
+.song-player__volume-control input[type="range"] {
+  width: 85px;
+  flex: 0 1 85px;
+}
+
+.song-player__volume-control span {
+  min-width: 30px;
+  font-size: 10px;
+}
+
+/* Smaller on mobile */
+@media (max-width: 480px) {
+  .song-player__volume-control {
+    max-width: 190px;
+    padding: 7px 9px;
+    gap: 7px;
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  .song-player__volume-control input[type="range"] {
+    width: 65px;
+    flex-basis: 65px;
+  }
+}
