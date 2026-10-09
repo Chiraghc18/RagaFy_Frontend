@@ -38,7 +38,9 @@ export default function UserPlaylists() {
         <p className="upl__empty">No playlists found.</p>
       ) : (
         <div className="upl__grid">
-          {playlists.map((pl) => (
+          {[...playlists]
+  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  .map((pl) => (
             <Link
               key={pl._id}
               to={`/user-playlists/${pl._id}`}

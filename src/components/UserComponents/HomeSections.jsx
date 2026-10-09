@@ -643,7 +643,7 @@ export default function HomeSections() {
       <div className="all-songs__rail-sub">
         {song.artist?.name ||
           song.singers?.[0]?.name ||
-          "Unknown"}
+          " "}
       </div>
     </div>
   );
