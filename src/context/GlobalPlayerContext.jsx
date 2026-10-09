@@ -1,5 +1,3 @@
-// context/GlobalPlayerContext.jsx
-
 import React, {
   createContext,
   useState,
@@ -7,7 +5,7 @@ import React, {
   useRef,
   useEffect,
   useCallback
-} from 'react';
+} from "react";
 
 const GlobalPlayerContext = createContext(null);
 
@@ -16,25 +14,25 @@ const GlobalPlayerContext = createContext(null);
 // =========================
 
 const STORAGE_KEYS = {
-  PLAYLIST: 'ragafy_global_playlist',
-  CURRENT_INDEX: 'ragafy_global_index',
-  VOLUME: 'ragafy_global_volume',
-  SHUFFLE: 'ragafy_global_shuffle',
-  REPEAT: 'ragafy_global_repeat',
-  RECENTLY_PLAYED: 'ragafy_recently_played'
+  PLAYLIST: "ragafy_global_playlist",
+  CURRENT_INDEX: "ragafy_global_index",
+  VOLUME: "ragafy_global_volume",
+  SHUFFLE: "ragafy_global_shuffle",
+  REPEAT: "ragafy_global_repeat",
+  RECENTLY_PLAYED: "ragafy_recently_played",
+  PLAYED_SONGS: "ragafy_played_song_ids"
 };
 
 export function GlobalPlayerProvider({ children }) {
-
   // =========================
   // STATES
   // =========================
 
   const [currentPlaylist, setCurrentPlaylist] = useState(() => {
     try {
-      return JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.PLAYLIST)
-      ) || [];
+      return (
+        JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAYLIST)) || []
+      );
     } catch {
       return [];
     }
@@ -42,10 +40,12 @@ export function GlobalPlayerProvider({ children }) {
 
   const [currentIndex, setCurrentIndex] = useState(() => {
     try {
-      return parseInt(
-        localStorage.getItem(STORAGE_KEYS.CURRENT_INDEX),
-        10
-      ) || 0;
+      return (
+        parseInt(
+          localStorage.getItem(STORAGE_KEYS.CURRENT_INDEX),
+          10
+        ) || 0
+      );
     } catch {
       return 0;
     }
@@ -55,9 +55,8 @@ export function GlobalPlayerProvider({ children }) {
 
   const [volume, setVolumeState] = useState(() => {
     try {
-      return parseFloat(
-        localStorage.getItem(STORAGE_KEYS.VOLUME)
-      ) || 1;
+      const stored = localStorage.getItem(STORAGE_KEYS.VOLUME);
+      return stored !== null ? parseFloat(stored) : 1;
     } catch {
       return 1;
     }
@@ -75,34 +74,83 @@ export function GlobalPlayerProvider({ children }) {
 
   const [shuffleMode, setShuffleMode] = useState(() => {
     try {
-      return localStorage.getItem(
-        STORAGE_KEYS.SHUFFLE
-      ) === 'true';
+      return localStorage.getItem(STORAGE_KEYS.SHUFFLE) === "true";
     } catch {
       return false;
     }
   });
 
   const [repeatMode, setRepeatMode] = useState(() => {
-  try {
-    return (
-      localStorage.getItem(
-        STORAGE_KEYS.REPEAT
-      ) || 'all'
-    );
-  } catch {
-    return 'all';
-  }
-});
+    try {
+      return localStorage.getItem(STORAGE_KEYS.REPEAT) || "all";
+    } catch {
+      return "all";
+    }
+  });
 
-// Add near the other useState calls
-const [recentlyPlayedIds, setRecentlyPlayedIds] = useState(() => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.RECENTLY_PLAYED)) || [];
-  } catch {
-    return [];
-  }
-});
+  // =========================
+  // RECENTLY PLAYED
+  // Existing feature: latest 20 songs
+  // =========================
+
+  const [recentlyPlayedIds, setRecentlyPlayedIds] = useState(() => {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.RECENTLY_PLAYED)
+      );
+
+      return Array.isArray(stored) ? stored : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // =========================
+  // GLOBAL PLAYED HISTORY
+  // New feature for HomeSections
+  // =========================
+
+  const [playedSongIds, setPlayedSongIds] = useState(() => {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.PLAYED_SONGS)
+      );
+
+      return Array.isArray(stored) ? stored : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Add a song to the history only once
+  const markPlayed = useCallback((songId) => {
+    if (!songId) return;
+
+    setPlayedSongIds((previousIds) => {
+      if (previousIds.includes(songId)) {
+        return previousIds;
+      }
+
+      return [...previousIds, songId];
+    });
+  }, []);
+
+  // Clear only the new Played History
+  const resetPlayed = useCallback(() => {
+    setPlayedSongIds([]);
+  }, []);
+
+  // Save Played History
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.PLAYED_SONGS,
+        JSON.stringify(playedSongIds)
+      );
+    } catch {
+      // Continue playback if localStorage is unavailable
+    }
+  }, [playedSongIds]);
 
   const [shuffleOrder, setShuffleOrder] = useState([]);
 
@@ -120,98 +168,85 @@ const [recentlyPlayedIds, setRecentlyPlayedIds] = useState(() => {
   const progressInterval = useRef(null);
 
   // =========================
+  // UPDATE HISTORY WHEN SONG CHANGES
+  // Works across the application
+  // =========================
+
+  useEffect(() => {
+    if (!currentSong?._id) return;
+
+    const songId = currentSong._id;
+
+    // Preserve the existing Recently Played functionality
+    setRecentlyPlayedIds((previousIds) => {
+      const withoutCurrent = previousIds.filter(
+        (id) => id !== songId
+      );
+
+      const next = [songId, ...withoutCurrent].slice(0, 20);
+
+      try {
+        localStorage.setItem(
+          STORAGE_KEYS.RECENTLY_PLAYED,
+          JSON.stringify(next)
+        );
+      } catch {
+        // Ignore storage errors
+      }
+
+      return next;
+    });
+
+    // Add to the global Played History
+    markPlayed(songId);
+  }, [currentSong?._id, markPlayed]);
+
+  // =========================
   // BUILD SHUFFLE ORDER
   // =========================
 
-  // New effect — fires whenever the playing song actually changes
-useEffect(() => {
-  if (!currentSong?._id) return;
-
-  setRecentlyPlayedIds(prev => {
-    const withoutCurrent = prev.filter(id => id !== currentSong._id);
-    const next = [currentSong._id, ...withoutCurrent].slice(0, 20);
-
-    try {
-      localStorage.setItem(STORAGE_KEYS.RECENTLY_PLAYED, JSON.stringify(next));
-    } catch {}
-
-    return next;
-  });
-}, [currentSong?._id]);
-
   useEffect(() => {
-
-    if (
-      shuffleMode &&
-      currentPlaylist.length > 0
-    ) {
-
-      const indices =
-        currentPlaylist.map((_, i) => i);
+    if (shuffleMode && currentPlaylist.length > 0) {
+      const indices = currentPlaylist.map((_, index) => index);
 
       const rest = indices.filter(
-        i => i !== currentIndex
+        (index) => index !== currentIndex
       );
 
-      for (
-        let i = rest.length - 1;
-        i > 0;
-        i--
-      ) {
-        const j = Math.floor(
-          Math.random() * (i + 1)
-        );
+      for (let i = rest.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
 
-        [rest[i], rest[j]] =
-          [rest[j], rest[i]];
+        [rest[i], rest[j]] = [rest[j], rest[i]];
       }
 
-      setShuffleOrder([
-        currentIndex,
-        ...rest
-      ]);
+      setShuffleOrder([currentIndex, ...rest]);
     }
-
-  }, [
-    shuffleMode,
-    currentPlaylist.length,
-    currentIndex
-  ]);
+  }, [shuffleMode, currentPlaylist.length, currentIndex]);
 
   // =========================
   // NEXT INDEX
   // =========================
 
   const getNextIndex = useCallback(() => {
-
-    if (repeatMode === 'one') {
+    if (repeatMode === "one") {
       return currentIndex;
     }
 
-    if (
-      shuffleMode &&
-      shuffleOrder.length > 0
-    ) {
+    if (shuffleMode && shuffleOrder.length > 0) {
+      const position = shuffleOrder.indexOf(currentIndex);
 
-      const pos =
-        shuffleOrder.indexOf(currentIndex);
-
-      if (pos === shuffleOrder.length - 1) {
-          return shuffleOrder[0];
+      if (position === shuffleOrder.length - 1) {
+        return shuffleOrder[0];
       }
 
-      return shuffleOrder[pos + 1];
+      return shuffleOrder[position + 1];
     }
 
-    if (
-      currentIndex + 1 >=
-      currentPlaylist.length
-    ) {
+    if (currentIndex + 1 >= currentPlaylist.length) {
       return 0;
     }
 
     return currentIndex + 1;
-
   }, [
     currentIndex,
     currentPlaylist,
@@ -225,34 +260,25 @@ useEffect(() => {
   // =========================
 
   const getPrevIndex = useCallback(() => {
-
-    if (repeatMode === 'one') {
+    if (repeatMode === "one") {
       return currentIndex;
     }
 
-    if (
-      shuffleMode &&
-      shuffleOrder.length > 0
-    ) {
+    if (shuffleMode && shuffleOrder.length > 0) {
+      const position = shuffleOrder.indexOf(currentIndex);
 
-      const pos =
-        shuffleOrder.indexOf(currentIndex);
+      if (position === 0) {
+        return shuffleOrder[shuffleOrder.length - 1];
+      }
 
-      if (pos === 0) {
-  return shuffleOrder[
-    shuffleOrder.length - 1
-  ];
-}
-
-      return shuffleOrder[pos - 1];
+      return shuffleOrder[position - 1];
     }
 
     if (currentIndex - 1 < 0) {
-        return currentPlaylist.length - 1;
+      return currentPlaylist.length - 1;
     }
 
     return currentIndex - 1;
-
   }, [
     currentIndex,
     currentPlaylist,
@@ -266,7 +292,6 @@ useEffect(() => {
   // =========================
 
   const handleSongEnd = useCallback(() => {
-
     const nextIndex = getNextIndex();
 
     if (nextIndex === null) {
@@ -280,7 +305,6 @@ useEffect(() => {
 
     setCurrentIndex(nextIndex);
     setIsPlaying(true);
-
   }, [getNextIndex]);
 
   // =========================
@@ -288,7 +312,6 @@ useEffect(() => {
   // =========================
 
   const handleNext = useCallback(() => {
-
     if (!currentPlaylist?.length) return;
 
     const nextIndex = getNextIndex();
@@ -301,21 +324,16 @@ useEffect(() => {
 
     setCurrentIndex(nextIndex);
     setIsPlaying(true);
-
-  }, [
-    currentPlaylist,
-    getNextIndex
-  ]);
+  }, [currentPlaylist, getNextIndex]);
 
   // =========================
   // PREVIOUS SONG
   // =========================
 
   const handlePrevious = useCallback(() => {
-
     if (!currentPlaylist?.length) return;
 
-    // Restart song if >3 sec
+    // Restart the current song if it has played for more than 3 seconds
     if (
       audioRef.current &&
       audioRef.current.currentTime > 3
@@ -325,174 +343,166 @@ useEffect(() => {
       return;
     }
 
-    const prevIndex = getPrevIndex();
+    const previousIndex = getPrevIndex();
 
-    if (prevIndex === null) return;
+    if (previousIndex === null) return;
 
     setProgress(0);
     setDuration(0);
     setIsLoading(true);
 
-    setCurrentIndex(prevIndex);
+    setCurrentIndex(previousIndex);
     setIsPlaying(true);
-
-  }, [
-    currentPlaylist,
-    getPrevIndex
-  ]);
+  }, [currentPlaylist, getPrevIndex]);
 
   // =========================
   // SEEK
   // =========================
 
-  const seekTo = useCallback((time) => {
-
-    if (
-      audioRef.current &&
-      isAudioReady
-    ) {
-      audioRef.current.currentTime = time;
-      setProgress(time);
-    }
-
-  }, [isAudioReady]);
+  const seekTo = useCallback(
+    (time) => {
+      if (audioRef.current && isAudioReady) {
+        audioRef.current.currentTime = time;
+        setProgress(time);
+      }
+    },
+    [isAudioReady]
+  );
 
   // =========================
-// PLAY PLAYLIST
-// =========================
+  // PLAY PLAYLIST
+  // =========================
 
-const playPlaylist = useCallback((songs, startIndex = 0) => {
+  const playPlaylist = useCallback(
+    (songs, startIndex = 0) => {
+      if (!songs?.length) return;
 
-  if (!songs?.length) return;
+      const safeIndex = Math.max(
+        0,
+        Math.min(startIndex, songs.length - 1)
+      );
 
-  const targetSong = songs[startIndex];
+      const targetSong = songs[safeIndex];
 
-  // If this exact song, at this exact position, in a playlist of the
-  // same length is already loaded — don't restart, just resume.
-  const alreadyLoaded =
-    currentSong &&
-    targetSong &&
-    currentSong._id === targetSong._id &&
-    currentIndex === startIndex &&
-    currentPlaylist.length === songs.length;
+      // If the same song is already loaded at the same position,
+      // resume without resetting playback.
+      const alreadyLoaded =
+        currentSong &&
+        targetSong &&
+        currentSong._id === targetSong._id &&
+        currentIndex === safeIndex &&
+        currentPlaylist.length === songs.length;
 
-  if (alreadyLoaded) {
-    setIsPlaying(true);
-    return;
-  }
+      if (alreadyLoaded) {
+        setIsPlaying(true);
+        return;
+      }
 
-  setProgress(0);
-  setDuration(0);
-  setIsLoading(true);
+      setProgress(0);
+      setDuration(0);
+      setIsLoading(true);
 
-  setCurrentPlaylist(songs);
-  setCurrentIndex(startIndex);
+      setCurrentPlaylist(songs);
+      setCurrentIndex(safeIndex);
+      setIsPlaying(true);
+    },
+    [currentSong, currentIndex, currentPlaylist]
+  );
 
-  setIsPlaying(true);
+  // =========================
+  // PLAY SINGLE SONG
+  // =========================
 
-}, [currentSong, currentIndex, currentPlaylist]);
+  const playSong = useCallback(
+    (song, playlist = [], index = 0) => {
+      if (!song) return;
 
-// =========================
-// PLAY SINGLE SONG
-// =========================
+      const targetPlaylist =
+        playlist.length > 0 ? playlist : [song];
 
-const playSong = useCallback((song, playlist = [], index = 0) => {
+      const targetIndex =
+        playlist.length > 0
+          ? Math.max(0, Math.min(index, playlist.length - 1))
+          : 0;
 
-  if (!song) return;
+      const alreadyLoaded =
+        currentSong &&
+        currentSong._id === song._id &&
+        currentIndex === targetIndex &&
+        currentPlaylist.length === targetPlaylist.length;
 
-  const targetPlaylist = playlist.length > 0 ? playlist : [song];
-  const targetIndex = playlist.length > 0 ? index : 0;
+      if (alreadyLoaded) {
+        setIsPlaying(true);
+        return;
+      }
 
-  const alreadyLoaded =
-    currentSong &&
-    currentSong._id === song._id &&
-    currentIndex === targetIndex &&
-    currentPlaylist.length === targetPlaylist.length;
+      setProgress(0);
+      setDuration(0);
+      setIsLoading(true);
 
-  if (alreadyLoaded) {
-    setIsPlaying(true);
-    return;
-  }
-
-  setProgress(0);
-  setDuration(0);
-  setIsLoading(true);
-
-  setCurrentPlaylist(targetPlaylist);
-  setCurrentIndex(targetIndex);
-
-  setIsPlaying(true);
-
-}, [currentSong, currentIndex, currentPlaylist]);
-
+      setCurrentPlaylist(targetPlaylist);
+      setCurrentIndex(targetIndex);
+      setIsPlaying(true);
+    },
+    [currentSong, currentIndex, currentPlaylist]
+  );
 
   // =========================
   // ADD TO PLAYLIST
   // =========================
 
   const addToPlaylist = useCallback((songs) => {
-
-    setCurrentPlaylist(prev => {
-
+    setCurrentPlaylist((previousSongs) => {
       const newSongs = songs.filter(
-        song =>
-          !prev.some(
-            s => s._id === song._id
+        (song) =>
+          !previousSongs.some(
+            (existingSong) => existingSong._id === song._id
           )
       );
 
-      return [...prev, ...newSongs];
+      return [...previousSongs, ...newSongs];
     });
-
   }, []);
 
   // =========================
   // REMOVE FROM PLAYLIST
   // =========================
 
-  const removeFromPlaylist = useCallback((songId) => {
-
-    setCurrentPlaylist(prev => {
-
-      const newPlaylist =
-        prev.filter(
-          song => song._id !== songId
+  const removeFromPlaylist = useCallback(
+    (songId) => {
+      setCurrentPlaylist((previousPlaylist) => {
+        const newPlaylist = previousPlaylist.filter(
+          (song) => song._id !== songId
         );
 
-      if (
-        currentIndex >=
-        newPlaylist.length
-      ) {
-        setCurrentIndex(0);
-        setProgress(0);
-        setDuration(0);
-      }
+        if (currentIndex >= newPlaylist.length) {
+          setCurrentIndex(0);
+          setProgress(0);
+          setDuration(0);
+        }
 
-      return newPlaylist;
-    });
-
-  }, [currentIndex]);
+        return newPlaylist;
+      });
+    },
+    [currentIndex]
+  );
 
   // =========================
   // CLEAR PLAYLIST
+  // Does not clear Played History
   // =========================
 
   const clearPlaylist = useCallback(() => {
-
     if (audioRef.current) {
-
       audioRef.current.pause();
-      audioRef.current.src = '';
+      audioRef.current.src = "";
     }
 
     setCurrentPlaylist([]);
     setCurrentIndex(0);
-
     setIsPlaying(false);
-
     setProgress(0);
     setDuration(0);
-
   }, []);
 
   // =========================
@@ -500,11 +510,9 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   const togglePlayPause = useCallback(() => {
-
     if (currentSong) {
-      setIsPlaying(prev => !prev);
+      setIsPlaying((previous) => !previous);
     }
-
   }, [currentSong]);
 
   // =========================
@@ -512,42 +520,41 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   const toggleShuffle = useCallback(() => {
+    setShuffleMode((previous) => {
+      const next = !previous;
 
-    setShuffleMode(prev => {
-
-      const next = !prev;
-
-      localStorage.setItem(
-        STORAGE_KEYS.SHUFFLE,
-        String(next)
-      );
+      try {
+        localStorage.setItem(
+          STORAGE_KEYS.SHUFFLE,
+          String(next)
+        );
+      } catch {
+        // Ignore storage errors
+      }
 
       return next;
     });
-
   }, []);
 
   // =========================
   // REPEAT TOGGLE
-  // =========================
+   // =========================
 
   const toggleRepeat = useCallback(() => {
+    setRepeatMode((previous) => {
+      const next = previous === "one" ? "all" : "one";
 
-  setRepeatMode(prev => {
-
-      const next =
-        prev === 'one'
-          ? 'all'
-          : 'one';
-
-      localStorage.setItem(
-        STORAGE_KEYS.REPEAT,
-        next
-      );
+      try {
+        localStorage.setItem(
+          STORAGE_KEYS.REPEAT,
+          next
+        );
+      } catch {
+        // Ignore storage errors
+      }
 
       return next;
     });
-
   }, []);
 
   // =========================
@@ -555,18 +562,22 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   const setVolumeLevel = useCallback((newVolume) => {
+    const safeVolume = Math.max(0, Math.min(1, newVolume));
 
-    setVolumeState(newVolume);
+    setVolumeState(safeVolume);
 
     if (audioRef.current) {
-      audioRef.current.volume = newVolume;
+      audioRef.current.volume = safeVolume;
     }
 
-    localStorage.setItem(
-      STORAGE_KEYS.VOLUME,
-      String(newVolume)
-    );
-
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.VOLUME,
+        String(safeVolume)
+      );
+    } catch {
+      // Ignore storage errors
+    }
   }, []);
 
   // =========================
@@ -574,18 +585,16 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   const formatTime = useCallback((seconds) => {
-
     if (!seconds || isNaN(seconds)) {
-      return '0:00';
+      return "0:00";
     }
 
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
 
-    return `${mins}:${secs
+    return `${minutes}:${remainingSeconds
       .toString()
-      .padStart(2, '0')}`;
-
+      .padStart(2, "0")}`;
   }, []);
 
   // =========================
@@ -593,29 +602,22 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   useEffect(() => {
-
     const audio = new Audio();
 
-    audio.preload = 'metadata';
-
+    audio.preload = "metadata";
     audioRef.current = audio;
 
     setIsAudioReady(true);
 
     return () => {
-
       if (progressInterval.current) {
-        clearInterval(
-          progressInterval.current
-        );
+        clearInterval(progressInterval.current);
       }
 
       audio.pause();
-      audio.src = '';
-
+      audio.src = "";
       audioRef.current = null;
     };
-
   }, []);
 
   // =========================
@@ -623,16 +625,11 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   useEffect(() => {
-
-    if (
-      !audioRef.current ||
-      !isAudioReady
-    ) return;
+    if (!audioRef.current || !isAudioReady) return;
 
     const audio = audioRef.current;
 
     const onLoadedMetadata = () => {
-
       setDuration(audio.duration);
       setProgress(0);
       setIsLoading(false);
@@ -647,121 +644,58 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
     };
 
     const onError = () => {
-
       setIsPlaying(false);
       setIsLoading(false);
     };
 
     const onCanPlay = () => {
-
       if (isPlaying) {
-
         audio.play().catch(() => {
           setIsPlaying(false);
         });
-
       }
     };
 
-    audio.addEventListener(
-      'loadedmetadata',
-      onLoadedMetadata
-    );
-
-    audio.addEventListener(
-      'timeupdate',
-      onTimeUpdate
-    );
-
-    audio.addEventListener(
-      'ended',
-      onEnded
-    );
-
-    audio.addEventListener(
-      'error',
-      onError
-    );
-
-    audio.addEventListener(
-      'canplay',
-      onCanPlay
-    );
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
+    audio.addEventListener("canplay", onCanPlay);
 
     return () => {
-
-      audio.removeEventListener(
-        'loadedmetadata',
-        onLoadedMetadata
-      );
-
-      audio.removeEventListener(
-        'timeupdate',
-        onTimeUpdate
-      );
-
-      audio.removeEventListener(
-        'ended',
-        onEnded
-      );
-
-      audio.removeEventListener(
-        'error',
-        onError
-      );
-
-      audio.removeEventListener(
-        'canplay',
-        onCanPlay
-      );
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
+      audio.removeEventListener("canplay", onCanPlay);
     };
-
-  }, [
-    isAudioReady,
-    handleSongEnd,
-    isPlaying
-  ]);
+  }, [isAudioReady, handleSongEnd, isPlaying]);
 
   // =========================
   // PROGRESS INTERVAL
   // =========================
 
   useEffect(() => {
-
-    if (
-      !audioRef.current ||
-      !isPlaying
-    ) return;
+    if (!audioRef.current || !isPlaying) return;
 
     if (progressInterval.current) {
-      clearInterval(
-        progressInterval.current
-      );
+      clearInterval(progressInterval.current);
     }
 
-    progressInterval.current =
-      setInterval(() => {
-
-        if (
-          audioRef.current &&
-          !audioRef.current.paused
-        ) {
-          setProgress(
-            audioRef.current.currentTime
-          );
-        }
-
-      }, 500);
+    progressInterval.current = setInterval(() => {
+      if (
+        audioRef.current &&
+        !audioRef.current.paused
+      ) {
+        setProgress(audioRef.current.currentTime);
+      }
+    }, 500);
 
     return () => {
-
       if (progressInterval.current) {
-        clearInterval(
-          progressInterval.current
-        );
+        clearInterval(progressInterval.current);
       }
     };
-
   }, [isPlaying]);
 
   // =========================
@@ -769,28 +703,24 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   useEffect(() => {
-
     if (
       !audioRef.current ||
       !isAudioReady ||
       !currentSong ||
       isLoading
-    ) return;
+    ) {
+      return;
+    }
 
     const audio = audioRef.current;
 
     if (isPlaying) {
-
       audio.play().catch(() => {
         setIsPlaying(false);
       });
-
     } else {
-
       audio.pause();
-
     }
-
   }, [
     isPlaying,
     isLoading,
@@ -803,55 +733,40 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   useEffect(() => {
-
     if (
       !audioRef.current ||
       !isAudioReady ||
       !currentSong
-    ) return;
+    ) {
+      return;
+    }
 
     if (!currentSong.audioUrl) {
-
       setIsLoading(false);
       return;
     }
 
     audioRef.current.pause();
-
-    audioRef.current.src =
-      currentSong.audioUrl;
-
+    audioRef.current.src = currentSong.audioUrl;
     audioRef.current.load();
-
-  }, [
-    currentIndex,
-    isAudioReady,
-    currentSong
-  ]);
+  }, [currentIndex, isAudioReady, currentSong]);
 
   // =========================
   // VOLUME EFFECT
   // =========================
 
   useEffect(() => {
-
-    if (
-      audioRef.current &&
-      isAudioReady
-    ) {
+    if (audioRef.current && isAudioReady) {
       audioRef.current.volume = volume;
     }
-
   }, [volume, isAudioReady]);
 
   // =========================
-  // SAVE TO LOCAL STORAGE
+  // SAVE PLAYER STATE
   // =========================
 
   useEffect(() => {
-
     try {
-
       localStorage.setItem(
         STORAGE_KEYS.PLAYLIST,
         JSON.stringify(currentPlaylist)
@@ -866,178 +781,129 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
         STORAGE_KEYS.VOLUME,
         volume.toString()
       );
-
-    } catch {}
-
-  }, [
-    currentPlaylist,
-    currentIndex,
-    volume
-  ]);
+    } catch {
+      // Ignore storage errors
+    }
+  }, [currentPlaylist, currentIndex, volume]);
 
   // =========================
   // MEDIA SESSION API
   // =========================
 
   useEffect(() => {
-
     if (
-      'mediaSession' in navigator &&
-      currentSong
+      "mediaSession" in navigator &&
+      currentSong &&
+      typeof window.MediaMetadata === "function"
     ) {
-
-      navigator.mediaSession.metadata =
-        new window.MediaMetadata({
-          title: currentSong.title,
-          artist:
-            currentSong.artist?.name || '',
-          album:
-            currentSong.album?.name || ''
-        });
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: currentSong.title,
+        artist: currentSong.artist?.name || "",
+        album: currentSong.album?.name || ""
+      });
 
       navigator.mediaSession.setActionHandler(
-        'play',
+        "play",
         () => setIsPlaying(true)
       );
 
       navigator.mediaSession.setActionHandler(
-        'pause',
+        "pause",
         () => setIsPlaying(false)
       );
 
       navigator.mediaSession.setActionHandler(
-        'previoustrack',
+        "previoustrack",
         handlePrevious
       );
 
       navigator.mediaSession.setActionHandler(
-        'nexttrack',
+        "nexttrack",
         handleNext
       );
     }
-
-  }, [
-    currentSong,
-    handleNext,
-    handlePrevious
-  ]);
+  }, [currentSong, handleNext, handlePrevious]);
 
   // =========================
   // GLOBAL KEYBOARD SHORTCUTS
   // =========================
 
   useEffect(() => {
-
-    const handleKey = (e) => {
-
+    const handleKey = (event) => {
       if (
-        e.target.tagName === 'INPUT' ||
-        e.target.tagName === 'TEXTAREA'
+        event.target.tagName === "INPUT" ||
+        event.target.tagName === "TEXTAREA" ||
+        event.target.isContentEditable
       ) {
         return;
       }
 
       if (!currentSong) return;
 
-      switch (e.code) {
-
-        case 'Space':
-          e.preventDefault();
+      switch (event.code) {
+        case "Space":
+          event.preventDefault();
           togglePlayPause();
           break;
 
-        case 'ArrowRight':
-
-          if (e.altKey) {
-
-            e.preventDefault();
+        case "ArrowRight":
+          if (event.altKey) {
+            event.preventDefault();
             handleNext();
-
-          } else if (e.shiftKey) {
-
-            e.preventDefault();
+          } else if (event.shiftKey) {
+            event.preventDefault();
 
             seekTo(
               Math.min(
-                (
-                  audioRef.current
-                    ?.currentTime || 0
-                ) + 10,
+                (audioRef.current?.currentTime || 0) + 10,
                 duration
               )
             );
           }
-
           break;
 
-        case 'ArrowLeft':
-
-          if (e.altKey) {
-
-            e.preventDefault();
+        case "ArrowLeft":
+          if (event.altKey) {
+            event.preventDefault();
             handlePrevious();
-
-          } else if (e.shiftKey) {
-
-            e.preventDefault();
+          } else if (event.shiftKey) {
+            event.preventDefault();
 
             seekTo(
               Math.max(
-                (
-                  audioRef.current
-                    ?.currentTime || 0
-                ) - 10,
+                (audioRef.current?.currentTime || 0) - 10,
                 0
               )
             );
           }
-
           break;
 
-        case 'ArrowUp':
-
-          if (e.shiftKey) {
-
-            e.preventDefault();
-
-            setVolumeLevel(
-              Math.min(volume + 0.1, 1)
-            );
+        case "ArrowUp":
+          if (event.shiftKey) {
+            event.preventDefault();
+            setVolumeLevel(Math.min(volume + 0.1, 1));
           }
-
           break;
 
-        case 'ArrowDown':
-
-          if (e.shiftKey) {
-
-            e.preventDefault();
-
-            setVolumeLevel(
-              Math.max(volume - 0.1, 0)
-            );
+        case "ArrowDown":
+          if (event.shiftKey) {
+            event.preventDefault();
+            setVolumeLevel(Math.max(volume - 0.1, 0));
           }
-
           break;
 
-        case 'KeyS':
-
-          if (e.altKey) {
-
-            e.preventDefault();
+        case "KeyS":
+          if (event.altKey) {
+            event.preventDefault();
             toggleShuffle();
           }
-
           break;
 
-        case 'KeyR':
-
-          if (e.altKey) {
-
-            e.preventDefault();
+        case "KeyR":
+          if (event.altKey) {
+            event.preventDefault();
             toggleRepeat();
           }
-
           break;
 
         default:
@@ -1045,19 +911,11 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
       }
     };
 
-    window.addEventListener(
-      'keydown',
-      handleKey
-    );
+    window.addEventListener("keydown", handleKey);
 
     return () => {
-
-      window.removeEventListener(
-        'keydown',
-        handleKey
-      );
+      window.removeEventListener("keydown", handleKey);
     };
-
   }, [
     currentSong,
     togglePlayPause,
@@ -1076,7 +934,6 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
   // =========================
 
   const value = {
-
     // STATE
     currentPlaylist,
     currentIndex,
@@ -1088,7 +945,14 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
     isLoading,
     shuffleMode,
     repeatMode,
+
+    // Existing history
     recentlyPlayedIds,
+
+    // New global Played History
+    playedSongIds,
+    markPlayed,
+    resetPlayed,
 
     // METHODS
     playPlaylist,
@@ -1104,15 +968,9 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
     toggleShuffle,
     toggleRepeat,
 
-    
-
     // UTILITIES
     formatTime
   };
-
-  // =========================
-  // RETURN
-  // =========================
 
   return (
     <GlobalPlayerContext.Provider value={value}>
@@ -1126,14 +984,11 @@ const playSong = useCallback((song, playlist = [], index = 0) => {
 // =========================
 
 export const useGlobalPlayer = () => {
-
-  const context =
-    useContext(GlobalPlayerContext);
+  const context = useContext(GlobalPlayerContext);
 
   if (!context) {
-
     throw new Error(
-      'useGlobalPlayer must be used within GlobalPlayerProvider'
+      "useGlobalPlayer must be used within GlobalPlayerProvider"
     );
   }
 
