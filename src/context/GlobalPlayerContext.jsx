@@ -7,6 +7,12 @@ import React, {
   useCallback
 } from "react";
 
+import {
+  cacheSongForOffline,
+  getOfflineSong,
+  trimAudioCache,
+} from "../services/audioCache";
+
 const GlobalPlayerContext = createContext(null);
 
 // =========================
@@ -24,6 +30,26 @@ const STORAGE_KEYS = {
 };
 
 export function GlobalPlayerProvider({ children }) {
+  // =========================
+  // NETWORK VERSION (must be inside the provider)
+  // =========================
+
+  const [networkVersion, setNetworkVersion] = useState(0);
+
+  useEffect(() => {
+    const handleNetworkChange = () => {
+      setNetworkVersion((version) => version + 1);
+    };
+
+    window.addEventListener("online", handleNetworkChange);
+    window.addEventListener("offline", handleNetworkChange);
+
+    return () => {
+      window.removeEventListener("online", handleNetworkChange);
+      window.removeEventListener("offline", handleNetworkChange);
+    };
+  }, []);
+
   // =========================
   // STATES
   // =========================
@@ -54,16 +80,16 @@ export function GlobalPlayerProvider({ children }) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [volume, setVolumeState] = useState(() => {
-  const savedVolume = localStorage.getItem("ragafy_global_volume");
+    const savedVolume = localStorage.getItem("ragafy_global_volume");
 
-  if (savedVolume === null) return 1;
+    if (savedVolume === null) return 1;
 
-  const parsedVolume = Number(savedVolume);
+    const parsedVolume = Number(savedVolume);
 
-  return Number.isFinite(parsedVolume)
-    ? Math.max(0, Math.min(1, parsedVolume))
-    : 1;
-});
+    return Number.isFinite(parsedVolume)
+      ? Math.max(0, Math.min(1, parsedVolume))
+      : 1;
+  });
 
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -93,7 +119,6 @@ export function GlobalPlayerProvider({ children }) {
 
   // =========================
   // RECENTLY PLAYED
-  // Existing feature: latest 20 songs
   // =========================
 
   const [recentlyPlayedIds, setRecentlyPlayedIds] = useState(() => {
@@ -110,7 +135,6 @@ export function GlobalPlayerProvider({ children }) {
 
   // =========================
   // GLOBAL PLAYED HISTORY
-  // New feature for HomeSections
   // =========================
 
   const [playedSongIds, setPlayedSongIds] = useState(() => {
@@ -125,7 +149,6 @@ export function GlobalPlayerProvider({ children }) {
     }
   });
 
-  // Add a song to the history only once
   const markPlayed = useCallback((songId) => {
     if (!songId) return;
 
@@ -138,12 +161,10 @@ export function GlobalPlayerProvider({ children }) {
     });
   }, []);
 
-  // Clear only the new Played History
   const resetPlayed = useCallback(() => {
     setPlayedSongIds([]);
   }, []);
 
-  // Save Played History
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -172,7 +193,6 @@ export function GlobalPlayerProvider({ children }) {
 
   // =========================
   // UPDATE HISTORY WHEN SONG CHANGES
-  // Works across the application
   // =========================
 
   useEffect(() => {
@@ -180,7 +200,6 @@ export function GlobalPlayerProvider({ children }) {
 
     const songId = currentSong._id;
 
-    // Preserve the existing Recently Played functionality
     setRecentlyPlayedIds((previousIds) => {
       const withoutCurrent = previousIds.filter(
         (id) => id !== songId
@@ -200,9 +219,87 @@ export function GlobalPlayerProvider({ children }) {
       return next;
     });
 
-    // Add to the global Played History
     markPlayed(songId);
   }, [currentSong?._id, markPlayed]);
+
+  // =========================
+  // PRE-CACHE UPCOMING SONGS
+  // =========================
+
+  useEffect(() => {
+    if (!currentSong || !currentPlaylist?.length || !navigator.onLine) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const cacheUpcomingSongs = async () => {
+      const nextSongs = currentPlaylist.slice(
+        currentIndex + 1,
+        currentIndex + 6
+      );
+
+      const candidates = [currentSong, ...nextSongs];
+
+      const uniqueSongs = [
+        ...new Map(
+          candidates
+            .filter((song) => song?._id && song?.audioUrl)
+            .map((song) => [song._id, song])
+        ).values(),
+      ];
+
+      const priorityIds = uniqueSongs.map((song) => song._id);
+
+      let cachedCount = 0;
+
+      for (const song of uniqueSongs) {
+        if (cancelled || !navigator.onLine) {
+          break;
+        }
+
+        try {
+          await cacheSongForOffline(song);
+
+          cachedCount += 1;
+
+          console.log(
+            `✅ Song cached for offline: "${song.title || song._id}" (${cachedCount}/${uniqueSongs.length})`
+          );
+        } catch (error) {
+          console.warn(
+            `❌ Could not cache "${song.title || song._id}":`,
+            error
+          );
+        }
+      }
+
+      if (!cancelled) {
+        if (cachedCount > 0) {
+          console.log(
+            `📦 Offline cache batch complete: ${cachedCount} song(s) cached.`
+          );
+        }
+
+        try {
+          await trimAudioCache(priorityIds);
+        } catch (error) {
+          console.warn("Could not trim offline audio cache:", error);
+        }
+      }
+    };
+
+    cacheUpcomingSongs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentSong?._id,
+    currentPlaylist,
+    currentIndex,
+    networkVersion,
+  ]);
 
   // =========================
   // BUILD SHUFFLE ORDER
@@ -336,7 +433,6 @@ export function GlobalPlayerProvider({ children }) {
   const handlePrevious = useCallback(() => {
     if (!currentPlaylist?.length) return;
 
-    // Restart the current song if it has played for more than 3 seconds
     if (
       audioRef.current &&
       audioRef.current.currentTime > 3
@@ -387,8 +483,6 @@ export function GlobalPlayerProvider({ children }) {
 
       const targetSong = songs[safeIndex];
 
-      // If the same song is already loaded at the same position,
-      // resume without resetting playback.
       const alreadyLoaded =
         currentSong &&
         targetSong &&
@@ -492,7 +586,6 @@ export function GlobalPlayerProvider({ children }) {
 
   // =========================
   // CLEAR PLAYLIST
-  // Does not clear Played History
   // =========================
 
   const clearPlaylist = useCallback(() => {
@@ -541,7 +634,7 @@ export function GlobalPlayerProvider({ children }) {
 
   // =========================
   // REPEAT TOGGLE
-   // =========================
+  // =========================
 
   const toggleRepeat = useCallback(() => {
     setRepeatMode((previous) => {
@@ -565,22 +658,22 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   const setVolumeLevel = useCallback((value) => {
-  const newVolume = Math.max(
-    0,
-    Math.min(1, Number(value))
-  );
+    const newVolume = Math.max(
+      0,
+      Math.min(1, Number(value))
+    );
 
-  setVolumeState(newVolume);
+    setVolumeState(newVolume);
 
-  if (audioRef.current) {
-    audioRef.current.volume = newVolume;
-  }
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
 
-  localStorage.setItem(
-    "ragafy_global_volume",
-    String(newVolume)
-  );
-}, []);
+    localStorage.setItem(
+      "ragafy_global_volume",
+      String(newVolume)
+    );
+  }, []);
 
   // =========================
   // FORMAT TIME
@@ -633,7 +726,9 @@ export function GlobalPlayerProvider({ children }) {
 
     const onLoadedMetadata = () => {
       setDuration(audio.duration);
-      setProgress(0);
+      // Use the real position instead of hard-resetting to 0,
+      // so a source swap (server → blob) doesn't reset the UI.
+      setProgress(audio.currentTime || 0);
       setIsLoading(false);
     };
 
@@ -731,27 +826,145 @@ export function GlobalPlayerProvider({ children }) {
   ]);
 
   // =========================
-  // SONG CHANGE
+  // SONG CHANGE (offline-first, position-preserving)
   // =========================
 
   useEffect(() => {
-    if (
-      !audioRef.current ||
-      !isAudioReady ||
-      !currentSong
-    ) {
+    if (!audioRef.current || !isAudioReady || !currentSong) {
       return;
     }
 
-    if (!currentSong.audioUrl) {
-      setIsLoading(false);
-      return;
-    }
+    const audio = audioRef.current;
 
-    audioRef.current.pause();
-    audioRef.current.src = currentSong.audioUrl;
-    audioRef.current.load();
-  }, [currentIndex, isAudioReady, currentSong]);
+    let cancelled = false;
+    let objectUrl = null;
+
+    // Remember where we were, so a source swap (e.g. server → blob
+    // when the device goes offline) does not restart the song.
+    const resumeTime =
+      Number.isFinite(audio.currentTime) && audio.currentTime > 0
+        ? audio.currentTime
+        : 0;
+
+    const wasPlaying = isPlaying && !audio.paused;
+
+    const restorePosition = () => {
+      if (cancelled) return;
+
+      if (resumeTime > 0 && Number.isFinite(audio.duration)) {
+        try {
+          audio.currentTime = Math.min(resumeTime, audio.duration);
+        } catch {
+          // Some browsers throw if the seek is invalid; ignore.
+        }
+      }
+
+      if (wasPlaying) {
+        audio.play().catch(() => {
+          setIsPlaying(false);
+        });
+      }
+    };
+
+    const loadSongAudio = async () => {
+      setIsLoading(true);
+
+      try {
+        const offlineBlob = await getOfflineSong(currentSong._id);
+
+        if (cancelled) return;
+
+        let newSrc = null;
+
+        if (offlineBlob) {
+          objectUrl = URL.createObjectURL(offlineBlob);
+          newSrc = objectUrl;
+
+          console.log(
+            `🎵 Playing from offline cache: "${currentSong.title || currentSong._id}"`
+          );
+        } else if (navigator.onLine && currentSong.audioUrl) {
+          newSrc = currentSong.audioUrl;
+
+          console.log(
+            `🌐 Streaming from server: "${currentSong.title || currentSong._id}"`
+          );
+        } else {
+          audio.removeAttribute("src");
+          audio.load();
+
+          setIsPlaying(false);
+          setIsLoading(false);
+
+          console.warn(
+            `⚠️ Cannot play "${currentSong.title || currentSong._id}" — not cached and offline.`
+          );
+          return;
+        }
+
+        // If the new source is identical to what's already loaded,
+        // do nothing — avoids an unnecessary restart.
+        const currentSrc = audio.currentSrc || audio.src;
+        const isSameSource =
+          currentSrc &&
+          (currentSrc === newSrc ||
+            currentSrc.endsWith(newSrc));
+
+        if (isSameSource && !audio.error) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Restore position after the new source's metadata loads.
+        audio.addEventListener(
+          "loadedmetadata",
+          restorePosition,
+          { once: true }
+        );
+
+        audio.src = newSrc;
+        audio.load();
+      } catch (error) {
+        console.error("Error loading song audio:", error);
+
+        if (cancelled) return;
+
+        if (navigator.onLine && currentSong.audioUrl) {
+          audio.addEventListener(
+            "loadedmetadata",
+            restorePosition,
+            { once: true }
+          );
+
+          audio.src = currentSong.audioUrl;
+          audio.load();
+        } else {
+          audio.removeAttribute("src");
+          audio.load();
+
+          setIsPlaying(false);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadSongAudio();
+
+    return () => {
+      cancelled = true;
+
+      audio.removeEventListener("loadedmetadata", restorePosition);
+
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [
+    currentSong?._id,
+    currentSong?.audioUrl,
+    isAudioReady,
+    networkVersion,
+  ]);
 
   // =========================
   // VOLUME EFFECT
@@ -763,11 +976,6 @@ export function GlobalPlayerProvider({ children }) {
     }
   }, [volume, isAudioReady]);
 
-  useEffect(() => {
-  if (audioRef.current) {
-    audioRef.current.volume = volume;
-  }
-}, [volume]);
   // =========================
   // SAVE PLAYER STATE
   // =========================
@@ -947,7 +1155,6 @@ export function GlobalPlayerProvider({ children }) {
     currentSong,
     isPlaying,
     volume,
-    
     progress,
     duration,
     isLoading,
