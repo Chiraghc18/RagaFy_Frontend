@@ -1290,8 +1290,3 @@
   }
 }
 
-/* ✅ Active-row highlight */
-.global-player__playlist-item.active {
-  background: rgba(76, 175, 80, 0.12);
-  border-left: 3px solid #4CAF50;
-}
