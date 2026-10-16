@@ -34,8 +34,10 @@ export default function GlobalPlayer() {
     shuffleMode,
     repeatMode,
     toggleShuffle,
-    toggleRepeat
+    toggleRepeat,
 
+    // ✅ REMOVE FROM PLAYLIST
+    removeFromPlaylist
   } = useGlobalPlayer();
 
   const { photos, queue } = useData();
@@ -47,11 +49,8 @@ export default function GlobalPlayer() {
   // =========================
 
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-
   const [showPlaylist, setShowPlaylist] = useState(false);
-
   const [isCollapsed, setIsCollapsed] = useState(false);
-
   const [touchStart, setTouchStart] = useState(null);
 
   // =========================
@@ -59,15 +58,18 @@ export default function GlobalPlayer() {
   // =========================
 
   const volumeRef = useRef(null);
-
   const volumePopupRef = useRef(null);
-
   const playlistRef = useRef(null);
-
   const playerRef = useRef(null);
 
+  // ✅ Ref to the currently active playlist row (for auto-scroll)
+  const activeSongRef = useRef(null);
+
+  // ✅ Ref to the scrollable list wrapper (needed for centered scroll)
+  const playlistItemsRef = useRef(null);
+
   // =========================
-  // TOUCH EVENTS (swipe to collapse / expand)
+  // TOUCH EVENTS
   // =========================
 
   const handleTouchStart = (e) => {
@@ -82,15 +84,12 @@ export default function GlobalPlayer() {
 
     const diff = touchStart - touchEnd;
 
-    // Swipe down → collapse
     if (diff < -50 && !isCollapsed) {
 
       setIsCollapsed(true);
 
       setTouchStart(null);
     }
-
-    // Swipe up → expand
     else if (diff > 50 && isCollapsed) {
 
       setIsCollapsed(false);
@@ -104,15 +103,13 @@ export default function GlobalPlayer() {
   };
 
   // =========================
-  // CLICK OUTSIDE — FIXED
-  // Ignores drags inside the volume popup so the slider keeps dragging
+  // CLICK OUTSIDE
   // =========================
 
   useEffect(() => {
 
     const handleClickOutside = (event) => {
 
-      // ---------- Volume popup ----------
       const clickedInsideVolumeButton =
         volumeRef.current &&
         volumeRef.current.contains(event.target);
@@ -128,7 +125,6 @@ export default function GlobalPlayer() {
         setShowVolumeSlider(false);
       }
 
-      // ---------- Playlist panel ----------
       if (
         playlistRef.current &&
         !playlistRef.current.contains(event.target)
@@ -146,6 +142,35 @@ export default function GlobalPlayer() {
     };
 
   }, []);
+
+  // =========================
+  // AUTO-SCROLL TO ACTIVE SONG (CENTERED)
+  // =========================
+
+  useEffect(() => {
+    if (!showPlaylist) return;
+
+    const timeout = setTimeout(() => {
+      const container = playlistItemsRef.current;
+      const activeRow = activeSongRef.current;
+
+      if (!container || !activeRow) return;
+
+      const containerHeight = container.clientHeight;
+      const rowTop = activeRow.offsetTop;
+      const rowHeight = activeRow.offsetHeight;
+
+      const targetScroll =
+        rowTop - containerHeight / 2 + rowHeight / 2;
+
+      container.scrollTo({
+        top: Math.max(0, targetScroll),
+        behavior: "smooth",
+      });
+    }, 120);
+
+    return () => clearTimeout(timeout);
+  }, [showPlaylist, currentSong?._id, currentIndex]);
 
   // =========================
   // VOLUME HANDLERS
@@ -186,10 +211,7 @@ export default function GlobalPlayer() {
 
         <div className="global-player__main">
 
-          {/* ========================= */}
           {/* LEFT SIDE */}
-          {/* ========================= */}
-
           <div
             className="global-player__info"
             onClick={() => {
@@ -209,7 +231,6 @@ export default function GlobalPlayer() {
             }}
           >
 
-            {/* IMAGE */}
             {photos && photos[currentSong._id] ? (
 
               <img
@@ -228,7 +249,6 @@ export default function GlobalPlayer() {
 
             ) : null}
 
-            {/* IMAGE PLACEHOLDER */}
             {(!photos ||
               !photos[currentSong._id]) && (
 
@@ -237,7 +257,6 @@ export default function GlobalPlayer() {
               </div>
             )}
 
-            {/* DETAILS */}
             <div className="global-player__details">
 
               <span className="global-player__title">
@@ -247,16 +266,11 @@ export default function GlobalPlayer() {
             </div>
           </div>
 
-          {/* ========================= */}
           {/* CENTER */}
-          {/* ========================= */}
-
           <div className="global-player__center">
 
-            {/* CONTROLS */}
             <div className="global-player__controls">
 
-              {/* SHUFFLE */}
               <button
                 className={`global-player__control ${
                   shuffleMode ? 'active' : ''
@@ -267,7 +281,6 @@ export default function GlobalPlayer() {
                 <i className="fa-solid fa-shuffle"></i>
               </button>
 
-              {/* PREVIOUS */}
               <button
                 className="global-player__control"
                 onClick={handlePrevious}
@@ -277,29 +290,19 @@ export default function GlobalPlayer() {
                 <i className="fa-solid fa-backward-step"></i>
               </button>
 
-              {/* PLAY / PAUSE */}
               <button
                 className="global-player__control play-pause"
                 onClick={togglePlayPause}
-                title={
-                  isPlaying
-                    ? 'Pause'
-                    : 'Play'
-                }
+                title={isPlaying ? 'Pause' : 'Play'}
                 disabled={!currentPlaylist.length}
               >
-
                 <i
                   className={`fa-solid ${
-                    isPlaying
-                      ? 'fa-pause'
-                      : 'fa-play'
+                    isPlaying ? 'fa-pause' : 'fa-play'
                   }`}
                 ></i>
-
               </button>
 
-              {/* NEXT */}
               <button
                 className="global-player__control"
                 onClick={handleNext}
@@ -309,12 +312,9 @@ export default function GlobalPlayer() {
                 <i className="fa-solid fa-forward-step"></i>
               </button>
 
-             {/* REPEAT CURRENT SONG ONLY */}
               <button
                 className={`global-player__control ${
-                  repeatMode === 'one'
-                    ? 'active'
-                    : ''
+                  repeatMode === 'one' ? 'active' : ''
                 }`}
                 onClick={toggleRepeat}
                 title={
@@ -323,7 +323,6 @@ export default function GlobalPlayer() {
                     : 'Repeat Current Song: OFF'
                 }
               >
-
                 <i
                   className={`fa-solid ${
                     repeatMode === 'one'
@@ -331,7 +330,6 @@ export default function GlobalPlayer() {
                       : 'fa-repeat'
                   }`}
                 ></i>
-
               </button>
 
             </div>
@@ -348,18 +346,10 @@ export default function GlobalPlayer() {
                 className="global-player__progress"
                 value={progress || 0}
                 onInput={(e) =>
-                  seekTo(
-                    parseFloat(
-                      e.target.value
-                    )
-                  )
+                  seekTo(parseFloat(e.target.value))
                 }
                 onChange={(e) =>
-                  seekTo(
-                    parseFloat(
-                      e.target.value
-                    )
-                  )
+                  seekTo(parseFloat(e.target.value))
                 }
                 max={duration || 0}
                 step="0.1"
@@ -373,10 +363,7 @@ export default function GlobalPlayer() {
             </div>
           </div>
 
-          {/* ========================= */}
           {/* RIGHT SIDE */}
-          {/* ========================= */}
-
           <div className="global-player__right">
 
             {/* Volume Control */}
@@ -475,174 +462,130 @@ export default function GlobalPlayer() {
               onClick={() => navigate('/queue')}
               title="View Queue"
             >
-
               <i className="fa-solid fa-list"></i>
 
               {queue && queue.length > 0 && (
-
                 <span className="global-player__queue-count">
                   {queue.length}
                 </span>
               )}
-
             </button>
 
             {/* PLAYLIST TOGGLE */}
             {currentPlaylist.length > 1 && (
-
               <button
                 className={`global-player__playlist-toggle ${
                   showPlaylist ? 'active' : ''
                 }`}
-                onClick={() =>
-                  setShowPlaylist(
-                    !showPlaylist
-                  )
-                }
+                onClick={() => setShowPlaylist(!showPlaylist)}
                 title="Show Playlist"
               >
-
                 <i className="fa-solid fa-music"></i>
 
                 <span className="global-player__playlist-count">
                   {currentPlaylist.length}
                 </span>
-
               </button>
             )}
 
           </div>
         </div>
 
-        {/* ========================= */}
         {/* PLAYLIST PANEL */}
-        {/* ========================= */}
-
-        {showPlaylist &&
-          currentPlaylist.length > 0 && (
+        {showPlaylist && currentPlaylist.length > 0 && (
 
           <div
             className="global-player__playlist-panel"
             ref={playlistRef}
           >
 
-            {/* HEADER */}
             <div className="global-player__playlist-header">
 
               <h4>
-
                 <i className="fa-solid fa-music"></i>
-
                 Now Playing
-
                 <span className="global-player__playlist-badge">
-
                   {currentPlaylist.length} songs
-
                 </span>
-
               </h4>
 
               <button
                 className="global-player__playlist-close"
-                onClick={() =>
-                  setShowPlaylist(false)
-                }
+                onClick={() => setShowPlaylist(false)}
               >
-
                 <i className="fa-solid fa-xmark"></i>
-
               </button>
 
             </div>
 
-            {/* SONG LIST */}
-            <div className="global-player__playlist-items">
+            {/* ✅ Attach the scroll-container ref here */}
+            <div
+              className="global-player__playlist-items"
+              ref={playlistItemsRef}
+            >
 
-              {currentPlaylist.map(
-                (song, idx) => (
+              {currentPlaylist.map((song, idx) => (
 
                 <div
                   key={song._id}
+                  ref={currentSong?._id === song._id ? activeSongRef : null}
                   className={`global-player__playlist-item ${
-                    currentSong?._id ===
-                    song._id
-                      ? 'active'
-                      : ''
+                    currentSong?._id === song._id ? 'active' : ''
                   }`}
                   onClick={() => {
-
-                    // PLAY SONG DIRECTLY
-                    playSong(
-                      song,
-                      currentPlaylist,
-                      idx
-                    );
-
+                    playSong(song, currentPlaylist, idx);
                     setShowPlaylist(false);
                   }}
                 >
 
-                  {/* IMAGE */}
-                  {photos &&
-                  photos[song._id] ? (
-
+                  {photos && photos[song._id] ? (
                     <img
                       src={photos[song._id]}
                       alt={song.title}
                       className="global-player__playlist-image"
                       onError={(e) => {
-
                         e.target.style.display = 'none';
-
-                        if (
-                          e.target.nextSibling
-                        ) {
+                        if (e.target.nextSibling) {
                           e.target.nextSibling.style.display = 'flex';
                         }
                       }}
                     />
-
                   ) : null}
 
-                  {/* PLACEHOLDER */}
-                  {(!photos ||
-                    !photos[song._id]) && (
-
+                  {(!photos || !photos[song._id]) && (
                     <div className="global-player__playlist-image-placeholder">
-
                       <i className="fa-solid fa-music"></i>
-
                     </div>
                   )}
 
-                  {/* INFO */}
                   <div className="global-player__playlist-info">
-
                     <span className="global-player__playlist-title">
-
                       {song.title}
-
                     </span>
-
                     <span className="global-player__playlist-artist">
-
                       {song.artist?.name ||
-
                         song.singers?.[0]?.name ||
-
                         ''}
-
                     </span>
-
                   </div>
 
-                  {/* PLAYING INDICATOR */}
-                  {currentSong?._id ===
-                    song._id && (
-
+                  {currentSong?._id === song._id && (
                     <i className="fa-solid fa-volume-high playing-indicator"></i>
                   )}
+
+                  {/* ✅ REMOVE FROM PLAYLIST */}
+                  <button
+                    type="button"
+                    className="global-player__playlist-remove"
+                    title="Remove from playlist"
+                    aria-label={`Remove ${song.title} from playlist`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeFromPlaylist(song._id);
+                    }}
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
 
                 </div>
               ))}

@@ -31,6 +31,7 @@ export default function SongPlayerPage() {
     playPlaylist,
     playSong,
     formatTime,
+    removeFromPlaylist, // ✅
   } = useGlobalPlayer();
 
   const [showQueue, setShowQueue] = useState(false);
@@ -42,6 +43,9 @@ export default function SongPlayerPage() {
   const queuePanelRef = useRef(null);
   const volumeRef = useRef(null);
   const audioRef = useRef(null);
+
+  // ✅ Ref to the currently active playlist row (for auto-scroll)
+  const activeSongRef = useRef(null);
 
   const queueSongIds = new Set(queue.map(song => song._id));
 
@@ -70,6 +74,25 @@ export default function SongPlayerPage() {
       audioRef.current = audio;
     }
   }, [volume]);
+
+  // =========================
+  // AUTO-SCROLL TO ACTIVE SONG
+  // =========================
+
+  useEffect(() => {
+    if (!currentSong?._id) return;
+
+    const timeout = setTimeout(() => {
+      if (activeSongRef.current) {
+        activeSongRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 150);
+
+    return () => clearTimeout(timeout);
+  }, [currentSong?._id, currentIndex]);
 
   // Click outside handlers
   useEffect(() => {
@@ -119,7 +142,6 @@ export default function SongPlayerPage() {
 
   const isSongInQueue = (songId) => queueSongIds.has(songId);
 
-  // Play song directly - same way GlobalPlayer does it
   const handleSongClick = (song, index) => {
     playSong(song, currentPlaylist, index);
   };
@@ -397,6 +419,7 @@ export default function SongPlayerPage() {
               return (
                 <div
                   key={song._id}
+                  ref={idx === currentIndex ? activeSongRef : null}
                   onClick={() => handleSongClick(song, idx)}
                   className={`ragafy-player__song-item ${idx === currentIndex ? "active" : ""} ${isAnimating ? "animating" : ""}`}
                 >
@@ -429,12 +452,28 @@ export default function SongPlayerPage() {
                     </div>
                   )}
 
+                  {/* ✅ ADD TO QUEUE — only shown if NOT already queued */}
+                  {!inQueue && (
+                    <button
+                      className="ragafy-player__song-item-add"
+                      onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
+                      title="Add to queue"
+                    >
+                      <i className="fa-solid fa-plus"></i>
+                    </button>
+                  )}
+
+                  {/* ✅ REMOVE FROM PLAYLIST */}
                   <button
-                    className={`ragafy-player__song-item-add ${inQueue ? 'added' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
-                    title={inQueue ? "Added to queue" : "Add to queue"}
+                    className="ragafy-player__song-item-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeFromPlaylist(song._id);
+                      showNotification('🗑️ Removed from playlist', '#f44336');
+                    }}
+                    title="Remove from playlist"
                   >
-                    {inQueue ? <i className="fa-solid fa-check"></i> : <i className="fa-solid fa-plus"></i>}
+                    <i className="fa-solid fa-xmark"></i>
                   </button>
                 </div>
               );

@@ -1675,3 +1675,31 @@
   }
 }
 
+.ragafy-player__song-item-remove {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  margin-left: 6px;
+}
+
+.ragafy-player__song-item-remove:hover {
+  background: rgba(255, 82, 82, 0.18);
+  color: #ff5252;
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .ragafy-player__song-item-remove {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}

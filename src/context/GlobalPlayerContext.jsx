@@ -31,7 +31,7 @@ const STORAGE_KEYS = {
 
 export function GlobalPlayerProvider({ children }) {
   // =========================
-  // NETWORK VERSION (must be inside the provider)
+  // NETWORK VERSION
   // =========================
 
   const [networkVersion, setNetworkVersion] = useState(0);
@@ -562,20 +562,52 @@ export function GlobalPlayerProvider({ children }) {
   }, []);
 
   // =========================
-  // REMOVE FROM PLAYLIST
+  // REMOVE FROM PLAYLIST  (FIXED)
   // =========================
 
   const removeFromPlaylist = useCallback(
     (songId) => {
       setCurrentPlaylist((previousPlaylist) => {
+        const indexToRemove = previousPlaylist.findIndex(
+          (song) => song._id === songId
+        );
+
+        if (indexToRemove === -1) return previousPlaylist;
+
         const newPlaylist = previousPlaylist.filter(
           (song) => song._id !== songId
         );
 
-        if (currentIndex >= newPlaylist.length) {
+        // Playlist became empty → stop everything
+        if (newPlaylist.length === 0) {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = "";
+          }
+
           setCurrentIndex(0);
+          setIsPlaying(false);
           setProgress(0);
           setDuration(0);
+
+          return [];
+        }
+
+        // Adjust current index correctly
+        if (indexToRemove < currentIndex) {
+          // Removed a song before current → shift index down
+          setCurrentIndex((i) => i - 1);
+        } else if (indexToRemove === currentIndex) {
+          // Removed the currently playing song → play replacement
+          const newIndex = Math.min(
+            currentIndex,
+            newPlaylist.length - 1
+          );
+
+          setCurrentIndex(newIndex);
+          setProgress(0);
+          setDuration(0);
+          // isPlaying stays as-is; song-change effect loads the new track
         }
 
         return newPlaylist;
@@ -1104,7 +1136,6 @@ export function GlobalPlayerProvider({ children }) {
           }
           break;
 
-        // ─── EXISTING: Shift + Up → Volume +10 ───
         case "ArrowUp":
           if (event.shiftKey) {
             event.preventDefault();
@@ -1112,7 +1143,6 @@ export function GlobalPlayerProvider({ children }) {
           }
           break;
 
-        // ─── EXISTING: Shift + Down → Volume -10 ───
         case "ArrowDown":
           if (event.shiftKey) {
             event.preventDefault();
@@ -1120,25 +1150,21 @@ export function GlobalPlayerProvider({ children }) {
           }
           break;
 
-        // ─── NEW: "+" / "=" key → Volume +10 ───
         case "Equal":
           event.preventDefault();
           increaseVolume();
           break;
 
-        // ─── NEW: "-" key → Volume -10 ───
         case "Minus":
           event.preventDefault();
           decreaseVolume();
           break;
 
-        // ─── NEW: Numpad + → Volume +10 ───
         case "NumpadAdd":
           event.preventDefault();
           increaseVolume();
           break;
 
-        // ─── NEW: Numpad - → Volume -10 ───
         case "NumpadSubtract":
           event.preventDefault();
           decreaseVolume();

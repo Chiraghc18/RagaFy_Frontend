@@ -1221,3 +1221,77 @@
     top: calc(100% + 8px);
   }
 }
+
+.global-player__playlist-remove {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  margin-left: 6px;
+}
+
+.global-player__playlist-remove:hover {
+  background: rgba(255, 82, 82, 0.18);
+  color: #ff5252;
+  transform: scale(1.1);
+}
+
+@media (hover: none) {
+  .global-player__playlist-remove {
+    color: rgba(255, 255, 255, 0.75);
+  }
+}
+
+/* ✅ The scrollable list wrapper */
+.global-player__playlist-items {
+  max-height: 320px;         /* must be a fixed height */
+  overflow-y: auto;          /* must scroll */
+  position: relative;        /* ✅ REQUIRED for accurate offsetTop math */
+  scroll-behavior: smooth;
+  scroll-padding: 12px 0;    /* small breathing room top/bottom */
+}
+
+/* ✅ Remove-from-playlist button */
+.global-player__playlist-remove {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  margin-left: 6px;
+}
+
+.global-player__playlist-remove:hover {
+  background: rgba(255, 82, 82, 0.18);
+  color: #ff5252;
+  transform: scale(1.1);
+}
+
+@media (hover: none) {
+  .global-player__playlist-remove {
+    color: rgba(255, 255, 255, 0.75);
+  }
+}
+
+/* ✅ Active-row highlight */
+.global-player__playlist-item.active {
+  background: rgba(76, 175, 80, 0.12);
+  border-left: 3px solid #4CAF50;
+}
