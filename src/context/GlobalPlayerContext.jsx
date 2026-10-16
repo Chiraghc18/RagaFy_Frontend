@@ -658,9 +658,11 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   const setVolumeLevel = useCallback((value) => {
+    const rounded = Math.round(Number(value) * 100) / 100;
+
     const newVolume = Math.max(
       0,
-      Math.min(1, Number(value))
+      Math.min(1, rounded)
     );
 
     setVolumeState(newVolume);
@@ -669,11 +671,27 @@ export function GlobalPlayerProvider({ children }) {
       audioRef.current.volume = newVolume;
     }
 
-    localStorage.setItem(
-      "ragafy_global_volume",
-      String(newVolume)
-    );
+    try {
+      localStorage.setItem(
+        "ragafy_global_volume",
+        String(newVolume)
+      );
+    } catch {
+      // Ignore storage errors
+    }
   }, []);
+
+  // =========================
+  // VOLUME STEP HELPERS (+10 / -10)
+  // =========================
+
+  const increaseVolume = useCallback(() => {
+    setVolumeLevel(Math.min(volume + 0.1, 1));
+  }, [volume, setVolumeLevel]);
+
+  const decreaseVolume = useCallback(() => {
+    setVolumeLevel(Math.max(volume - 0.1, 0));
+  }, [volume, setVolumeLevel]);
 
   // =========================
   // FORMAT TIME
@@ -726,8 +744,6 @@ export function GlobalPlayerProvider({ children }) {
 
     const onLoadedMetadata = () => {
       setDuration(audio.duration);
-      // Use the real position instead of hard-resetting to 0,
-      // so a source swap (server → blob) doesn't reset the UI.
       setProgress(audio.currentTime || 0);
       setIsLoading(false);
     };
@@ -839,8 +855,6 @@ export function GlobalPlayerProvider({ children }) {
     let cancelled = false;
     let objectUrl = null;
 
-    // Remember where we were, so a source swap (e.g. server → blob
-    // when the device goes offline) does not restart the song.
     const resumeTime =
       Number.isFinite(audio.currentTime) && audio.currentTime > 0
         ? audio.currentTime
@@ -902,8 +916,6 @@ export function GlobalPlayerProvider({ children }) {
           return;
         }
 
-        // If the new source is identical to what's already loaded,
-        // do nothing — avoids an unnecessary restart.
         const currentSrc = audio.currentSrc || audio.src;
         const isSameSource =
           currentSrc &&
@@ -915,7 +927,6 @@ export function GlobalPlayerProvider({ children }) {
           return;
         }
 
-        // Restore position after the new source's metadata loads.
         audio.addEventListener(
           "loadedmetadata",
           restorePosition,
@@ -1093,18 +1104,44 @@ export function GlobalPlayerProvider({ children }) {
           }
           break;
 
+        // ─── EXISTING: Shift + Up → Volume +10 ───
         case "ArrowUp":
           if (event.shiftKey) {
             event.preventDefault();
-            setVolumeLevel(Math.min(volume + 0.1, 1));
+            increaseVolume();
           }
           break;
 
+        // ─── EXISTING: Shift + Down → Volume -10 ───
         case "ArrowDown":
           if (event.shiftKey) {
             event.preventDefault();
-            setVolumeLevel(Math.max(volume - 0.1, 0));
+            decreaseVolume();
           }
+          break;
+
+        // ─── NEW: "+" / "=" key → Volume +10 ───
+        case "Equal":
+          event.preventDefault();
+          increaseVolume();
+          break;
+
+        // ─── NEW: "-" key → Volume -10 ───
+        case "Minus":
+          event.preventDefault();
+          decreaseVolume();
+          break;
+
+        // ─── NEW: Numpad + → Volume +10 ───
+        case "NumpadAdd":
+          event.preventDefault();
+          increaseVolume();
+          break;
+
+        // ─── NEW: Numpad - → Volume -10 ───
+        case "NumpadSubtract":
+          event.preventDefault();
+          decreaseVolume();
           break;
 
         case "KeyS":
@@ -1137,11 +1174,11 @@ export function GlobalPlayerProvider({ children }) {
     handleNext,
     handlePrevious,
     seekTo,
-    volume,
     duration,
     toggleShuffle,
     toggleRepeat,
-    setVolumeLevel
+    increaseVolume,
+    decreaseVolume
   ]);
 
   // =========================
@@ -1180,6 +1217,8 @@ export function GlobalPlayerProvider({ children }) {
     handlePrevious,
     seekTo,
     setVolume: setVolumeLevel,
+    increaseVolume,
+    decreaseVolume,
     toggleShuffle,
     toggleRepeat,
 

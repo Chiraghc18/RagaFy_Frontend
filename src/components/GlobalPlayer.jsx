@@ -20,6 +20,8 @@ export default function GlobalPlayer() {
 
     seekTo,
     setVolume,
+    increaseVolume,
+    decreaseVolume,
 
     formatTime,
 
@@ -58,15 +60,14 @@ export default function GlobalPlayer() {
 
   const volumeRef = useRef(null);
 
+  const volumePopupRef = useRef(null);
+
   const playlistRef = useRef(null);
 
   const playerRef = useRef(null);
 
-
-
-
   // =========================
-  // TOUCH EVENTS
+  // TOUCH EVENTS (swipe to collapse / expand)
   // =========================
 
   const handleTouchStart = (e) => {
@@ -103,20 +104,31 @@ export default function GlobalPlayer() {
   };
 
   // =========================
-  // CLICK OUTSIDE
+  // CLICK OUTSIDE — FIXED
+  // Ignores drags inside the volume popup so the slider keeps dragging
   // =========================
 
   useEffect(() => {
 
     const handleClickOutside = (event) => {
 
-      if (
+      // ---------- Volume popup ----------
+      const clickedInsideVolumeButton =
         volumeRef.current &&
-        !volumeRef.current.contains(event.target)
+        volumeRef.current.contains(event.target);
+
+      const clickedInsideVolumePopup =
+        volumePopupRef.current &&
+        volumePopupRef.current.contains(event.target);
+
+      if (
+        !clickedInsideVolumeButton &&
+        !clickedInsideVolumePopup
       ) {
         setShowVolumeSlider(false);
       }
 
+      // ---------- Playlist panel ----------
       if (
         playlistRef.current &&
         !playlistRef.current.contains(event.target)
@@ -125,28 +137,27 @@ export default function GlobalPlayer() {
       }
     };
 
-    document.addEventListener(
-      'mousedown',
-      handleClickOutside
-    );
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
 
     return () => {
-
-      document.removeEventListener(
-        'mousedown',
-        handleClickOutside
-      );
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
 
   }, []);
 
-  const handleGlobalVolumeChange = (event) => {
-  setVolume(Number(event.target.value));
-};
+  // =========================
+  // VOLUME HANDLERS
+  // =========================
 
-const toggleMute = () => {
-  setVolume(volume === 0 ? 1 : 0);
-};
+  const handleGlobalVolumeChange = (event) => {
+    setVolume(Number(event.target.value));
+  };
+
+  const toggleMute = () => {
+    setVolume(volume === 0 ? 1 : 0);
+  };
 
   // =========================
   // NO SONG
@@ -305,13 +316,7 @@ const toggleMute = () => {
                     ? 'active'
                     : ''
                 }`}
-                onClick={() => {
-                  if (repeatMode === 'one') {
-                    setRepeatMode('all');
-                  } else {
-                    setRepeatMode('one');
-                  }
-                }}
+                onClick={toggleRepeat}
                 title={
                   repeatMode === 'one'
                     ? 'Repeat Current Song: ON'
@@ -342,6 +347,13 @@ const toggleMute = () => {
                 type="range"
                 className="global-player__progress"
                 value={progress || 0}
+                onInput={(e) =>
+                  seekTo(
+                    parseFloat(
+                      e.target.value
+                    )
+                  )
+                }
                 onChange={(e) =>
                   seekTo(
                     parseFloat(
@@ -368,68 +380,94 @@ const toggleMute = () => {
           <div className="global-player__right">
 
             {/* Volume Control */}
-<div
-  className="global-player__volume-control "
-  ref={volumeRef}
->
-  <button
-    type="button"
-    className={`global-player__volume-btn ${
-      showVolumeSlider ? "active" : ""
-    }`}
-    onClick={() =>
-      setShowVolumeSlider((previous) => !previous)
-    }
-    title="Volume"
-    aria-label="Toggle volume control"
-    aria-expanded={showVolumeSlider}
-  >
-    <i
-      className={`fa-solid ${
-        volume === 0
-          ? "fa-volume-xmark"
-          : volume < 0.5
-          ? "fa-volume-low"
-          : "fa-volume-high"
-      }`}
-    />
-  </button>
+            <div
+              className="global-player__volume-control"
+              ref={volumeRef}
+            >
+              <button
+                type="button"
+                className={`global-player__volume-btn ${
+                  showVolumeSlider ? "active" : ""
+                }`}
+                onClick={() =>
+                  setShowVolumeSlider((previous) => !previous)
+                }
+                title="Volume"
+                aria-label="Toggle volume control"
+                aria-expanded={showVolumeSlider}
+              >
+                <i
+                  className={`fa-solid ${
+                    volume === 0
+                      ? "fa-volume-xmark"
+                      : volume < 0.5
+                      ? "fa-volume-low"
+                      : "fa-volume-high"
+                  }`}
+                />
+              </button>
 
-  {showVolumeSlider && (
-    <div className="global-player__volume-popup">
-      <span className="global-player__volume-value">
-        {Math.round(volume * 100)}%
-      </span>
+              {showVolumeSlider && (
+                <div
+                  className="global-player__volume-popup"
+                  ref={volumePopupRef}
+                >
+                  <span className="global-player__volume-value">
+                    {Math.round(volume * 100)}%
+                  </span>
 
-      <input
-        type="range"
-        className="global-player__volume-slider"
-        min="0"
-        max="1"
-        step="0.01"
-        value={volume}
-        onChange={handleGlobalVolumeChange}
-        aria-label="Global volume"
-      />
+                  <input
+                    type="range"
+                    className="global-player__volume-slider"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    onInput={handleGlobalVolumeChange}
+                    onChange={handleGlobalVolumeChange}
+                    aria-label="Global volume"
+                  />
 
-      <button
-        type="button"
-        className="global-player__volume-mute"
-        onClick={toggleMute}
-        title={volume === 0 ? "Unmute" : "Mute"}
-        aria-label={volume === 0 ? "Unmute" : "Mute"}
-      >
-        <i
-          className={`fa-solid ${
-            volume === 0
-              ? "fa-volume-high"
-              : "fa-volume-xmark"
-          }`}
-        />
-      </button>
-    </div>
-  )}
-</div>
+                  <div className="global-player__volume-actions">
+                    <button
+                      type="button"
+                      className="global-player__volume-step"
+                      onClick={decreaseVolume}
+                      title="Volume -10"
+                      aria-label="Decrease volume by 10"
+                    >
+                      <i className="fa-solid fa-minus" />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="global-player__volume-step"
+                      onClick={increaseVolume}
+                      title="Volume +10"
+                      aria-label="Increase volume by 10"
+                    >
+                      <i className="fa-solid fa-plus" />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="global-player__volume-mute"
+                      onClick={toggleMute}
+                      title={volume === 0 ? "Unmute" : "Mute"}
+                      aria-label={volume === 0 ? "Unmute" : "Mute"}
+                    >
+                      <i
+                        className={`fa-solid ${
+                          volume === 0
+                            ? "fa-volume-high"
+                            : "fa-volume-xmark"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* QUEUE */}
             <button
@@ -472,7 +510,6 @@ const toggleMute = () => {
 
               </button>
             )}
-            
 
           </div>
         </div>

@@ -10,30 +10,31 @@ export default function SongPlayerPage() {
   const { songs = [], startIndex = 0 } = location.state || {};
 
   const { photos, queue, addToQueue, removeFromQueue, clearQueue } = useData();
+
   const {
-  currentPlaylist,
-  currentIndex,
-  currentSong,
-  isPlaying,
-  progress,
-  duration,
-  volume,
-  setVolume,
-  shuffleMode,
-  repeatMode,
-  togglePlayPause,
-  handleNext,
-  handlePrevious,
-  seekTo,
-  toggleShuffle,
-  toggleRepeat,
-  playPlaylist,
-  playSong,
-  formatTime,
-} = useGlobalPlayer();
+    currentPlaylist,
+    currentIndex,
+    currentSong,
+    isPlaying,
+    progress,
+    duration,
+    volume,
+    setVolume,
+    shuffleMode,
+    repeatMode,
+    togglePlayPause,
+    handleNext,
+    handlePrevious,
+    seekTo,
+    toggleShuffle,
+    toggleRepeat,
+    playPlaylist,
+    playSong,
+    formatTime,
+  } = useGlobalPlayer();
 
   const [showQueue, setShowQueue] = useState(false);
-  
+
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [animatingSong, setAnimatingSong] = useState(null);
   const [initialized, setInitialized] = useState(false);
@@ -45,13 +46,13 @@ export default function SongPlayerPage() {
   const queueSongIds = new Set(queue.map(song => song._id));
 
   const handleSongPlayerVolume = (event) => {
-  const newVolume = Math.max(
-    0,
-    Math.min(1, Number(event.target.value))
-  );
+    const newVolume = Math.max(
+      0,
+      Math.min(1, Number(event.target.value))
+    );
 
-  setVolume(newVolume);
-};
+    setVolume(newVolume);
+  };
 
   // Initialize player with songs from location if provided - ONLY ONCE
   useEffect(() => {
@@ -118,7 +119,7 @@ export default function SongPlayerPage() {
 
   const isSongInQueue = (songId) => queueSongIds.has(songId);
 
-  // FIXED: Play song directly - same way GlobalPlayer does it
+  // Play song directly - same way GlobalPlayer does it
   const handleSongClick = (song, index) => {
     playSong(song, currentPlaylist, index);
   };
@@ -282,26 +283,26 @@ export default function SongPlayerPage() {
               </button>
 
               <div className="song-player__volume-control">
-  <i className={`fa-solid ${
-    volume === 0
-      ? "fa-volume-xmark"
-      : volume < 0.5
-      ? "fa-volume-low"
-      : "fa-volume-high"
-  }`} />
+                <i className={`fa-solid ${
+                  volume === 0
+                    ? "fa-volume-xmark"
+                    : volume < 0.5
+                    ? "fa-volume-low"
+                    : "fa-volume-high"
+                }`} />
 
-  <input
-    type="range"
-    min="0"
-    max="1"
-    step="0.01"
-    value={volume}
-    onChange={handleSongPlayerVolume}
-    aria-label="Song player volume"
-  />
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={handleSongPlayerVolume}
+                  aria-label="Song player volume"
+                />
 
-  <span>{Math.round(volume * 100)}%</span>
-</div>
+                <span>{Math.round(volume * 100)}%</span>
+              </div>
             </div>
           </div>
         </div>
