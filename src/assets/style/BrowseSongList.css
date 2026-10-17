@@ -440,3 +440,55 @@
     opacity: 1;
   }
 }
+
+/* Tablet */
+.bsl-add-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+/* Large Mobile */
+.bsl-add-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+/* Mobile */
+.bsl-add-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+/* ===== DOWNLOAD BUTTON — matches the player's small download icon ===== */
+
+.bsl-download-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.bsl-download-btn:hover:not(:disabled) {
+  background: rgba(255, 107, 0, 0.18);
+  border-color: rgba(255, 107, 0, 0.35);
+  color: #ff6b00;
+  transform: scale(1.08);
+}
+
+.bsl-download-btn:disabled {
+  cursor: default;
+  color: #ff6b00;
+  border-color: rgba(255, 107, 0, 0.35);
+  background: rgba(255, 107, 0, 0.1);
+}

@@ -1703,3 +1703,160 @@
     color: rgba(255, 255, 255, 0.8);
   }
 }
+
+.ragafy-player__downloads-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.ragafy-player__downloads-btn:hover {
+  background: rgba(255, 107, 0, 0.15);
+}
+
+.ragafy-player__song-item-downloaded {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.ragafy-player__downloads-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.ragafy-player__downloads-btn:hover {
+  background: rgba(255, 107, 0, 0.15);
+}
+
+.ragafy-player__downloads-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.ragafy-player__downloads-btn:hover {
+  background: rgba(255, 107, 0, 0.15);
+}
+
+.ragafy-player__song-item-remove-download {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(244, 67, 54, 0.12);
+  border: 1px solid rgba(244, 67, 54, 0.35);
+  color: #f44336;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ragafy-player__song-item-remove-download:hover:not(:disabled) {
+  background: rgba(244, 67, 54, 0.22);
+  transform: scale(1.08);
+}
+
+.ragafy-player__song-item-remove-download:disabled {
+  cursor: default;
+}
+
+/* Download All button — "done" state */
+.ragafy-player__add-all-btn--done {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.35);
+  color: #4caf50;
+}
+
+.ragafy-player__add-all-btn--done:hover {
+  background: rgba(76, 175, 80, 0.22);
+}
+
+.ragafy-player__add-all-btn:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+/* Small per-row download button */
+.ragafy-player__song-item-download {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  margin-left: 4px;
+}
+
+.ragafy-player__song-item-download:hover:not(:disabled) {
+  background: rgba(255, 107, 0, 0.18);
+  border-color: rgba(255, 107, 0, 0.35);
+  color: #ff6b00;
+  transform: scale(1.08);
+}
+
+.ragafy-player__song-item-download:disabled {
+  cursor: default;
+  color: #ff6b00;
+  border-color: rgba(255, 107, 0, 0.35);
+  background: rgba(255, 107, 0, 0.1);
+}
+
+/* Show download icon on hover (and always on touch devices) */
+.ragafy-player__song-item-download {
+  opacity: 0;
+}
+
+.ragafy-player__song-item:hover .ragafy-player__song-item-download,
+.ragafy-player__song-item-download:disabled {
+  opacity: 1;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .ragafy-player__song-item-download {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}

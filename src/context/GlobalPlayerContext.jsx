@@ -13,11 +13,9 @@ import {
   trimAudioCache,
 } from "../services/audioCache";
 
-const GlobalPlayerContext = createContext(null);
+import { getDownloadedBlob } from "../services/downloadService";
 
-// =========================
-// LOCAL STORAGE KEYS
-// =========================
+const GlobalPlayerContext = createContext(null);
 
 const STORAGE_KEYS = {
   PLAYLIST: "ragafy_global_playlist",
@@ -29,6 +27,9 @@ const STORAGE_KEYS = {
   PLAYED_SONGS: "ragafy_played_song_ids"
 };
 
+const CACHE_START_DELAY_MS = 5000;
+const UPCOMING_COUNT = 6;
+
 export function GlobalPlayerProvider({ children }) {
   // =========================
   // NETWORK VERSION
@@ -38,12 +39,10 @@ export function GlobalPlayerProvider({ children }) {
 
   useEffect(() => {
     const handleNetworkChange = () => {
-      setNetworkVersion((version) => version + 1);
+      setNetworkVersion((v) => v + 1);
     };
-
     window.addEventListener("online", handleNetworkChange);
     window.addEventListener("offline", handleNetworkChange);
-
     return () => {
       window.removeEventListener("online", handleNetworkChange);
       window.removeEventListener("offline", handleNetworkChange);
@@ -56,9 +55,7 @@ export function GlobalPlayerProvider({ children }) {
 
   const [currentPlaylist, setCurrentPlaylist] = useState(() => {
     try {
-      return (
-        JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAYLIST)) || []
-      );
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAYLIST)) || [];
     } catch {
       return [];
     }
@@ -66,12 +63,7 @@ export function GlobalPlayerProvider({ children }) {
 
   const [currentIndex, setCurrentIndex] = useState(() => {
     try {
-      return (
-        parseInt(
-          localStorage.getItem(STORAGE_KEYS.CURRENT_INDEX),
-          10
-        ) || 0
-      );
+      return parseInt(localStorage.getItem(STORAGE_KEYS.CURRENT_INDEX), 10) || 0;
     } catch {
       return 0;
     }
@@ -81,11 +73,8 @@ export function GlobalPlayerProvider({ children }) {
 
   const [volume, setVolumeState] = useState(() => {
     const savedVolume = localStorage.getItem("ragafy_global_volume");
-
     if (savedVolume === null) return 1;
-
     const parsedVolume = Number(savedVolume);
-
     return Number.isFinite(parsedVolume)
       ? Math.max(0, Math.min(1, parsedVolume))
       : 1;
@@ -93,13 +82,8 @@ export function GlobalPlayerProvider({ children }) {
 
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // =========================
-  // SHUFFLE & REPEAT
-  // =========================
 
   const [shuffleMode, setShuffleMode] = useState(() => {
     try {
@@ -117,32 +101,18 @@ export function GlobalPlayerProvider({ children }) {
     }
   });
 
-  // =========================
-  // RECENTLY PLAYED
-  // =========================
-
   const [recentlyPlayedIds, setRecentlyPlayedIds] = useState(() => {
     try {
-      const stored = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.RECENTLY_PLAYED)
-      );
-
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.RECENTLY_PLAYED));
       return Array.isArray(stored) ? stored : [];
     } catch {
       return [];
     }
   });
 
-  // =========================
-  // GLOBAL PLAYED HISTORY
-  // =========================
-
   const [playedSongIds, setPlayedSongIds] = useState(() => {
     try {
-      const stored = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.PLAYED_SONGS)
-      );
-
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAYED_SONGS));
       return Array.isArray(stored) ? stored : [];
     } catch {
       return [];
@@ -151,28 +121,18 @@ export function GlobalPlayerProvider({ children }) {
 
   const markPlayed = useCallback((songId) => {
     if (!songId) return;
-
-    setPlayedSongIds((previousIds) => {
-      if (previousIds.includes(songId)) {
-        return previousIds;
-      }
-
-      return [...previousIds, songId];
-    });
+    setPlayedSongIds((prev) =>
+      prev.includes(songId) ? prev : [...prev, songId]
+    );
   }, []);
 
-  const resetPlayed = useCallback(() => {
-    setPlayedSongIds([]);
-  }, []);
+  const resetPlayed = useCallback(() => setPlayedSongIds([]), []);
 
   useEffect(() => {
     try {
-      localStorage.setItem(
-        STORAGE_KEYS.PLAYED_SONGS,
-        JSON.stringify(playedSongIds)
-      );
+      localStorage.setItem(STORAGE_KEYS.PLAYED_SONGS, JSON.stringify(playedSongIds));
     } catch {
-      // Continue playback if localStorage is unavailable
+      // ignore
     }
   }, [playedSongIds]);
 
@@ -190,6 +150,11 @@ export function GlobalPlayerProvider({ children }) {
 
   const audioRef = useRef(null);
   const progressInterval = useRef(null);
+  const loadedSongIdRef = useRef(null);
+
+  const cachedForLoadedSongRef = useRef({ songId: null, available: false });
+  const cacheCycleAbortRef = useRef(false);
+  const cacheTimerRef = useRef(null);
 
   // =========================
   // UPDATE HISTORY WHEN SONG CHANGES
@@ -197,25 +162,16 @@ export function GlobalPlayerProvider({ children }) {
 
   useEffect(() => {
     if (!currentSong?._id) return;
-
     const songId = currentSong._id;
 
-    setRecentlyPlayedIds((previousIds) => {
-      const withoutCurrent = previousIds.filter(
-        (id) => id !== songId
-      );
-
+    setRecentlyPlayedIds((prev) => {
+      const withoutCurrent = prev.filter((id) => id !== songId);
       const next = [songId, ...withoutCurrent].slice(0, 20);
-
       try {
-        localStorage.setItem(
-          STORAGE_KEYS.RECENTLY_PLAYED,
-          JSON.stringify(next)
-        );
+        localStorage.setItem(STORAGE_KEYS.RECENTLY_PLAYED, JSON.stringify(next));
       } catch {
-        // Ignore storage errors
+        // ignore
       }
-
       return next;
     });
 
@@ -223,76 +179,134 @@ export function GlobalPlayerProvider({ children }) {
   }, [currentSong?._id, markPlayed]);
 
   // =========================
-  // PRE-CACHE UPCOMING SONGS
+  // CACHE CYCLE — gated on the audio element ACTUALLY playing
   // =========================
+  //
+  // Bug 1 fix: the gate is the live audio element state, NOT the React
+  // isPlaying flag. isPlaying is set optimistically before the <audio>
+  // element has begun playback, so a stale isPlaying=true could kick off
+  // caching even though no sound was being produced.
+  //
+  // The gate is checked:
+  //   • Inside the 5s timer (so it reflects the live state at fire time)
+  //   • At every loop iteration (so a mid-batch pause aborts the batch)
 
   useEffect(() => {
-    if (!currentSong || !currentPlaylist?.length || !navigator.onLine) {
-      return;
+    const song = currentSong;
+    const playlist = currentPlaylist;
+    const index = currentIndex;
+
+    if (cacheTimerRef.current) {
+      clearTimeout(cacheTimerRef.current);
+      cacheTimerRef.current = null;
     }
+    cacheCycleAbortRef.current = false;
+
+    if (!song?._id || !playlist?.length) return;
+    if (!navigator.onLine) return;
 
     let cancelled = false;
 
-    const cacheUpcomingSongs = async () => {
-      const nextSongs = currentPlaylist.slice(
-        currentIndex + 1,
-        currentIndex + 6
-      );
+    const isAudioReallyPlaying = () => {
+      const a = audioRef.current;
+      if (!a) return false;
+      if (a.paused) return false;
+      if (a.ended) return false;
+      if (!Number.isFinite(a.currentTime) || a.currentTime <= 0) return false;
+      return true;
+    };
 
-      const candidates = [currentSong, ...nextSongs];
+    const runCacheCycle = async () => {
+      if (cancelled || cacheCycleAbortRef.current) return;
+      if (!navigator.onLine) return;
 
-      const uniqueSongs = [
-        ...new Map(
-          candidates
-            .filter((song) => song?._id && song?.audioUrl)
-            .map((song) => [song._id, song])
-        ).values(),
-      ];
+      if (!isAudioReallyPlaying()) {
+        console.log(
+          "⏸️ Skipping cache cycle — audio element is not actually playing."
+        );
+        return;
+      }
 
-      const priorityIds = uniqueSongs.map((song) => song._id);
+      const targets = [];
+      const targetIds = new Set();
+
+      if (song._id && song.audioUrl) {
+        targets.push(song);
+        targetIds.add(song._id);
+      }
+
+      for (let offset = 1; offset <= UPCOMING_COUNT; offset++) {
+        if (playlist.length <= 1) break;
+        const idx = (index + offset) % playlist.length;
+        const s = playlist[idx];
+        if (!s?._id || !s?.audioUrl) continue;
+        if (targetIds.has(s._id)) continue;
+        targetIds.add(s._id);
+        targets.push(s);
+      }
 
       let cachedCount = 0;
+      let skippedCount = 0;
 
-      for (const song of uniqueSongs) {
-        if (cancelled || !navigator.onLine) {
-          break;
+      for (const target of targets) {
+        if (cancelled || cacheCycleAbortRef.current) {
+          console.log("⏹️ Cache cycle cancelled.");
+          return;
+        }
+
+        if (!isAudioReallyPlaying()) {
+          console.log("⏸️ Audio stopped mid-batch — aborting cache cycle.");
+          return;
         }
 
         try {
-          await cacheSongForOffline(song);
+          const existing = await getOfflineSong(target._id);
+          if (existing) {
+            skippedCount += 1;
+            continue;
+          }
 
+          if (!navigator.onLine) {
+            console.log("⏹️ Offline mid-batch — stopping cache cycle.");
+            return;
+          }
+
+          await cacheSongForOffline(target);
           cachedCount += 1;
 
           console.log(
-            `✅ Song cached for offline: "${song.title || song._id}" (${cachedCount}/${uniqueSongs.length})`
+            `✅ Cached "${target.title || target._id}" (${cachedCount}/${targets.length})`
           );
         } catch (error) {
           console.warn(
-            `❌ Could not cache "${song.title || song._id}":`,
+            `❌ Failed to cache "${target.title || target._id}":`,
             error
           );
         }
       }
 
-      if (!cancelled) {
-        if (cachedCount > 0) {
-          console.log(
-            `📦 Offline cache batch complete: ${cachedCount} song(s) cached.`
-          );
-        }
+      if (cancelled || cacheCycleAbortRef.current) return;
 
-        try {
-          await trimAudioCache(priorityIds);
-        } catch (error) {
-          console.warn("Could not trim offline audio cache:", error);
-        }
+      console.log(
+        `📦 Cache cycle complete: ${cachedCount} new, ${skippedCount} already cached.`
+      );
+
+      try {
+        await trimAudioCache([...targetIds]);
+      } catch (error) {
+        console.warn("Could not trim offline audio cache:", error);
       }
     };
 
-    cacheUpcomingSongs();
+    cacheTimerRef.current = setTimeout(runCacheCycle, CACHE_START_DELAY_MS);
 
     return () => {
       cancelled = true;
+      if (cacheTimerRef.current) {
+        clearTimeout(cacheTimerRef.current);
+        cacheTimerRef.current = null;
+      }
+      cacheCycleAbortRef.current = true;
     };
   }, [
     currentSong?._id,
@@ -307,18 +321,12 @@ export function GlobalPlayerProvider({ children }) {
 
   useEffect(() => {
     if (shuffleMode && currentPlaylist.length > 0) {
-      const indices = currentPlaylist.map((_, index) => index);
-
-      const rest = indices.filter(
-        (index) => index !== currentIndex
-      );
-
+      const indices = currentPlaylist.map((_, i) => i);
+      const rest = indices.filter((i) => i !== currentIndex);
       for (let i = rest.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-
         [rest[i], rest[j]] = [rest[j], rest[i]];
       }
-
       setShuffleOrder([currentIndex, ...rest]);
     }
   }, [shuffleMode, currentPlaylist.length, currentIndex]);
@@ -328,64 +336,30 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   const getNextIndex = useCallback(() => {
-    if (repeatMode === "one") {
-      return currentIndex;
-    }
-
+    if (repeatMode === "one") return currentIndex;
     if (shuffleMode && shuffleOrder.length > 0) {
       const position = shuffleOrder.indexOf(currentIndex);
-
-      if (position === shuffleOrder.length - 1) {
-        return shuffleOrder[0];
-      }
-
+      if (position === shuffleOrder.length - 1) return shuffleOrder[0];
       return shuffleOrder[position + 1];
     }
-
-    if (currentIndex + 1 >= currentPlaylist.length) {
-      return 0;
-    }
-
+    if (currentIndex + 1 >= currentPlaylist.length) return 0;
     return currentIndex + 1;
-  }, [
-    currentIndex,
-    currentPlaylist,
-    shuffleMode,
-    shuffleOrder,
-    repeatMode
-  ]);
+  }, [currentIndex, currentPlaylist, shuffleMode, shuffleOrder, repeatMode]);
 
   // =========================
   // PREVIOUS INDEX
   // =========================
 
   const getPrevIndex = useCallback(() => {
-    if (repeatMode === "one") {
-      return currentIndex;
-    }
-
+    if (repeatMode === "one") return currentIndex;
     if (shuffleMode && shuffleOrder.length > 0) {
       const position = shuffleOrder.indexOf(currentIndex);
-
-      if (position === 0) {
-        return shuffleOrder[shuffleOrder.length - 1];
-      }
-
+      if (position === 0) return shuffleOrder[shuffleOrder.length - 1];
       return shuffleOrder[position - 1];
     }
-
-    if (currentIndex - 1 < 0) {
-      return currentPlaylist.length - 1;
-    }
-
+    if (currentIndex - 1 < 0) return currentPlaylist.length - 1;
     return currentIndex - 1;
-  }, [
-    currentIndex,
-    currentPlaylist,
-    shuffleMode,
-    shuffleOrder,
-    repeatMode
-  ]);
+  }, [currentIndex, currentPlaylist, shuffleMode, shuffleOrder, repeatMode]);
 
   // =========================
   // SONG END
@@ -393,16 +367,13 @@ export function GlobalPlayerProvider({ children }) {
 
   const handleSongEnd = useCallback(() => {
     const nextIndex = getNextIndex();
-
     if (nextIndex === null) {
       setIsPlaying(false);
       return;
     }
-
     setProgress(0);
     setDuration(0);
     setIsLoading(true);
-
     setCurrentIndex(nextIndex);
     setIsPlaying(true);
   }, [getNextIndex]);
@@ -413,15 +384,11 @@ export function GlobalPlayerProvider({ children }) {
 
   const handleNext = useCallback(() => {
     if (!currentPlaylist?.length) return;
-
     const nextIndex = getNextIndex();
-
     if (nextIndex === null) return;
-
     setProgress(0);
     setDuration(0);
     setIsLoading(true);
-
     setCurrentIndex(nextIndex);
     setIsPlaying(true);
   }, [currentPlaylist, getNextIndex]);
@@ -432,24 +399,16 @@ export function GlobalPlayerProvider({ children }) {
 
   const handlePrevious = useCallback(() => {
     if (!currentPlaylist?.length) return;
-
-    if (
-      audioRef.current &&
-      audioRef.current.currentTime > 3
-    ) {
+    if (audioRef.current && audioRef.current.currentTime > 3) {
       audioRef.current.currentTime = 0;
       setProgress(0);
       return;
     }
-
     const previousIndex = getPrevIndex();
-
     if (previousIndex === null) return;
-
     setProgress(0);
     setDuration(0);
     setIsLoading(true);
-
     setCurrentIndex(previousIndex);
     setIsPlaying(true);
   }, [currentPlaylist, getPrevIndex]);
@@ -458,163 +417,123 @@ export function GlobalPlayerProvider({ children }) {
   // SEEK
   // =========================
 
-  const seekTo = useCallback(
-    (time) => {
-      if (audioRef.current && isAudioReady) {
-        audioRef.current.currentTime = time;
-        setProgress(time);
-      }
-    },
-    [isAudioReady]
-  );
+  const seekTo = useCallback((time) => {
+    if (audioRef.current && isAudioReady) {
+      audioRef.current.currentTime = time;
+      setProgress(time);
+    }
+  }, [isAudioReady]);
 
   // =========================
   // PLAY PLAYLIST
   // =========================
 
-  const playPlaylist = useCallback(
-    (songs, startIndex = 0) => {
-      if (!songs?.length) return;
+  const playPlaylist = useCallback((songs, startIndex = 0) => {
+    if (!songs?.length) return;
+    const safeIndex = Math.max(0, Math.min(startIndex, songs.length - 1));
+    const targetSong = songs[safeIndex];
 
-      const safeIndex = Math.max(
-        0,
-        Math.min(startIndex, songs.length - 1)
-      );
+    const alreadyLoaded =
+      currentSong &&
+      targetSong &&
+      currentSong._id === targetSong._id &&
+      currentIndex === safeIndex &&
+      currentPlaylist.length === songs.length;
 
-      const targetSong = songs[safeIndex];
-
-      const alreadyLoaded =
-        currentSong &&
-        targetSong &&
-        currentSong._id === targetSong._id &&
-        currentIndex === safeIndex &&
-        currentPlaylist.length === songs.length;
-
-      if (alreadyLoaded) {
-        setIsPlaying(true);
-        return;
-      }
-
-      setProgress(0);
-      setDuration(0);
-      setIsLoading(true);
-
-      setCurrentPlaylist(songs);
-      setCurrentIndex(safeIndex);
+    if (alreadyLoaded) {
       setIsPlaying(true);
-    },
-    [currentSong, currentIndex, currentPlaylist]
-  );
+      return;
+    }
+
+    setProgress(0);
+    setDuration(0);
+    setIsLoading(true);
+    setCurrentPlaylist(songs);
+    setCurrentIndex(safeIndex);
+    setIsPlaying(true);
+  }, [currentSong, currentIndex, currentPlaylist]);
 
   // =========================
   // PLAY SINGLE SONG
   // =========================
 
-  const playSong = useCallback(
-    (song, playlist = [], index = 0) => {
-      if (!song) return;
+  const playSong = useCallback((song, playlist = [], index = 0) => {
+    if (!song) return;
+    const targetPlaylist = playlist.length > 0 ? playlist : [song];
+    const targetIndex =
+      playlist.length > 0
+        ? Math.max(0, Math.min(index, playlist.length - 1))
+        : 0;
 
-      const targetPlaylist =
-        playlist.length > 0 ? playlist : [song];
+    const alreadyLoaded =
+      currentSong &&
+      currentSong._id === song._id &&
+      currentIndex === targetIndex &&
+      currentPlaylist.length === targetPlaylist.length;
 
-      const targetIndex =
-        playlist.length > 0
-          ? Math.max(0, Math.min(index, playlist.length - 1))
-          : 0;
-
-      const alreadyLoaded =
-        currentSong &&
-        currentSong._id === song._id &&
-        currentIndex === targetIndex &&
-        currentPlaylist.length === targetPlaylist.length;
-
-      if (alreadyLoaded) {
-        setIsPlaying(true);
-        return;
-      }
-
-      setProgress(0);
-      setDuration(0);
-      setIsLoading(true);
-
-      setCurrentPlaylist(targetPlaylist);
-      setCurrentIndex(targetIndex);
+    if (alreadyLoaded) {
       setIsPlaying(true);
-    },
-    [currentSong, currentIndex, currentPlaylist]
-  );
+      return;
+    }
+
+    setProgress(0);
+    setDuration(0);
+    setIsLoading(true);
+    setCurrentPlaylist(targetPlaylist);
+    setCurrentIndex(targetIndex);
+    setIsPlaying(true);
+  }, [currentSong, currentIndex, currentPlaylist]);
 
   // =========================
   // ADD TO PLAYLIST
   // =========================
 
   const addToPlaylist = useCallback((songs) => {
-    setCurrentPlaylist((previousSongs) => {
+    setCurrentPlaylist((prev) => {
       const newSongs = songs.filter(
-        (song) =>
-          !previousSongs.some(
-            (existingSong) => existingSong._id === song._id
-          )
+        (song) => !prev.some((existing) => existing._id === song._id)
       );
-
-      return [...previousSongs, ...newSongs];
+      return [...prev, ...newSongs];
     });
   }, []);
 
   // =========================
-  // REMOVE FROM PLAYLIST  (FIXED)
+  // REMOVE FROM PLAYLIST
   // =========================
 
-  const removeFromPlaylist = useCallback(
-    (songId) => {
-      setCurrentPlaylist((previousPlaylist) => {
-        const indexToRemove = previousPlaylist.findIndex(
-          (song) => song._id === songId
-        );
+  const removeFromPlaylist = useCallback((songId) => {
+    setCurrentPlaylist((prevPlaylist) => {
+      const indexToRemove = prevPlaylist.findIndex((s) => s._id === songId);
+      if (indexToRemove === -1) return prevPlaylist;
 
-        if (indexToRemove === -1) return previousPlaylist;
+      const newPlaylist = prevPlaylist.filter((s) => s._id !== songId);
 
-        const newPlaylist = previousPlaylist.filter(
-          (song) => song._id !== songId
-        );
-
-        // Playlist became empty → stop everything
-        if (newPlaylist.length === 0) {
-          if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.src = "";
-          }
-
-          setCurrentIndex(0);
-          setIsPlaying(false);
-          setProgress(0);
-          setDuration(0);
-
-          return [];
+      if (newPlaylist.length === 0) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = "";
         }
+        loadedSongIdRef.current = null;
+        cachedForLoadedSongRef.current = { songId: null, available: false };
+        setCurrentIndex(0);
+        setIsPlaying(false);
+        setProgress(0);
+        setDuration(0);
+        return [];
+      }
 
-        // Adjust current index correctly
-        if (indexToRemove < currentIndex) {
-          // Removed a song before current → shift index down
-          setCurrentIndex((i) => i - 1);
-        } else if (indexToRemove === currentIndex) {
-          // Removed the currently playing song → play replacement
-          const newIndex = Math.min(
-            currentIndex,
-            newPlaylist.length - 1
-          );
+      if (indexToRemove < currentIndex) {
+        setCurrentIndex((i) => i - 1);
+      } else if (indexToRemove === currentIndex) {
+        const newIndex = Math.min(currentIndex, newPlaylist.length - 1);
+        setCurrentIndex(newIndex);
+        setProgress(0);
+        setDuration(0);
+      }
 
-          setCurrentIndex(newIndex);
-          setProgress(0);
-          setDuration(0);
-          // isPlaying stays as-is; song-change effect loads the new track
-        }
-
-        return newPlaylist;
-      });
-    },
-    [currentIndex]
-  );
+      return newPlaylist;
+    });
+  }, [currentIndex]);
 
   // =========================
   // CLEAR PLAYLIST
@@ -625,7 +544,8 @@ export function GlobalPlayerProvider({ children }) {
       audioRef.current.pause();
       audioRef.current.src = "";
     }
-
+    loadedSongIdRef.current = null;
+    cachedForLoadedSongRef.current = { songId: null, available: false };
     setCurrentPlaylist([]);
     setCurrentIndex(0);
     setIsPlaying(false);
@@ -639,7 +559,7 @@ export function GlobalPlayerProvider({ children }) {
 
   const togglePlayPause = useCallback(() => {
     if (currentSong) {
-      setIsPlaying((previous) => !previous);
+      setIsPlaying((prev) => !prev);
     }
   }, [currentSong]);
 
@@ -648,18 +568,13 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   const toggleShuffle = useCallback(() => {
-    setShuffleMode((previous) => {
-      const next = !previous;
-
+    setShuffleMode((prev) => {
+      const next = !prev;
       try {
-        localStorage.setItem(
-          STORAGE_KEYS.SHUFFLE,
-          String(next)
-        );
+        localStorage.setItem(STORAGE_KEYS.SHUFFLE, String(next));
       } catch {
-        // Ignore storage errors
+        // ignore
       }
-
       return next;
     });
   }, []);
@@ -669,18 +584,13 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   const toggleRepeat = useCallback(() => {
-    setRepeatMode((previous) => {
-      const next = previous === "one" ? "all" : "one";
-
+    setRepeatMode((prev) => {
+      const next = prev === "one" ? "all" : "one";
       try {
-        localStorage.setItem(
-          STORAGE_KEYS.REPEAT,
-          next
-        );
+        localStorage.setItem(STORAGE_KEYS.REPEAT, next);
       } catch {
-        // Ignore storage errors
+        // ignore
       }
-
       return next;
     });
   }, []);
@@ -691,31 +601,15 @@ export function GlobalPlayerProvider({ children }) {
 
   const setVolumeLevel = useCallback((value) => {
     const rounded = Math.round(Number(value) * 100) / 100;
-
-    const newVolume = Math.max(
-      0,
-      Math.min(1, rounded)
-    );
-
+    const newVolume = Math.max(0, Math.min(1, rounded));
     setVolumeState(newVolume);
-
-    if (audioRef.current) {
-      audioRef.current.volume = newVolume;
-    }
-
+    if (audioRef.current) audioRef.current.volume = newVolume;
     try {
-      localStorage.setItem(
-        "ragafy_global_volume",
-        String(newVolume)
-      );
+      localStorage.setItem("ragafy_global_volume", String(newVolume));
     } catch {
-      // Ignore storage errors
+      // ignore
     }
   }, []);
-
-  // =========================
-  // VOLUME STEP HELPERS (+10 / -10)
-  // =========================
 
   const increaseVolume = useCallback(() => {
     setVolumeLevel(Math.min(volume + 0.1, 1));
@@ -730,16 +624,10 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   const formatTime = useCallback((seconds) => {
-    if (!seconds || isNaN(seconds)) {
-      return "0:00";
-    }
-
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-
-    return `${minutes}:${remainingSeconds
-      .toString()
-      .padStart(2, "0")}`;
+    if (!seconds || isNaN(seconds)) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
   }, []);
 
   // =========================
@@ -748,17 +636,12 @@ export function GlobalPlayerProvider({ children }) {
 
   useEffect(() => {
     const audio = new Audio();
-
     audio.preload = "metadata";
     audioRef.current = audio;
-
     setIsAudioReady(true);
 
     return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-      }
-
+      if (progressInterval.current) clearInterval(progressInterval.current);
       audio.pause();
       audio.src = "";
       audioRef.current = null;
@@ -771,7 +654,6 @@ export function GlobalPlayerProvider({ children }) {
 
   useEffect(() => {
     if (!audioRef.current || !isAudioReady) return;
-
     const audio = audioRef.current;
 
     const onLoadedMetadata = () => {
@@ -780,13 +662,8 @@ export function GlobalPlayerProvider({ children }) {
       setIsLoading(false);
     };
 
-    const onTimeUpdate = () => {
-      setProgress(audio.currentTime);
-    };
-
-    const onEnded = () => {
-      handleSongEnd();
-    };
+    const onTimeUpdate = () => setProgress(audio.currentTime);
+    const onEnded = () => handleSongEnd();
 
     const onError = () => {
       setIsPlaying(false);
@@ -795,9 +672,7 @@ export function GlobalPlayerProvider({ children }) {
 
     const onCanPlay = () => {
       if (isPlaying) {
-        audio.play().catch(() => {
-          setIsPlaying(false);
-        });
+        audio.play().catch(() => setIsPlaying(false));
       }
     };
 
@@ -822,24 +697,16 @@ export function GlobalPlayerProvider({ children }) {
 
   useEffect(() => {
     if (!audioRef.current || !isPlaying) return;
-
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
-    }
+    if (progressInterval.current) clearInterval(progressInterval.current);
 
     progressInterval.current = setInterval(() => {
-      if (
-        audioRef.current &&
-        !audioRef.current.paused
-      ) {
+      if (audioRef.current && !audioRef.current.paused) {
         setProgress(audioRef.current.currentTime);
       }
     }, 500);
 
     return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-      }
+      if (progressInterval.current) clearInterval(progressInterval.current);
     };
   }, [isPlaying]);
 
@@ -848,47 +715,34 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   useEffect(() => {
-    if (
-      !audioRef.current ||
-      !isAudioReady ||
-      !currentSong ||
-      isLoading
-    ) {
+    if (!audioRef.current || !isAudioReady || !currentSong || isLoading) {
       return;
     }
-
     const audio = audioRef.current;
-
     if (isPlaying) {
-      audio.play().catch(() => {
-        setIsPlaying(false);
-      });
+      audio.play().catch(() => setIsPlaying(false));
     } else {
       audio.pause();
     }
-  }, [
-    isPlaying,
-    isLoading,
-    isAudioReady,
-    currentSong
-  ]);
+  }, [isPlaying, isLoading, isAudioReady, currentSong]);
 
   // =========================
-  // SONG CHANGE (offline-first, position-preserving)
+  // SONG CHANGE — stream first, reconcile cache in background
   // =========================
 
   useEffect(() => {
-    if (!audioRef.current || !isAudioReady || !currentSong) {
-      return;
-    }
-
+    if (!audioRef.current || !isAudioReady || !currentSong) return;
     const audio = audioRef.current;
 
     let cancelled = false;
     let objectUrl = null;
 
+    const isSameSong = loadedSongIdRef.current === currentSong._id;
+
     const resumeTime =
-      Number.isFinite(audio.currentTime) && audio.currentTime > 0
+      isSameSong &&
+      Number.isFinite(audio.currentTime) &&
+      audio.currentTime > 0
         ? audio.currentTime
         : 0;
 
@@ -896,118 +750,179 @@ export function GlobalPlayerProvider({ children }) {
 
     const restorePosition = () => {
       if (cancelled) return;
-
       if (resumeTime > 0 && Number.isFinite(audio.duration)) {
         try {
           audio.currentTime = Math.min(resumeTime, audio.duration);
         } catch {
-          // Some browsers throw if the seek is invalid; ignore.
+          // ignore
+        }
+      } else {
+        try {
+          audio.currentTime = 0;
+        } catch {
+          // ignore
         }
       }
-
-      if (wasPlaying) {
-        audio.play().catch(() => {
-          setIsPlaying(false);
-        });
-      }
+      if (wasPlaying) audio.play().catch(() => setIsPlaying(false));
     };
 
-    const loadSongAudio = async () => {
-      setIsLoading(true);
+    const startPlayback = () => {
+      if (!navigator.onLine) {
+        loadFromCacheOnly();
+        return;
+      }
+
+      const cachedInfo = cachedForLoadedSongRef.current;
+      if (cachedInfo.songId === currentSong._id && cachedInfo.available) {
+        loadFromCacheFirst();
+        return;
+      }
+
+      if (!currentSong.audioUrl) {
+        loadFromCacheOnly();
+        return;
+      }
 
       try {
-        const offlineBlob = await getOfflineSong(currentSong._id);
-
-        if (cancelled) return;
-
-        let newSrc = null;
-
-        if (offlineBlob) {
-          objectUrl = URL.createObjectURL(offlineBlob);
-          newSrc = objectUrl;
-
-          console.log(
-            `🎵 Playing from offline cache: "${currentSong.title || currentSong._id}"`
-          );
-        } else if (navigator.onLine && currentSong.audioUrl) {
-          newSrc = currentSong.audioUrl;
-
-          console.log(
-            `🌐 Streaming from server: "${currentSong.title || currentSong._id}"`
-          );
-        } else {
-          audio.removeAttribute("src");
-          audio.load();
-
-          setIsPlaying(false);
-          setIsLoading(false);
-
-          console.warn(
-            `⚠️ Cannot play "${currentSong.title || currentSong._id}" — not cached and offline.`
-          );
-          return;
-        }
-
-        const currentSrc = audio.currentSrc || audio.src;
-        const isSameSource =
-          currentSrc &&
-          (currentSrc === newSrc ||
-            currentSrc.endsWith(newSrc));
-
-        if (isSameSource && !audio.error) {
-          setIsLoading(false);
-          return;
-        }
-
-        audio.addEventListener(
-          "loadedmetadata",
-          restorePosition,
-          { once: true }
-        );
-
-        audio.src = newSrc;
+        audio.addEventListener("loadedmetadata", restorePosition, { once: true });
+        audio.src = currentSong.audioUrl;
         audio.load();
-      } catch (error) {
-        console.error("Error loading song audio:", error);
+        loadedSongIdRef.current = currentSong._id;
+        setIsLoading(true);
+        console.log(
+          `🌐 Streaming immediately: "${currentSong.title || currentSong._id}"`
+        );
+      } catch (err) {
+        console.error("Failed to start streaming:", err);
+        loadFromCacheOnly();
+        return;
+      }
 
+      reconcileCache(currentSong);
+    };
+
+    const loadFromCacheFirst = async () => {
+      try {
+        setIsLoading(true);
+        const userBlob = await getDownloadedBlob(currentSong._id);
+        const offlineBlob = userBlob
+          ? null
+          : await getOfflineSong(currentSong._id);
         if (cancelled) return;
+        const blob = userBlob || offlineBlob;
 
-        if (navigator.onLine && currentSong.audioUrl) {
-          audio.addEventListener(
-            "loadedmetadata",
-            restorePosition,
-            { once: true }
-          );
-
-          audio.src = currentSong.audioUrl;
-          audio.load();
-        } else {
+        if (!blob) {
+          if (navigator.onLine && currentSong.audioUrl) {
+            try {
+              audio.addEventListener("loadedmetadata", restorePosition, { once: true });
+              audio.src = currentSong.audioUrl;
+              audio.load();
+              loadedSongIdRef.current = currentSong._id;
+              return;
+            } catch {
+              // fall through
+            }
+          }
           audio.removeAttribute("src");
           audio.load();
-
           setIsPlaying(false);
           setIsLoading(false);
+          return;
         }
+
+        objectUrl = URL.createObjectURL(blob);
+        audio.addEventListener("loadedmetadata", restorePosition, { once: true });
+        audio.src = objectUrl;
+        audio.load();
+        loadedSongIdRef.current = currentSong._id;
+        console.log(
+          `⬇️ Playing from cache: "${currentSong.title || currentSong._id}"`
+        );
+      } catch (err) {
+        console.error("Cache-first load failed:", err);
+        if (cancelled) return;
+        if (navigator.onLine && currentSong.audioUrl) {
+          try {
+            audio.addEventListener("loadedmetadata", restorePosition, { once: true });
+            audio.src = currentSong.audioUrl;
+            audio.load();
+            loadedSongIdRef.current = currentSong._id;
+            return;
+          } catch {
+            // fall through
+          }
+        }
+        audio.removeAttribute("src");
+        audio.load();
+        setIsPlaying(false);
+        setIsLoading(false);
       }
     };
 
-    loadSongAudio();
+    const loadFromCacheOnly = async () => {
+      try {
+        setIsLoading(true);
+        const userBlob = await getDownloadedBlob(currentSong._id);
+        const offlineBlob = userBlob
+          ? null
+          : await getOfflineSong(currentSong._id);
+        if (cancelled) return;
+        const blob = userBlob || offlineBlob;
+
+        if (!blob) {
+          audio.removeAttribute("src");
+          audio.load();
+          setIsPlaying(false);
+          setIsLoading(false);
+          console.warn(
+            `⚠️ Offline and not cached: "${currentSong.title || currentSong._id}"`
+          );
+          return;
+        }
+
+        objectUrl = URL.createObjectURL(blob);
+        audio.addEventListener("loadedmetadata", restorePosition, { once: true });
+        audio.src = objectUrl;
+        audio.load();
+        loadedSongIdRef.current = currentSong._id;
+        console.log(
+          `🎵 Offline playback: "${currentSong.title || currentSong._id}"`
+        );
+      } catch (err) {
+        console.error("Offline load failed:", err);
+        setIsPlaying(false);
+        setIsLoading(false);
+      }
+    };
+
+    const reconcileCache = async (song) => {
+      if (cancelled) return;
+      try {
+        const userBlob = await getDownloadedBlob(song._id);
+        const offlineBlob = userBlob
+          ? null
+          : await getOfflineSong(song._id);
+        if (cancelled) return;
+        const available = Boolean(userBlob || offlineBlob);
+        cachedForLoadedSongRef.current = { songId: song._id, available };
+        if (available) {
+          console.log(
+            `📦 Cache ready for next play: "${song.title || song._id}"`
+          );
+        }
+      } catch (err) {
+        if (!cancelled) console.warn("Cache reconcile failed:", err);
+      }
+    };
+
+    startPlayback();
 
     return () => {
       cancelled = true;
-
       audio.removeEventListener("loadedmetadata", restorePosition);
-
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [
-    currentSong?._id,
-    currentSong?.audioUrl,
-    isAudioReady,
-    networkVersion,
-  ]);
+  }, [currentSong?._id, currentSong?.audioUrl, isAudioReady, networkVersion]);
 
   // =========================
   // VOLUME EFFECT
@@ -1029,18 +944,13 @@ export function GlobalPlayerProvider({ children }) {
         STORAGE_KEYS.PLAYLIST,
         JSON.stringify(currentPlaylist)
       );
-
       localStorage.setItem(
         STORAGE_KEYS.CURRENT_INDEX,
         currentIndex.toString()
       );
-
-      localStorage.setItem(
-        STORAGE_KEYS.VOLUME,
-        volume.toString()
-      );
+      localStorage.setItem(STORAGE_KEYS.VOLUME, volume.toString());
     } catch {
-      // Ignore storage errors
+      // ignore
     }
   }, [currentPlaylist, currentIndex, volume]);
 
@@ -1059,26 +969,10 @@ export function GlobalPlayerProvider({ children }) {
         artist: currentSong.artist?.name || "",
         album: currentSong.album?.name || ""
       });
-
-      navigator.mediaSession.setActionHandler(
-        "play",
-        () => setIsPlaying(true)
-      );
-
-      navigator.mediaSession.setActionHandler(
-        "pause",
-        () => setIsPlaying(false)
-      );
-
-      navigator.mediaSession.setActionHandler(
-        "previoustrack",
-        handlePrevious
-      );
-
-      navigator.mediaSession.setActionHandler(
-        "nexttrack",
-        handleNext
-      );
+      navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
+      navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
+      navigator.mediaSession.setActionHandler("previoustrack", handlePrevious);
+      navigator.mediaSession.setActionHandler("nexttrack", handleNext);
     }
   }, [currentSong, handleNext, handlePrevious]);
 
@@ -1095,7 +989,6 @@ export function GlobalPlayerProvider({ children }) {
       ) {
         return;
       }
-
       if (!currentSong) return;
 
       switch (event.code) {
@@ -1103,97 +996,73 @@ export function GlobalPlayerProvider({ children }) {
           event.preventDefault();
           togglePlayPause();
           break;
-
         case "ArrowRight":
           if (event.altKey) {
             event.preventDefault();
             handleNext();
           } else if (event.shiftKey) {
             event.preventDefault();
-
             seekTo(
-              Math.min(
-                (audioRef.current?.currentTime || 0) + 10,
-                duration
-              )
+              Math.min((audioRef.current?.currentTime || 0) + 10, duration)
             );
           }
           break;
-
         case "ArrowLeft":
           if (event.altKey) {
             event.preventDefault();
             handlePrevious();
           } else if (event.shiftKey) {
             event.preventDefault();
-
-            seekTo(
-              Math.max(
-                (audioRef.current?.currentTime || 0) - 10,
-                0
-              )
-            );
+            seekTo(Math.max((audioRef.current?.currentTime || 0) - 10, 0));
           }
           break;
-
         case "ArrowUp":
           if (event.shiftKey) {
             event.preventDefault();
             increaseVolume();
           }
           break;
-
         case "ArrowDown":
           if (event.shiftKey) {
             event.preventDefault();
             decreaseVolume();
           }
           break;
-
         case "Equal":
           event.preventDefault();
           increaseVolume();
           break;
-
         case "Minus":
           event.preventDefault();
           decreaseVolume();
           break;
-
         case "NumpadAdd":
           event.preventDefault();
           increaseVolume();
           break;
-
         case "NumpadSubtract":
           event.preventDefault();
           decreaseVolume();
           break;
-
         case "KeyS":
           if (event.altKey) {
             event.preventDefault();
             toggleShuffle();
           }
           break;
-
         case "KeyR":
           if (event.altKey) {
             event.preventDefault();
             toggleRepeat();
           }
           break;
-
         default:
           break;
       }
     };
 
     window.addEventListener("keydown", handleKey);
-
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-    };
+    return () => window.removeEventListener("keydown", handleKey);
   }, [
     currentSong,
     togglePlayPause,
@@ -1212,7 +1081,6 @@ export function GlobalPlayerProvider({ children }) {
   // =========================
 
   const value = {
-    // STATE
     currentPlaylist,
     currentIndex,
     currentSong,
@@ -1223,16 +1091,10 @@ export function GlobalPlayerProvider({ children }) {
     isLoading,
     shuffleMode,
     repeatMode,
-
-    // Existing history
     recentlyPlayedIds,
-
-    // New global Played History
     playedSongIds,
     markPlayed,
     resetPlayed,
-
-    // METHODS
     playPlaylist,
     playSong,
     addToPlaylist,
@@ -1247,8 +1109,6 @@ export function GlobalPlayerProvider({ children }) {
     decreaseVolume,
     toggleShuffle,
     toggleRepeat,
-
-    // UTILITIES
     formatTime
   };
 
@@ -1259,18 +1119,12 @@ export function GlobalPlayerProvider({ children }) {
   );
 }
 
-// =========================
-// HOOK
-// =========================
-
 export const useGlobalPlayer = () => {
   const context = useContext(GlobalPlayerContext);
-
   if (!context) {
     throw new Error(
       "useGlobalPlayer must be used within GlobalPlayerProvider"
     );
   }
-
   return context;
 };

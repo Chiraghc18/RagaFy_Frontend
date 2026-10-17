@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useGlobalPlayer } from "../context/GlobalPlayerContext";
+import {
+  isDownloaded,
+  downloadSong,
+} from "../services/downloadService";
 import "../assets/style/SongPlayerPage.css";
 
 export default function SongPlayerPage() {
@@ -9,7 +13,7 @@ export default function SongPlayerPage() {
   const navigate = useNavigate();
   const { songs = [], startIndex = 0 } = location.state || {};
 
-  const { photos, queue, addToQueue, removeFromQueue, clearQueue } = useData();
+  const { photos } = useData();
 
   const {
     currentPlaylist,
@@ -31,34 +35,18 @@ export default function SongPlayerPage() {
     playPlaylist,
     playSong,
     formatTime,
-    removeFromPlaylist, // ✅
+    removeFromPlaylist,
   } = useGlobalPlayer();
 
-  const [showQueue, setShowQueue] = useState(false);
-
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const [animatingSong, setAnimatingSong] = useState(null);
   const [initialized, setInitialized] = useState(false);
+  const [downloadedIds, setDownloadedIds] = useState(new Set());
+  const [downloadingIds, setDownloadingIds] = useState(new Set());
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
-  const queuePanelRef = useRef(null);
-  const volumeRef = useRef(null);
   const audioRef = useRef(null);
-
-  // ✅ Ref to the currently active playlist row (for auto-scroll)
   const activeSongRef = useRef(null);
 
-  const queueSongIds = new Set(queue.map(song => song._id));
-
-  const handleSongPlayerVolume = (event) => {
-    const newVolume = Math.max(
-      0,
-      Math.min(1, Number(event.target.value))
-    );
-
-    setVolume(newVolume);
-  };
-
-  // Initialize player with songs from location if provided - ONLY ONCE
+  // Initialize player
   useEffect(() => {
     if (songs && songs.length > 0 && !initialized) {
       playPlaylist(songs, startIndex);
@@ -68,17 +56,37 @@ export default function SongPlayerPage() {
 
   // Set volume on audio element
   useEffect(() => {
-    const audio = document.querySelector('audio');
+    const audio = document.querySelector("audio");
     if (audio) {
       audio.volume = volume;
       audioRef.current = audio;
     }
   }, [volume]);
 
-  // =========================
-  // AUTO-SCROLL TO ACTIVE SONG
-  // =========================
+  // Scan downloads for current playlist
+  useEffect(() => {
+    let cancelled = false;
 
+    const load = async () => {
+      const entries = await Promise.all(
+        currentPlaylist.map(async (song) => ({
+          id: song._id,
+          cached: await isDownloaded(song._id),
+        }))
+      );
+      if (cancelled) return;
+      setDownloadedIds(
+        new Set(entries.filter((e) => e.cached).map((e) => e.id))
+      );
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPlaylist]);
+
+  // Auto-scroll to active song
   useEffect(() => {
     if (!currentSong?._id) return;
 
@@ -94,53 +102,88 @@ export default function SongPlayerPage() {
     return () => clearTimeout(timeout);
   }, [currentSong?._id, currentIndex]);
 
-  // Click outside handlers
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (queuePanelRef.current && !queuePanelRef.current.contains(event.target) &&
-        !event.target.closest('.ragafy-player__queue-toggle')) {
-        setShowQueue(false);
-      }
-      if (volumeRef.current && !volumeRef.current.contains(event.target) &&
-        !event.target.closest('.ragafy-player__volume-icon')) {
-        setShowVolumeSlider(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const showNotification = (message, color) => {
-    const notification = document.createElement('div');
-    notification.className = 'ragafy-player__notification';
+    const notification = document.createElement("div");
+    notification.className = "ragafy-player__notification";
     notification.textContent = message;
     notification.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 2000);
   };
 
-  const handleAddToQueue = (song) => {
-    setAnimatingSong(song._id);
-    setTimeout(() => setAnimatingSong(null), 500);
-    addToQueue(song);
-    showNotification('✓ Added to queue', '#4CAF50');
-  };
+  // ── Download one song (per-row button) ──
+  const handleDownloadOne = async (e, song) => {
+    e.stopPropagation();
+    if (downloadedIds.has(song._id) || downloadingIds.has(song._id)) return;
 
-  const handleAddAllToQueue = () => {
-    currentPlaylist.forEach(song => addToQueue(song));
-    showNotification(`✓ Added ${currentPlaylist.length} songs to queue`, '#4CAF50');
-  };
+    setDownloadingIds((prev) => new Set(prev).add(song._id));
 
-  const handleClearQueue = () => {
-    if (queue.length > 0 && window.confirm('Clear the entire queue?')) {
-      clearQueue();
-      setShowQueue(false);
-      showNotification('🗑️ Queue cleared', '#f44336');
+    try {
+      await downloadSong(song);
+      // ✅ Add to downloaded set → button disappears
+      setDownloadedIds((prev) => new Set(prev).add(song._id));
+    } catch (err) {
+      console.error("Download failed:", err);
+      showNotification("✕ Download failed", "#f44336");
+    } finally {
+      setDownloadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(song._id);
+        return next;
+      });
     }
   };
 
-  const isSongInQueue = (songId) => queueSongIds.has(songId);
+  // ── Download all songs in the playlist ──
+  const handleDownloadAll = async () => {
+    if (downloadingAll) return;
+
+    const toDownload = currentPlaylist.filter(
+      (song) => !downloadedIds.has(song._id)
+    );
+
+    if (toDownload.length === 0) {
+      showNotification("All songs already downloaded", "#0066FF");
+      return;
+    }
+
+    setDownloadingAll(true);
+
+    let success = 0;
+    let failed = 0;
+
+    for (const song of toDownload) {
+      try {
+        await downloadSong(song);
+        setDownloadedIds((prev) => new Set(prev).add(song._id));
+        success += 1;
+      } catch (err) {
+        console.error("Download failed:", song.title, err);
+        failed += 1;
+      }
+    }
+
+    setDownloadingAll(false);
+
+    if (failed === 0) {
+      showNotification(
+        `✓ Downloaded ${success} song${success === 1 ? "" : "s"}`,
+        "#4CAF50"
+      );
+    } else if (success === 0) {
+      showNotification("✕ Download failed", "#f44336");
+    } else {
+      showNotification(
+        `Downloaded ${success}, ${failed} failed`,
+        "#FF6B00"
+      );
+    }
+  };
+
+  const handleSongPlayerVolume = (event) => {
+    const newVolume = Math.max(0, Math.min(1, Number(event.target.value)));
+    setVolume(newVolume);
+  };
 
   const handleSongClick = (song, index) => {
     playSong(song, currentPlaylist, index);
@@ -159,7 +202,10 @@ export default function SongPlayerPage() {
           <i className="fa-solid fa-music"></i>
           <h2>No song playing</h2>
           <p>Select a song to start playing</p>
-          <button onClick={() => navigate('/')} className="ragafy-player__browse-btn">
+          <button
+            onClick={() => navigate("/")}
+            className="ragafy-player__browse-btn"
+          >
             Browse Songs
           </button>
         </div>
@@ -167,9 +213,16 @@ export default function SongPlayerPage() {
     );
   }
 
+  const allDownloaded =
+    currentPlaylist.length > 0 &&
+    currentPlaylist.every((s) => downloadedIds.has(s._id));
+
+  const downloadedInPlaylist = currentPlaylist.filter((s) =>
+    downloadedIds.has(s._id)
+  ).length;
+
   return (
     <>
-      {/* Back Button */}
       <div className="ragafy-player__back" onClick={() => navigate(-1)}>
         <div className="ragafy-player__back-icon">
           <i className="fa-solid fa-arrow-left"></i>
@@ -178,19 +231,19 @@ export default function SongPlayerPage() {
       </div>
 
       <div className="ragafy-player">
-        {/* Main Player Content */}
         <div className="ragafy-player__main">
-          {/* Header */}
           <div className="ragafy-player__header">
             <div className="ragafy-player__art-container">
               {photos[currentSong._id] ? (
                 <img
                   src={photos[currentSong._id]}
                   alt={currentSong.title}
-                  className={`ragafy-player__photo ${isPlaying ? 'playing' : 'paused'}`}
+                  className={`ragafy-player__photo ${isPlaying ? "playing" : "paused"}`}
                 />
               ) : (
-                <div className={`ragafy-player__photo-placeholder ${isPlaying ? 'playing' : ''}`}>
+                <div
+                  className={`ragafy-player__photo-placeholder ${isPlaying ? "playing" : ""}`}
+                >
                   <i className="fa-solid fa-music"></i>
                 </div>
               )}
@@ -198,7 +251,10 @@ export default function SongPlayerPage() {
               {isPlaying && (
                 <div className="ragafy-player__art-overlay">
                   <div className="playing-bars">
-                    <span></span><span></span><span></span><span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </div>
                 </div>
               )}
@@ -208,11 +264,13 @@ export default function SongPlayerPage() {
 
             <div className="ragafy-player__artist-info">
               {currentSong.artist?.name && (
-                <span className="ragafy-player__artist">{currentSong.artist.name}</span>
+                <span className="ragafy-player__artist">
+                  {currentSong.artist.name}
+                </span>
               )}
               {currentSong.singers?.length > 0 && (
                 <span className="ragafy-player__singers">
-                  {currentSong.singers.map(s => s.name).join(", ")}
+                  {currentSong.singers.map((s) => s.name).join(", ")}
                 </span>
               )}
             </div>
@@ -223,12 +281,12 @@ export default function SongPlayerPage() {
                   <i className="fa-solid fa-shuffle"></i> Shuffle
                 </span>
               )}
-              {repeatMode === 'one' && (
+              {repeatMode === "one" && (
                 <span className="mode-indicator repeat-one">
                   <i className="fa-solid fa-repeat"></i> Repeat One
                 </span>
               )}
-              {repeatMode === 'all' && (
+              {repeatMode === "all" && (
                 <span className="mode-indicator repeat-all">
                   <i className="fa-solid fa-repeat"></i> Repeat All
                 </span>
@@ -263,7 +321,6 @@ export default function SongPlayerPage() {
             </div>
           </div>
 
-          {/* Audio Container */}
           <div className="ragafy-player__audio-container">
             <div className="ragafy-player__time-display">
               <span>{formatTime(progress)}</span>
@@ -280,38 +337,65 @@ export default function SongPlayerPage() {
             />
 
             <div className="ragafy-player__controls">
-              <button className={`ragafy-player__control-btn shuffle ${shuffleMode ? 'active' : ''}`} onClick={toggleShuffle}>
+              <button
+                className={`ragafy-player__control-btn shuffle ${shuffleMode ? "active" : ""}`}
+                onClick={toggleShuffle}
+              >
                 <i className="fa-solid fa-shuffle"></i>
               </button>
-              <button className="ragafy-player__control-btn previous" onClick={handlePrevious}>
+              <button
+                className="ragafy-player__control-btn previous"
+                onClick={handlePrevious}
+              >
                 <i className="fa-solid fa-backward-step"></i>
               </button>
-              <button className="ragafy-player__control-btn play-pause" onClick={togglePlayPause}>
-                <i className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`}></i>
+              <button
+                className="ragafy-player__control-btn play-pause"
+                onClick={togglePlayPause}
+              >
+                <i
+                  className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`}
+                ></i>
               </button>
-              <button className="ragafy-player__control-btn next" onClick={handleNext}>
+              <button
+                className="ragafy-player__control-btn next"
+                onClick={handleNext}
+              >
                 <i className="fa-solid fa-forward-step"></i>
               </button>
-              <button className={`ragafy-player__control-btn repeat ${repeatMode !== 'none' ? 'active' : ''}`} onClick={toggleRepeat}>
+              <button
+                className={`ragafy-player__control-btn repeat ${repeatMode !== "none" ? "active" : ""}`}
+                onClick={toggleRepeat}
+              >
                 <i className="fa-solid fa-repeat"></i>
-                {repeatMode === 'one' && <span className="repeat-one-indicator">1</span>}
+                {repeatMode === "one" && (
+                  <span className="repeat-one-indicator">1</span>
+                )}
               </button>
             </div>
 
             <div className="ragafy-player__bottom-controls">
-              <button className={`ragafy-player__queue-toggle ${showQueue ? 'active' : ''}`} onClick={() => setShowQueue(!showQueue)}>
-                <i className="fa-solid fa-list"></i>
-                <span className="ragafy-player__queue-count">{queue.length}</span>
+              <button
+                className="ragafy-player__downloads-btn"
+                onClick={() => navigate("/downloads")}
+                title="Downloaded Songs"
+              >
+                <i className="fa-solid fa-cloud-arrow-down"></i>
+                <span className="ragafy-player__queue-count">
+                  {downloadedInPlaylist}
+                </span>
               </button>
 
               <div className="song-player__volume-control">
-                <i className={`fa-solid ${
-                  volume === 0
-                    ? "fa-volume-xmark"
-                    : volume < 0.5
-                    ? "fa-volume-low"
-                    : "fa-volume-high"
-                }`} />
+                <i
+                  className={`fa-solid ${
+                    volume === 0
+                      ? "fa-volume-xmark"
+                      : volume < 0.5
+                        ? "fa-volume-low"
+                        : "fa-volume-high"
+                  }`}
+                />
 
                 <input
                   type="range"
@@ -329,102 +413,68 @@ export default function SongPlayerPage() {
           </div>
         </div>
 
-        {/* Queue Panel */}
-        {showQueue && (
-          <div className="ragafy-player__queue-panel" ref={queuePanelRef}>
-            <div className="ragafy-player__queue-header">
-              <h3><i className="fa-solid fa-list"></i> Queue
-                <span className="ragafy-player__queue-count-badge">{queue.length}</span>
-              </h3>
-              <button className="ragafy-player__queue-close" onClick={() => setShowQueue(false)}>
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-
-            <div className="ragafy-player__queue-now-playing">
-              <span className="ragafy-player__queue-label">Now Playing</span>
-              <div className="ragafy-player__queue-current">
-                {photos[currentSong._id] && (
-                  <img src={photos[currentSong._id]} alt={currentSong.title} className="ragafy-player__queue-current-image" />
-                )}
-                <div className="ragafy-player__queue-current-info">
-                  <span className="ragafy-player__queue-current-title">{currentSong.title}</span>
-                  <span className="ragafy-player__queue-current-artist">
-                    {currentSong.artist?.name || currentSong.singers?.[0]?.name || ' '}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="ragafy-player__queue-list">
-              <span className="ragafy-player__queue-label">Next in Queue</span>
-              {queue.length === 0 ? (
-                <div className="ragafy-player__queue-empty">
-                  <i className="fa-solid fa-music"></i>
-                  <p>Queue is empty</p>
-                  <button className="ragafy-player__queue-browse" onClick={() => navigate('/')}>Browse Songs</button>
-                </div>
-              ) : (
-                queue.map((song, index) => (
-                  <div key={`${song._id}-${index}`} className="ragafy-player__queue-item">
-                    <span className="ragafy-player__queue-item-index">{index + 1}</span>
-                    {photos[song._id] && <img src={photos[song._id]} alt={song.title} className="ragafy-player__queue-item-image" />}
-                    <div className="ragafy-player__queue-item-info">
-                      <span className="ragafy-player__queue-item-title">{song.title}</span>
-                      <span className="ragafy-player__queue-item-artist">
-                        {song.artist?.name || song.singers?.[0]?.name || ' '}
-                      </span>
-                    </div>
-                    <div className="ragafy-player__queue-item-actions">
-                      <button className="ragafy-player__queue-item-btn remove" onClick={() => removeFromQueue(song._id)}>
-                        <i className="fa-solid fa-xmark"></i>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {queue.length > 0 && (
-              <div className="ragafy-player__queue-actions">
-                <button className="ragafy-player__queue-action" onClick={() => { navigate('/queue'); setShowQueue(false); }}>
-                  <i className="fa-solid fa-expand"></i> View Full Queue
-                </button>
-                <button className="ragafy-player__queue-action clear" onClick={handleClearQueue}>
-                  <i className="fa-regular fa-trash-can"></i> Clear Queue
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Playlist / Song List */}
         <div className="ragafy-player__song-list">
           <div className="ragafy-player__song-list-header">
             <h3>
               <i className="fa-solid fa-list-ol"></i> Playlist
-              {shuffleMode && <span className="shuffle-indicator"><i className="fa-solid fa-shuffle"></i></span>}
-              {repeatMode === 'one' && <span className="repeat-one-indicator-header"><i className="fa-solid fa-repeat"></i> 1</span>}
+              {shuffleMode && (
+                <span className="shuffle-indicator">
+                  <i className="fa-solid fa-shuffle"></i>
+                </span>
+              )}
+              {repeatMode === "one" && (
+                <span className="repeat-one-indicator-header">
+                  <i className="fa-solid fa-repeat"></i> 1
+                </span>
+              )}
             </h3>
-            <button className="ragafy-player__add-all-btn" onClick={handleAddAllToQueue}>
-              <i className="fa-solid fa-plus"></i> Add All
+
+            <button
+              className={`ragafy-player__add-all-btn ${
+                allDownloaded ? "ragafy-player__add-all-btn--done" : ""
+              }`}
+              onClick={handleDownloadAll}
+              disabled={downloadingAll || allDownloaded}
+              title={
+                allDownloaded
+                  ? "All songs downloaded"
+                  : "Download all songs for offline"
+              }
+            >
+              {downloadingAll ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin"></i> Downloading...
+                </>
+              ) : allDownloaded ? (
+                <>
+                  <i className="fa-solid fa-check"></i> Downloaded
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-cloud-arrow-down"></i> Download All
+                </>
+              )}
             </button>
           </div>
 
           <div className="ragafy-player__song-list-items">
             {currentPlaylist.map((song, idx) => {
-              const inQueue = isSongInQueue(song._id);
-              const isAnimating = animatingSong === song._id;
+              const inDownloads = downloadedIds.has(song._id);
+              const isDownloading = downloadingIds.has(song._id);
 
               return (
                 <div
                   key={song._id}
                   ref={idx === currentIndex ? activeSongRef : null}
                   onClick={() => handleSongClick(song, idx)}
-                  className={`ragafy-player__song-item ${idx === currentIndex ? "active" : ""} ${isAnimating ? "animating" : ""}`}
+                  className={`ragafy-player__song-item ${idx === currentIndex ? "active" : ""}`}
                 >
                   {photos && photos[song._id] ? (
-                    <img src={photos[song._id]} alt={song.title} className="ragafy-player__song-item-image" />
+                    <img
+                      src={photos[song._id]}
+                      alt={song.title}
+                      className="ragafy-player__song-item-image"
+                    />
                   ) : (
                     <div className="ragafy-player__song-item-image-placeholder">
                       <i className="fa-solid fa-music"></i>
@@ -434,10 +484,14 @@ export default function SongPlayerPage() {
                   <div className="ragafy-player__song-item-info">
                     <span className="ragafy-player__song-item-title">
                       {song.title}
-                      {idx === currentIndex && <span className="now-playing-badge">NOW PLAYING</span>}
+                      {idx === currentIndex && (
+                        <span className="now-playing-badge">
+                          NOW PLAYING
+                        </span>
+                      )}
                     </span>
                     <span className="ragafy-player__song-item-subtitle">
-                      {song.artist?.name || song.singers?.[0]?.name || ' '}
+                      {song.artist?.name || song.singers?.[0]?.name || " "}
                     </span>
                   </div>
 
@@ -452,24 +506,28 @@ export default function SongPlayerPage() {
                     </div>
                   )}
 
-                  {/* ✅ ADD TO QUEUE — only shown if NOT already queued */}
-                  {!inQueue && (
+                  {/* Small download button — disappears once downloaded */}
+                  {!inDownloads && (
                     <button
-                      className="ragafy-player__song-item-add"
-                      onClick={(e) => { e.stopPropagation(); handleAddToQueue(song); }}
-                      title="Add to queue"
+                      className="ragafy-player__song-item-download"
+                      onClick={(e) => handleDownloadOne(e, song)}
+                      disabled={isDownloading}
+                      title="Download for offline"
                     >
-                      <i className="fa-solid fa-plus"></i>
+                      {isDownloading ? (
+                        <i className="fa-solid fa-spinner fa-spin"></i>
+                      ) : (
+                        <i className="fa-solid fa-cloud-arrow-down"></i>
+                      )}
                     </button>
                   )}
 
-                  {/* ✅ REMOVE FROM PLAYLIST */}
                   <button
                     className="ragafy-player__song-item-remove"
                     onClick={(e) => {
                       e.stopPropagation();
                       removeFromPlaylist(song._id);
-                      showNotification('🗑️ Removed from playlist', '#f44336');
+                      showNotification("🗑️ Removed from playlist", "#f44336");
                     }}
                     title="Remove from playlist"
                   >

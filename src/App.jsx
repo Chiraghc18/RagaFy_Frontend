@@ -9,7 +9,7 @@ import HeadSearch from "./components/UserComponents/HeadSearch";
 import UserPlaylists from "./components/UserComponents/UserPlayLists.jsx";
 import UserPlaylistDetails from "./components/UserComponents/UserPlaylistDetails.jsx";
 import AllSongs from "./components/UserComponents/AllSong.jsx";
-import QueuePage from './pages/QueuePage';
+import DownloadedSongsPage from "./pages/DownloadedSongsPage";
 import SongFilterSearch from "./pages/SongFilterSearch";
 import BrowseByCategoryPage from "./pages/BrowseByCategoryPage";
 import SongPlayerPage from "./pages/SongPlayerPage";
@@ -27,11 +27,11 @@ function AppContent() {
         <Route path="/user-playlists/:id" element={<UserPlaylistDetails />} />
         <Route path="/all" element={<AllSongs />} />
         <Route path="/browse" element={<BrowseByCategoryPage />} />
-        
+
         <Route path="/player" element={<SongPlayerPage />} />
 
         <Route path="/search-filter" element={<SongFilterSearch />} />
-        <Route path="/queue" element={<QueuePage />} />
+        <Route path="/downloads" element={<DownloadedSongsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <GlobalPlayer />

@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchPlaylistById } from "../../services/playlistService";
 import { useData } from "../../context/DataContext";
 import BrowseSongLists from "../BrowseSongLists";
 import "../../assets/style/UserPage/UserPlayList.css";
@@ -8,35 +7,22 @@ import "../../assets/style/UserPage/UserPlayList.css";
 export default function UserPlaylistDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { songs: allSongs, loading: dataLoading } = useData();
+  const { songs: allSongs, playlists, loading: dataLoading } = useData();
 
-  const [playlist, setPlaylist] = useState(null);
-  const [songsDetails, setSongsDetails] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState(null);
+  // ✅ Derive everything from context — no network, no spinner.
+  // The moment this component mounts, the data is already in memory.
+  const playlist = useMemo(
+    () => playlists.find((pl) => pl._id === id) || null,
+    [playlists, id]
+  );
 
-  useEffect(() => {
-    const loadPlaylist = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const res = await fetchPlaylistById(id);
-        setPlaylist(res.data);
-        const songIdsInPlaylist = res.data.songs.map(s => s._id);
-        const details = allSongs.filter(song => songIdsInPlaylist.includes(song._id));
-        setSongsDetails(details);
-      } catch (e) {
-        console.error("fetch playlist error:", e.response?.data || e.message);
-        setErr(e.response?.data?.error || e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!dataLoading && allSongs.length > 0) {
-      loadPlaylist();
-    }
-  }, [id, allSongs, dataLoading]);
+  const songsDetails = useMemo(() => {
+    if (!playlist || !allSongs.length) return [];
+    const ids = new Set(
+      (playlist.songs || []).map((s) => s._id)
+    );
+    return allSongs.filter((song) => ids.has(song._id));
+  }, [playlist, allSongs]);
 
   const handlePlayPlaylist = () => {
     if (songsDetails.length > 0) {
@@ -46,52 +32,47 @@ export default function UserPlaylistDetails() {
     }
   };
 
-  if (loading || dataLoading) return (
-    <div className="upd">
-      <div className="upd__loading">Loading playlist...</div>
-    </div>
-  );
-
-  if (err) return (
-    <div className="upd">
-      <div className="upd-back-btn" onClick={() => navigate(-1)}>
-        <div className="upd-back-btn__icon">
-          <i className="fa-solid fa-arrow-left"></i>
+  // Only wait for the global context — and only on a cold navigation
+  // where localStorage didn't have cached data.
+  if (dataLoading && playlists.length === 0) {
+    return (
+      <div className="upd">
+        <div className="upd-back-btn" onClick={() => navigate(-1)}>
+          <div className="upd-back-btn__icon">
+            <i className="fa-solid fa-arrow-left"></i>
+          </div>
+          <span className="upd-back-btn__text">Back</span>
         </div>
-        <span className="upd-back-btn__text">Back</span>
+        <div className="upd__loading">Loading playlist...</div>
       </div>
-      <div className="upd__error">
-        <div className="upd__error-icon">⚠️</div>
-        <div className="upd__error-text">Failed to load playlist</div>
-        <div className="upd__error-details">{err}</div>
-        <button onClick={() => navigate(-1)} className="upd__action-btn upd__action-btn--play">
-          Go Back
-        </button>
-      </div>
-    </div>
-  );
+    );
+  }
 
-  if (!playlist) return (
-    <div className="upd">
-      <div className="upd-back-btn" onClick={() => navigate(-1)}>
-        <div className="upd-back-btn__icon">
-          <i className="fa-solid fa-arrow-left"></i>
+  if (!playlist) {
+    return (
+      <div className="upd">
+        <div className="upd-back-btn" onClick={() => navigate(-1)}>
+          <div className="upd-back-btn__icon">
+            <i className="fa-solid fa-arrow-left"></i>
+          </div>
+          <span className="upd-back-btn__text">Back</span>
         </div>
-        <span className="upd-back-btn__text">Back</span>
+        <div className="upd__not-found">
+          <div className="upd__not-found-icon">🎵</div>
+          <div className="upd__not-found-text">Playlist not found</div>
+          <button
+            onClick={() => navigate(-1)}
+            className="upd__action-btn upd__action-btn--play"
+          >
+            Go Back to Playlists
+          </button>
+        </div>
       </div>
-      <div className="upd__not-found">
-        <div className="upd__not-found-icon">🎵</div>
-        <div className="upd__not-found-text">Playlist not found</div>
-        <button onClick={() => navigate(-1)} className="upd__action-btn upd__action-btn--play">
-          Go Back to Playlists
-        </button>
-      </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="upd">
-      {/* Unique back button */}
       <div className="upd-back-btn" onClick={() => navigate(-1)}>
         <div className="upd-back-btn__icon">
           <i className="fa-solid fa-arrow-left"></i>
@@ -99,7 +80,6 @@ export default function UserPlaylistDetails() {
         <span className="upd-back-btn__text">Back</span>
       </div>
 
-      {/* Playlist Header */}
       <div className="upd__header">
         <div className="upd__cover">
           {playlist.coverImage ? (
@@ -110,7 +90,10 @@ export default function UserPlaylistDetails() {
             />
           ) : (
             <div className="upd__cover-placeholder">
-              <i className="fa-solid fa-music" style={{ fontSize: '3rem', marginBottom: '10px' }}></i>
+              <i
+                className="fa-solid fa-music"
+                style={{ fontSize: "3rem", marginBottom: "10px" }}
+              ></i>
               <div>No cover</div>
             </div>
           )}
@@ -126,7 +109,9 @@ export default function UserPlaylistDetails() {
             </div>
             <div className="upd__meta-item">
               <i className="upd__meta-icon fa-solid fa-clock"></i>
-              <span>{(songsDetails.length * 3.5).toFixed(0)} min approx</span>
+              <span>
+                {(songsDetails.length * 3.5).toFixed(0)} min approx
+              </span>
             </div>
           </div>
 
@@ -147,7 +132,6 @@ export default function UserPlaylistDetails() {
         </div>
       </div>
 
-      {/* Playlist Songs */}
       <div className="upd__songs">
         <h3 className="upd__songs-title">
           Songs {songsDetails.length > 0 && `(${songsDetails.length})`}
@@ -156,7 +140,9 @@ export default function UserPlaylistDetails() {
         {songsDetails.length === 0 ? (
           <div className="upd__empty-songs">
             <div className="upd__empty-icon">🎵</div>
-            <div className="upd__empty-text">No songs in this playlist yet</div>
+            <div className="upd__empty-text">
+              No songs in this playlist yet
+            </div>
           </div>
         ) : (
           <BrowseSongLists songs={songsDetails} />

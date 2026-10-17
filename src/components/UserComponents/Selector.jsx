@@ -16,8 +16,8 @@ const Selector = () => {
         navigate('/user/playlists');
     };
 
-    const handleQueueClick = () => {
-        navigate('/queue');
+    const handleDownloadsClick = () => {
+        navigate('/downloads');
     };
 
     return (
@@ -35,9 +35,9 @@ const Selector = () => {
                     <i className="fa-solid fa-list selector__icon"></i>
                     <span>Playlist</span>
                 </div>
-                <div className="selector__option" onClick={handleQueueClick}>
-                    <i className="fa-solid fa-queue-list selector__icon"></i>
-                    <span>Queue</span>
+                <div className="selector__option" onClick={handleDownloadsClick}>
+                    <i className="fa-solid fa-cloud-arrow-down selector__icon"></i>
+                    <span>Downloads</span>
                 </div>
             </div>
         </div>

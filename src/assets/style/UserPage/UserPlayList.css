@@ -4,14 +4,11 @@
 
 .upl {
   min-height: 100vh;
-  /* REMOVED solid gradient background */
   background: transparent;
   color: white;
   padding: 50px 20px 40px;
   position: relative;
 }
-
-/* REMOVED ::before pseudo-element - canvas handles the glow */
 
 .upl > * {
   position: relative;
@@ -42,10 +39,11 @@
   border-radius: 2px;
 }
 
+/* ===== PLAYLIST GRID — 2 columns everywhere ===== */
 .upl__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
   max-width: 1000px;
   margin: 0 auto;
   padding: 20px;
@@ -56,7 +54,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 20px;
-  padding: 20px;
+  padding: 16px;
   text-decoration: none;
   color: white;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -64,6 +62,9 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .upl__card::before {
@@ -90,10 +91,10 @@
 
 .upl__cover {
   width: 100%;
-  height: 200px;
-  border-radius: 15px;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   position: relative;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
@@ -114,12 +115,18 @@
   height: 100%;
   background: linear-gradient(135deg, rgba(255, 107, 0, 0.2), rgba(0, 102, 255, 0.2));
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
+  font-size: clamp(0.7rem, 2vw, 1rem);
   font-weight: 500;
   border: 2px dashed rgba(255, 255, 255, 0.15);
+}
+
+.upl__cover-placeholder i {
+  font-size: clamp(1.2rem, 4vw, 2rem);
 }
 
 .upl__card:hover .upl__cover-placeholder {
@@ -128,13 +135,14 @@
 }
 
 .upl__name {
-  font-size: 1.4rem;
+  font-size: clamp(0.85rem, 2.6vw, 1.3rem);
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: white;
   line-height: 1.3;
   text-align: center;
   transition: color 0.3s ease;
+  word-break: break-word;
 }
 
 .upl__card:hover .upl__name {
@@ -142,15 +150,16 @@
 }
 
 .upl__count {
-  font-size: 0.95rem;
+  font-size: clamp(0.65rem, 2vw, 0.9rem);
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
   font-weight: 500;
   background: rgba(255, 255, 255, 0.08);
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 20px;
   display: inline-block;
   transition: all 0.3s ease;
+  align-self: center;
 }
 
 .upl__card:hover .upl__count {
@@ -237,7 +246,7 @@
   z-index: 1;
 }
 
-/* Back Button */
+/* Back Button (legacy classes) */
 .upl__back {
   position: absolute;
   top: 20px;
@@ -304,26 +313,39 @@
   animation: fadeInUp 0.6s ease-out;
 }
 
-.upl__card:nth-child(1) { animation-delay: 0.1s; }
-.upl__card:nth-child(2) { animation-delay: 0.2s; }
-.upl__card:nth-child(3) { animation-delay: 0.3s; }
-.upl__card:nth-child(4) { animation-delay: 0.4s; }
-.upl__card:nth-child(5) { animation-delay: 0.5s; }
+/* Staggered load for 2-column layout */
+.upl__card:nth-child(odd) { animation-delay: 0.05s; }
+.upl__card:nth-child(even) { animation-delay: 0.12s; }
 
-/* Responsive */
+/* Responsive — 2 columns on every screen size */
 @media (max-width: 768px) {
   .upl { padding: 60px 15px 30px; }
   .upl__title { font-size: 2.5rem; }
-  .upl__grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-  .upl__cover { height: 160px; }
+  .upl__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 15px;
+  }
   .upl__back { top: 15px; left: 15px; width: 40px; height: 40px; }
 }
 
 @media (max-width: 480px) {
   .upl { padding: 40px 10px 20px; }
   .upl__title { font-size: 2rem; }
-  .upl__grid { grid-template-columns: 1fr; max-width: 320px; }
-  .upl__cover { height: 140px; }
+  .upl__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 10px;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .upl__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 8px;
+  }
 }
 
 /* ============================================ */
@@ -332,14 +354,11 @@
 
 .upd {
   min-height: 100vh;
-  /* REMOVED solid gradient background */
   background: transparent;
   color: white;
   padding: 80px 20px 40px;
   position: relative;
 }
-
-/* REMOVED ::before pseudo-element */
 
 .upd > * {
   position: relative;
@@ -783,7 +802,7 @@
   pointer-events: none !important;
 }
 
-/* ===== RESPONSIVE ===== */
+/* ===== RESPONSIVE (back buttons) ===== */
 @media (max-width: 768px) {
   .upl-back-btn,
   .upd-back-btn {

@@ -1,0 +1,855 @@
+/* ============================================ */
+/* DOWNLOADED SONGS PAGE - COMPLETE STYLES       */
+/* ============================================ */
+
+/* ===== BACK BUTTON ===== */
+.ds__back {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-radius: 50px;
+  background: rgba(15, 15, 28, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.ds__back:hover {
+  background: rgba(22, 22, 40, 0.95);
+  border-color: rgba(255, 107, 0, 0.3);
+  transform: translateX(-4px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
+}
+
+.ds__back:active {
+  transform: scale(0.96);
+}
+
+.ds__back-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b00, #ff8c3d);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(255, 107, 0, 0.3);
+}
+
+.ds__back-icon i {
+  color: white;
+  font-size: 12px;
+}
+
+.ds__back-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+/* ===== PAGE ===== */
+.ds {
+  min-height: 100vh;
+  background: transparent;
+  color: white;
+  padding: 80px 20px 40px;
+  padding-bottom: 110px;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.ds > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== HEADER ===== */
+.ds__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.ds__header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ds__title {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 800;
+  background: linear-gradient(45deg, #ff6b00, #ff8c3d, #0066ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.ds__badge {
+  background: linear-gradient(135deg, #ff6b00, #ff8c3d);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ===== SEARCH BAR ===== */
+.ds__search {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.ds__search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ds__search-input {
+  width: 100%;
+  padding: 14px 45px 14px 45px;
+  background: rgba(18, 18, 34, 0.5);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: white;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.ds__search-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.ds__search-input:focus {
+  border-color: #ff6b00;
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+}
+
+.ds__search-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ds__search-clear {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.ds__search-clear:hover {
+  color: #ff6b00;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ds__search-info {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 15px;
+}
+
+/* ===== LOADING STATE ===== */
+.ds__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ds__loading i {
+  font-size: 32px;
+  color: #ff6b00;
+}
+
+.ds__loading p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ===== ACTION BUTTONS — Play All / Shuffle / Remove All ===== */
+.ds__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.ds__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 10px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease,
+    border-color 0.2s ease;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.ds__action i {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* Play All — green */
+.ds__action--play {
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.25);
+}
+
+.ds__action--play:hover:not(:disabled) {
+  background: linear-gradient(135deg, #56c260, #4cb052);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+/* Shuffle — orange */
+.ds__action--shuffle {
+  background: linear-gradient(135deg, #ff6b00, #ff8c3d);
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.25);
+}
+
+.ds__action--shuffle:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff7a1a, #ff9a4d);
+  box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
+}
+
+/* Remove All — red, destructive but same shape */
+.ds__action--remove {
+  background: rgba(244, 67, 54, 0.15);
+  border-color: rgba(244, 67, 54, 0.35);
+  color: #f44336;
+}
+
+.ds__action--remove:hover:not(:disabled) {
+  background: rgba(244, 67, 54, 0.25);
+  border-color: rgba(244, 67, 54, 0.55);
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
+}
+
+/* Shared hover lift */
+.ds__action:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.ds__action:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.ds__action:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* ===== LIST ===== */
+.ds__list {
+  background: rgba(18, 18, 34, 0.5);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  margin-bottom: 25px;
+}
+
+.ds__list-empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ds__list-empty i {
+  font-size: 36px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.ds__list-empty p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ===== ITEM ===== */
+.ds__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease,
+    border-color 0.15s ease;
+  animation: ds-fade-in 0.3s ease-out;
+}
+
+.ds__item:last-child {
+  border-bottom: none;
+}
+
+.ds__item:hover {
+  background: rgba(255, 107, 0, 0.06);
+}
+
+.ds__item--playing {
+  background: rgba(255, 107, 0, 0.12) !important;
+}
+
+@keyframes ds-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Playing bars */
+.ds__playing-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+}
+
+.ds__playing-bars span {
+  width: 3px;
+  background: #ff6b00;
+  border-radius: 2px;
+  animation: ds-bars 1s ease infinite;
+}
+
+.ds__playing-bars span:nth-child(1) {
+  height: 60%;
+}
+.ds__playing-bars span:nth-child(2) {
+  height: 100%;
+  animation-delay: 0.2s;
+}
+.ds__playing-bars span:nth-child(3) {
+  height: 40%;
+  animation-delay: 0.4s;
+}
+
+@keyframes ds-bars {
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Image */
+.ds__item-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.ds__item:hover .ds__item-img {
+  border-color: rgba(255, 107, 0, 0.3);
+}
+
+.ds__item-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 107, 0, 0.15),
+    rgba(0, 102, 255, 0.15)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.ds__item-placeholder i {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Details */
+.ds__item-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds__item-title {
+  font-weight: 600;
+  color: white;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds__item-artist {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Actions */
+.ds__item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* Download / Remove button */
+.ds__download-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-size: 12px;
+}
+
+.ds__download-btn:hover:not(:disabled) {
+  background: rgba(255, 107, 0, 0.2);
+  border-color: rgba(255, 107, 0, 0.4);
+  transform: scale(1.1);
+}
+
+.ds__download-btn:disabled {
+  cursor: default;
+}
+
+/* Remove variant (destructive red) */
+.ds__download-btn--remove {
+  background: rgba(244, 67, 54, 0.12) !important;
+  border-color: rgba(244, 67, 54, 0.4) !important;
+  color: #f44336 !important;
+}
+
+.ds__download-btn--remove:hover:not(:disabled) {
+  background: rgba(244, 67, 54, 0.22) !important;
+  transform: scale(1.1);
+}
+
+/* ===== DRAG-TO-REORDER ===== */
+.ds__item--dragging {
+  opacity: 0.45;
+  background: rgba(255, 107, 0, 0.18) !important;
+}
+
+.ds__item--drag-over {
+  border-top: 2px solid #ff6b00;
+  background: rgba(255, 107, 0, 0.1) !important;
+}
+
+.ds__item-drag {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: grab;
+  font-size: 12px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.ds__item-drag:hover {
+  color: #ff6b00;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ds__item-drag:active {
+  cursor: grabbing;
+}
+
+/* ===== EMPTY STATE ===== */
+.ds__empty {
+  text-align: center;
+  padding: 60px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ds__empty-art {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 107, 0, 0.15),
+    rgba(0, 102, 255, 0.15)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.ds__empty-art i {
+  font-size: 36px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ds__empty-title {
+  font-size: 1.3rem;
+  color: white;
+  margin: 0;
+  font-weight: 600;
+}
+
+.ds__empty-text {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  max-width: 340px;
+  line-height: 1.5;
+}
+
+/* ===== BUTTONS ===== */
+.ds__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.ds__btn--primary {
+  background: linear-gradient(135deg, #ff6b00, #ff8c3d);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
+}
+
+.ds__btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 0, 0.4);
+}
+
+/* ===== TOAST NOTIFICATION ===== */
+.ds__notification {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 3000;
+  animation: ds-toast-in 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  pointer-events: none;
+  color: white;
+}
+
+@keyframes ds-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 15px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ===== SCROLLBAR ===== */
+.ds__list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ds__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ds__list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ff6b00, #0066ff);
+  border-radius: 10px;
+}
+
+/* ===== RESPONSIVE - TABLET ===== */
+@media (max-width: 768px) {
+  .ds {
+    padding: 70px 15px 100px;
+    max-width: 100%;
+  }
+
+  .ds__back {
+    top: 14px;
+    left: 14px;
+    padding: 8px 16px;
+    gap: 7px;
+  }
+
+  .ds__back-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .ds__back-icon i {
+    font-size: 11px;
+  }
+
+  .ds__back-text {
+    font-size: 13px;
+  }
+
+  .ds__header {
+    gap: 12px;
+  }
+
+  .ds__title {
+    font-size: 1.6rem;
+  }
+
+  .ds__item {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .ds__item-img,
+  .ds__item-placeholder {
+    width: 38px;
+    height: 38px;
+  }
+
+  .ds__item-title {
+    font-size: 13px;
+  }
+
+  .ds__download-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+
+  .ds__actions {
+    gap: 8px;
+  }
+
+  .ds__action {
+    padding: 11px 8px;
+    font-size: 12px;
+  }
+}
+
+/* ===== RESPONSIVE - MOBILE ===== */
+@media (max-width: 480px) {
+  .ds {
+    padding: 60px 10px 90px;
+  }
+
+  .ds__back {
+    top: 10px;
+    left: 10px;
+    padding: 7px 12px;
+    gap: 5px;
+  }
+
+  .ds__back-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .ds__back-icon i {
+    font-size: 10px;
+  }
+
+  .ds__back-text {
+    font-size: 12px;
+  }
+
+  .ds__title {
+    font-size: 1.4rem;
+  }
+
+  .ds__badge {
+    font-size: 12px;
+    padding: 3px 10px;
+  }
+
+  .ds__item {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  .ds__item-img,
+  .ds__item-placeholder {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .ds__item-title {
+    font-size: 12px;
+  }
+
+  .ds__item-artist {
+    font-size: 10px;
+  }
+
+  .ds__download-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+
+  .ds__playing-bars {
+    width: 14px;
+    height: 14px;
+  }
+
+  .ds__action {
+    padding: 10px 6px;
+    font-size: 11px;
+    gap: 5px;
+  }
+
+  .ds__action i {
+    font-size: 11px;
+  }
+
+  .ds__empty {
+    padding: 40px 20px;
+  }
+
+  .ds__empty-art {
+    width: 60px;
+    height: 60px;
+  }
+
+  .ds__empty-art i {
+    font-size: 28px;
+  }
+
+  .ds__empty-title {
+    font-size: 1.1rem;
+  }
+
+  .ds__btn {
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+}
+
+/* ===== RESPONSIVE - TINY ===== */
+@media (max-width: 380px) {
+  .ds__back {
+    padding: 7px;
+    gap: 0;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    justify-content: center;
+  }
+
+  .ds__back-text {
+    display: none;
+  }
+
+  .ds__actions {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .ds__action {
+    padding: 8px 4px;
+    font-size: 10px;
+    gap: 3px;
+  }
+
+  /* On tiny screens, hide the labels and show icons only,
+     so the three buttons stay legible and equal width */
+  .ds__action span {
+    display: none;
+  }
+}
+
+/* ===== iOS SAFE AREA ===== */
+@supports (-webkit-touch-callout: none) {
+  .ds__back {
+    top: max(14px, env(safe-area-inset-top, 14px));
+  }
+
+  .ds {
+    padding-top: max(80px, env(safe-area-inset-top, 80px));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px) + 90px);
+  }
+}

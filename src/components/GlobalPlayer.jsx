@@ -1,99 +1,62 @@
-// components/GlobalPlayer.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { useGlobalPlayer } from '../context/GlobalPlayerContext';
-import { useData } from '../context/DataContext';
-import { useNavigate } from 'react-router-dom';
-import '../assets/style/GlobalPlayer.css';
+import React, { useState, useEffect, useRef } from "react";
+import { useGlobalPlayer } from "../context/GlobalPlayerContext";
+import { useData } from "../context/DataContext";
+import { useNavigate } from "react-router-dom";
+import "../assets/style/GlobalPlayer.css";
 
 export default function GlobalPlayer() {
-
   const {
     currentSong,
     isPlaying,
     progress,
     duration,
     volume,
-
     togglePlayPause,
     handleNext,
     handlePrevious,
-
     seekTo,
     setVolume,
     increaseVolume,
     decreaseVolume,
-
     formatTime,
-
     currentPlaylist,
     currentIndex,
-
     playSong,
-
-    // ADVANCED FEATURES
     shuffleMode,
     repeatMode,
     toggleShuffle,
     toggleRepeat,
-
-    // ✅ REMOVE FROM PLAYLIST
-    removeFromPlaylist
+    removeFromPlaylist,
   } = useGlobalPlayer();
 
-  const { photos, queue } = useData();
-
+  const { photos } = useData();
   const navigate = useNavigate();
-
-  // =========================
-  // LOCAL STATES
-  // =========================
 
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
 
-  // =========================
-  // REFS
-  // =========================
-
   const volumeRef = useRef(null);
   const volumePopupRef = useRef(null);
   const playlistRef = useRef(null);
   const playerRef = useRef(null);
-
-  // ✅ Ref to the currently active playlist row (for auto-scroll)
   const activeSongRef = useRef(null);
-
-  // ✅ Ref to the scrollable list wrapper (needed for centered scroll)
   const playlistItemsRef = useRef(null);
-
-  // =========================
-  // TOUCH EVENTS
-  // =========================
 
   const handleTouchStart = (e) => {
     setTouchStart(e.touches[0].clientY);
   };
 
   const handleTouchMove = (e) => {
-
     if (!touchStart) return;
-
     const touchEnd = e.touches[0].clientY;
-
     const diff = touchStart - touchEnd;
-
     if (diff < -50 && !isCollapsed) {
-
       setIsCollapsed(true);
-
       setTouchStart(null);
-    }
-    else if (diff > 50 && isCollapsed) {
-
+    } else if (diff > 50 && isCollapsed) {
       setIsCollapsed(false);
-
       setTouchStart(null);
     }
   };
@@ -102,50 +65,30 @@ export default function GlobalPlayer() {
     setTouchStart(null);
   };
 
-  // =========================
-  // CLICK OUTSIDE
-  // =========================
-
   useEffect(() => {
-
     const handleClickOutside = (event) => {
-
       const clickedInsideVolumeButton =
-        volumeRef.current &&
-        volumeRef.current.contains(event.target);
-
+        volumeRef.current && volumeRef.current.contains(event.target);
       const clickedInsideVolumePopup =
-        volumePopupRef.current &&
-        volumePopupRef.current.contains(event.target);
+        volumePopupRef.current && volumePopupRef.current.contains(event.target);
 
-      if (
-        !clickedInsideVolumeButton &&
-        !clickedInsideVolumePopup
-      ) {
+      if (!clickedInsideVolumeButton && !clickedInsideVolumePopup) {
         setShowVolumeSlider(false);
       }
 
-      if (
-        playlistRef.current &&
-        !playlistRef.current.contains(event.target)
-      ) {
+      if (playlistRef.current && !playlistRef.current.contains(event.target)) {
         setShowPlaylist(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
-
   }, []);
-
-  // =========================
-  // AUTO-SCROLL TO ACTIVE SONG (CENTERED)
-  // =========================
 
   useEffect(() => {
     if (!showPlaylist) return;
@@ -153,15 +96,12 @@ export default function GlobalPlayer() {
     const timeout = setTimeout(() => {
       const container = playlistItemsRef.current;
       const activeRow = activeSongRef.current;
-
       if (!container || !activeRow) return;
 
       const containerHeight = container.clientHeight;
       const rowTop = activeRow.offsetTop;
       const rowHeight = activeRow.offsetHeight;
-
-      const targetScroll =
-        rowTop - containerHeight / 2 + rowHeight / 2;
+      const targetScroll = rowTop - containerHeight / 2 + rowHeight / 2;
 
       container.scrollTo({
         top: Math.max(0, targetScroll),
@@ -172,10 +112,6 @@ export default function GlobalPlayer() {
     return () => clearTimeout(timeout);
   }, [showPlaylist, currentSong?._id, currentIndex]);
 
-  // =========================
-  // VOLUME HANDLERS
-  // =========================
-
   const handleGlobalVolumeChange = (event) => {
     setVolume(Number(event.target.value));
   };
@@ -184,97 +120,63 @@ export default function GlobalPlayer() {
     setVolume(volume === 0 ? 1 : 0);
   };
 
-  // =========================
-  // NO SONG
-  // =========================
-
   if (!currentSong) return null;
-
-  // =========================
-  // JSX
-  // =========================
 
   return (
     <>
       <div
-        className={`global-player ${
-          isCollapsed ? 'collapsed' : ''
-        }`}
+        className={`global-player ${isCollapsed ? "collapsed" : ""}`}
         ref={playerRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-
-        {/* DRAG HANDLE */}
         <div className="global-player__drag-handle" />
 
         <div className="global-player__main">
-
-          {/* LEFT SIDE */}
           <div
             className="global-player__info"
             onClick={() => {
-
               setIsCollapsed(false);
-
-              navigate('/player', {
+              navigate("/player", {
                 state: {
                   songs: currentPlaylist,
-                  startIndex:
-                    currentPlaylist.findIndex(
-                      (s) =>
-                        s._id === currentSong._id
-                    )
-                }
+                  startIndex: currentPlaylist.findIndex(
+                    (s) => s._id === currentSong._id
+                  ),
+                },
               });
             }}
           >
-
             {photos && photos[currentSong._id] ? (
-
               <img
                 src={photos[currentSong._id]}
                 alt={currentSong.title}
                 className="global-player__image"
                 onError={(e) => {
-
-                  e.target.style.display = 'none';
-
+                  e.target.style.display = "none";
                   if (e.target.nextSibling) {
-                    e.target.nextSibling.style.display = 'flex';
+                    e.target.nextSibling.style.display = "flex";
                   }
                 }}
               />
-
             ) : null}
 
-            {(!photos ||
-              !photos[currentSong._id]) && (
-
+            {(!photos || !photos[currentSong._id]) && (
               <div className="global-player__image-placeholder">
                 <i className="fa-solid fa-music"></i>
               </div>
             )}
 
             <div className="global-player__details">
-
-              <span className="global-player__title">
-                {currentSong.title}
-              </span>
-
+              <span className="global-player__title">{currentSong.title}</span>
             </div>
           </div>
 
-          {/* CENTER */}
           <div className="global-player__center">
-
             <div className="global-player__controls">
-
               <button
-                className={`global-player__control ${
-                  shuffleMode ? 'active' : ''
-                }`}
+                className={`global-player__control ${shuffleMode ? "active" : ""}`}
                 onClick={toggleShuffle}
                 title="Shuffle"
               >
@@ -293,13 +195,11 @@ export default function GlobalPlayer() {
               <button
                 className="global-player__control play-pause"
                 onClick={togglePlayPause}
-                title={isPlaying ? 'Pause' : 'Play'}
+                title={isPlaying ? "Pause" : "Play"}
                 disabled={!currentPlaylist.length}
               >
                 <i
-                  className={`fa-solid ${
-                    isPlaying ? 'fa-pause' : 'fa-play'
-                  }`}
+                  className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`}
                 ></i>
               </button>
 
@@ -313,30 +213,23 @@ export default function GlobalPlayer() {
               </button>
 
               <button
-                className={`global-player__control ${
-                  repeatMode === 'one' ? 'active' : ''
-                }`}
+                className={`global-player__control ${repeatMode === "one" ? "active" : ""}`}
                 onClick={toggleRepeat}
                 title={
-                  repeatMode === 'one'
-                    ? 'Repeat Current Song: ON'
-                    : 'Repeat Current Song: OFF'
+                  repeatMode === "one"
+                    ? "Repeat Current Song: ON"
+                    : "Repeat Current Song: OFF"
                 }
               >
                 <i
                   className={`fa-solid ${
-                    repeatMode === 'one'
-                      ? 'fa-repeat-1'
-                      : 'fa-repeat'
+                    repeatMode === "one" ? "fa-repeat-1" : "fa-repeat"
                   }`}
                 ></i>
               </button>
-
             </div>
 
-            {/* PROGRESS */}
             <div className="global-player__progress-container">
-
               <span className="global-player__time">
                 {formatTime(progress)}
               </span>
@@ -345,12 +238,8 @@ export default function GlobalPlayer() {
                 type="range"
                 className="global-player__progress"
                 value={progress || 0}
-                onInput={(e) =>
-                  seekTo(parseFloat(e.target.value))
-                }
-                onChange={(e) =>
-                  seekTo(parseFloat(e.target.value))
-                }
+                onInput={(e) => seekTo(parseFloat(e.target.value))}
+                onChange={(e) => seekTo(parseFloat(e.target.value))}
                 max={duration || 0}
                 step="0.1"
                 disabled={!duration}
@@ -359,26 +248,15 @@ export default function GlobalPlayer() {
               <span className="global-player__time">
                 {formatTime(duration)}
               </span>
-
             </div>
           </div>
 
-          {/* RIGHT SIDE */}
           <div className="global-player__right">
-
-            {/* Volume Control */}
-            <div
-              className="global-player__volume-control"
-              ref={volumeRef}
-            >
+            <div className="global-player__volume-control" ref={volumeRef}>
               <button
                 type="button"
-                className={`global-player__volume-btn ${
-                  showVolumeSlider ? "active" : ""
-                }`}
-                onClick={() =>
-                  setShowVolumeSlider((previous) => !previous)
-                }
+                className={`global-player__volume-btn ${showVolumeSlider ? "active" : ""}`}
+                onClick={() => setShowVolumeSlider((previous) => !previous)}
                 title="Volume"
                 aria-label="Toggle volume control"
                 aria-expanded={showVolumeSlider}
@@ -388,8 +266,8 @@ export default function GlobalPlayer() {
                     volume === 0
                       ? "fa-volume-xmark"
                       : volume < 0.5
-                      ? "fa-volume-low"
-                      : "fa-volume-high"
+                        ? "fa-volume-low"
+                        : "fa-volume-high"
                   }`}
                 />
               </button>
@@ -445,9 +323,7 @@ export default function GlobalPlayer() {
                     >
                       <i
                         className={`fa-solid ${
-                          volume === 0
-                            ? "fa-volume-high"
-                            : "fa-volume-xmark"
+                          volume === 0 ? "fa-volume-high" : "fa-volume-xmark"
                         }`}
                       />
                     </button>
@@ -456,51 +332,32 @@ export default function GlobalPlayer() {
               )}
             </div>
 
-            {/* QUEUE */}
             <button
-              className="global-player__queue-btn"
-              onClick={() => navigate('/queue')}
-              title="View Queue"
+              className="global-player__downloads-btn"
+              onClick={() => navigate("/downloads")}
+              title="Downloaded Songs"
             >
-              <i className="fa-solid fa-list"></i>
-
-              {queue && queue.length > 0 && (
-                <span className="global-player__queue-count">
-                  {queue.length}
-                </span>
-              )}
+              <i className="fa-solid fa-cloud-arrow-down"></i>
             </button>
 
-            {/* PLAYLIST TOGGLE */}
             {currentPlaylist.length > 1 && (
               <button
-                className={`global-player__playlist-toggle ${
-                  showPlaylist ? 'active' : ''
-                }`}
+                className={`global-player__playlist-toggle ${showPlaylist ? "active" : ""}`}
                 onClick={() => setShowPlaylist(!showPlaylist)}
                 title="Show Playlist"
               >
                 <i className="fa-solid fa-music"></i>
-
                 <span className="global-player__playlist-count">
                   {currentPlaylist.length}
                 </span>
               </button>
             )}
-
           </div>
         </div>
 
-        {/* PLAYLIST PANEL */}
         {showPlaylist && currentPlaylist.length > 0 && (
-
-          <div
-            className="global-player__playlist-panel"
-            ref={playlistRef}
-          >
-
+          <div className="global-player__playlist-panel" ref={playlistRef}>
             <div className="global-player__playlist-header">
-
               <h4>
                 <i className="fa-solid fa-music"></i>
                 Now Playing
@@ -515,38 +372,33 @@ export default function GlobalPlayer() {
               >
                 <i className="fa-solid fa-xmark"></i>
               </button>
-
             </div>
 
-            {/* ✅ Attach the scroll-container ref here */}
             <div
               className="global-player__playlist-items"
               ref={playlistItemsRef}
             >
-
               {currentPlaylist.map((song, idx) => (
-
                 <div
                   key={song._id}
                   ref={currentSong?._id === song._id ? activeSongRef : null}
                   className={`global-player__playlist-item ${
-                    currentSong?._id === song._id ? 'active' : ''
+                    currentSong?._id === song._id ? "active" : ""
                   }`}
                   onClick={() => {
                     playSong(song, currentPlaylist, idx);
                     setShowPlaylist(false);
                   }}
                 >
-
                   {photos && photos[song._id] ? (
                     <img
                       src={photos[song._id]}
                       alt={song.title}
                       className="global-player__playlist-image"
                       onError={(e) => {
-                        e.target.style.display = 'none';
+                        e.target.style.display = "none";
                         if (e.target.nextSibling) {
-                          e.target.nextSibling.style.display = 'flex';
+                          e.target.nextSibling.style.display = "flex";
                         }
                       }}
                     />
@@ -563,9 +415,7 @@ export default function GlobalPlayer() {
                       {song.title}
                     </span>
                     <span className="global-player__playlist-artist">
-                      {song.artist?.name ||
-                        song.singers?.[0]?.name ||
-                        ''}
+                      {song.artist?.name || song.singers?.[0]?.name || ""}
                     </span>
                   </div>
 
@@ -573,7 +423,6 @@ export default function GlobalPlayer() {
                     <i className="fa-solid fa-volume-high playing-indicator"></i>
                   )}
 
-                  {/* ✅ REMOVE FROM PLAYLIST */}
                   <button
                     type="button"
                     className="global-player__playlist-remove"
@@ -586,16 +435,13 @@ export default function GlobalPlayer() {
                   >
                     <i className="fa-solid fa-xmark"></i>
                   </button>
-
                 </div>
               ))}
-
             </div>
           </div>
         )}
       </div>
 
-      {/* SPACER */}
       <div className="global-player-spacer"></div>
     </>
   );
