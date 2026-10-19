@@ -1884,3 +1884,45 @@
 .ragafy-player__clear-queue-btn:hover {
   background: rgba(244, 67, 54, 0.25);
 }
+
+.ragafy-player__song-list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ragafy-player__undo-queue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 102, 255, 0.4);
+  background: rgba(0, 102, 255, 0.1);
+  color: #4d94ff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ragafy-player__undo-queue-btn:hover {
+  background: rgba(0, 102, 255, 0.25);
+}
+
+.ragafy-player__clear-queue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ragafy-player__clear-queue-btn:hover {
+  background: rgba(244, 67, 54, 0.25);
+}

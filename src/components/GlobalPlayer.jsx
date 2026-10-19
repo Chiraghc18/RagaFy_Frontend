@@ -28,6 +28,8 @@ export default function GlobalPlayer() {
     toggleRepeat,
     removeFromPlaylist,
     clearPlaylist,
+    canUndo,
+    undoPlaylistChange,
   } = useGlobalPlayer();
 
   const { photos } = useData();
@@ -375,6 +377,17 @@ export default function GlobalPlayer() {
               </h4>
 
               <div className="global-player__playlist-header-actions">
+                {canUndo && (
+                  <button
+                    className="global-player__playlist-undo"
+                    onClick={undoPlaylistChange}
+                    title="Undo last change"
+                    aria-label="Undo last queue change"
+                  >
+                    <i className="fa-solid fa-rotate-left"></i>
+                  </button>
+                )}
+
                 <button
                   className="global-player__playlist-clear"
                   onClick={handleClearQueue}

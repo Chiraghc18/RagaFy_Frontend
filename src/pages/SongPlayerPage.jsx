@@ -2,10 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useGlobalPlayer } from "../context/GlobalPlayerContext";
-import {
-  isDownloaded,
-  downloadSong,
-} from "../services/downloadService";
+import { isDownloaded, downloadSong } from "../services/downloadService";
 import "../assets/style/SongPlayerPage.css";
 
 export default function SongPlayerPage() {
@@ -37,6 +34,8 @@ export default function SongPlayerPage() {
     formatTime,
     removeFromPlaylist,
     clearPlaylist,
+    canUndo,
+    undoPlaylistChange,
   } = useGlobalPlayer();
 
   const [initialized, setInitialized] = useState(false);
@@ -47,7 +46,6 @@ export default function SongPlayerPage() {
   const audioRef = useRef(null);
   const activeSongRef = useRef(null);
 
-  // Initialize player
   useEffect(() => {
     if (songs && songs.length > 0 && !initialized) {
       playPlaylist(songs, startIndex);
@@ -55,7 +53,6 @@ export default function SongPlayerPage() {
     }
   }, [songs, startIndex, playPlaylist, initialized]);
 
-  // Set volume on audio element
   useEffect(() => {
     const audio = document.querySelector("audio");
     if (audio) {
@@ -64,7 +61,6 @@ export default function SongPlayerPage() {
     }
   }, [volume]);
 
-  // Scan downloads for current playlist
   useEffect(() => {
     let cancelled = false;
 
@@ -87,7 +83,6 @@ export default function SongPlayerPage() {
     };
   }, [currentPlaylist]);
 
-  // Auto-scroll to active song
   useEffect(() => {
     if (!currentSong?._id) return;
 
@@ -112,7 +107,6 @@ export default function SongPlayerPage() {
     setTimeout(() => notification.remove(), 2000);
   };
 
-  // ── Download one song (per-row button) ──
   const handleDownloadOne = async (e, song) => {
     e.stopPropagation();
     if (downloadedIds.has(song._id) || downloadingIds.has(song._id)) return;
@@ -134,7 +128,6 @@ export default function SongPlayerPage() {
     }
   };
 
-  // ── Download all songs in the playlist ──
   const handleDownloadAll = async () => {
     if (downloadingAll) return;
 
@@ -206,6 +199,17 @@ export default function SongPlayerPage() {
           <i className="fa-solid fa-music"></i>
           <h2>No song playing</h2>
           <p>Select a song to start playing</p>
+
+          {canUndo && (
+            <button
+              onClick={undoPlaylistChange}
+              className="ragafy-player__browse-btn"
+              style={{ marginBottom: 12 }}
+            >
+              <i className="fa-solid fa-rotate-left"></i> Undo last change
+            </button>
+          )}
+
           <button
             onClick={() => navigate("/")}
             className="ragafy-player__browse-btn"
@@ -434,6 +438,17 @@ export default function SongPlayerPage() {
             </h3>
 
             <div className="ragafy-player__song-list-header-actions">
+              {canUndo && (
+                <button
+                  className="ragafy-player__undo-queue-btn"
+                  onClick={undoPlaylistChange}
+                  title="Undo last change"
+                  aria-label="Undo last queue change"
+                >
+                  <i className="fa-solid fa-rotate-left"></i>
+                </button>
+              )}
+
               <button
                 className="ragafy-player__clear-queue-btn"
                 onClick={handleClearQueue}
@@ -504,9 +519,7 @@ export default function SongPlayerPage() {
                     <span className="ragafy-player__song-item-title">
                       {song.title}
                       {idx === currentIndex && (
-                        <span className="now-playing-badge">
-                          NOW PLAYING
-                        </span>
+                        <span className="now-playing-badge">NOW PLAYING</span>
                       )}
                     </span>
                     <span className="ragafy-player__song-item-subtitle">

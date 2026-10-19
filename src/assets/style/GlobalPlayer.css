@@ -1350,3 +1350,39 @@
 .global-player__playlist-clear:hover {
   background: rgba(244, 67, 54, 0.15);
 }
+
+.global-player__playlist-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-player__playlist-undo {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.global-player__playlist-undo:hover {
+  background: rgba(0, 102, 255, 0.25);
+}
+
+.global-player__playlist-clear {
+  background: transparent;
+  border: none;
+  color: #f44336;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.global-player__playlist-clear:hover {
+  background: rgba(244, 67, 54, 0.15);
+}
