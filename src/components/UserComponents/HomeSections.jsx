@@ -366,6 +366,8 @@ export default function HomeSections() {
     recentlyPlayedIds,
     playedSongIds,
     resetPlayed,
+    currentPlaylist,
+    addToPlaylist,
   } = useGlobalPlayer();
 
   const navigate = useNavigate();
@@ -375,6 +377,12 @@ export default function HomeSections() {
   const playedIds = useMemo(
     () => new Set(playedSongIds),
     [playedSongIds]
+  );
+
+  // Set of song IDs currently in the queue (for the "vanish when queued" button)
+  const queuedIds = useMemo(
+    () => new Set(currentPlaylist.map((s) => s._id)),
+    [currentPlaylist]
   );
 
   // Bumping this value generates a new random selection.
@@ -614,6 +622,39 @@ export default function HomeSections() {
   };
 
   // ───────────────────────────────────────────────────
+  // ADD ENTIRE SECTION TO QUEUE
+  // ───────────────────────────────────────────────────
+
+  const showNotification = (message, color) => {
+    const notification = document.createElement("div");
+    notification.className = "all-songs__notification";
+    notification.textContent = message;
+    notification.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
+  };
+
+  const handleAddSectionToQueue = (e, songList) => {
+    e.stopPropagation();
+    if (!songList?.length) return;
+
+    const notQueued = songList.filter(
+      (song) => !queuedIds.has(song._id)
+    );
+
+    if (notQueued.length === 0) return;
+
+    addToPlaylist(notQueued);
+
+    showNotification(
+      `＋ Added ${notQueued.length} song${
+        notQueued.length === 1 ? "" : "s"
+      } to queue`,
+      "#4CAF50"
+    );
+  };
+
+  // ───────────────────────────────────────────────────
   // REUSABLE SONG CARD
   // ───────────────────────────────────────────────────
 
@@ -655,14 +696,33 @@ export default function HomeSections() {
   const renderSection = (result, key, titleNode) => {
     if (result.poolSize === 0) return null;
 
+    const allQueued =
+      result.picks.length > 0 &&
+      result.picks.every((song) => queuedIds.has(song._id));
+
     return (
       <div
         className="all-songs__rail-section"
         key={key}
       >
-        <h2 className="all-songs__section-title">
-          {titleNode}
-        </h2>
+        <div className="all-songs__section-head">
+          <h2 className="all-songs__section-title">
+            {titleNode}
+          </h2>
+
+          {!result.exhausted && !allQueued && (
+            <button
+              className="all-songs__add-section-btn"
+              onClick={(e) =>
+                handleAddSectionToQueue(e, result.picks)
+              }
+              title="Add this section to queue"
+            >
+              <i className="fa-solid fa-plus"></i>
+              Add all
+            </button>
+          )}
+        </div>
 
         {result.exhausted ? (
           <ExhaustedPlaceholder
@@ -746,9 +806,26 @@ export default function HomeSections() {
       {/* Recently played */}
       {recentlyPlayed.length > 0 && (
         <div className="all-songs__rail-section">
-          <h2 className="all-songs__section-title">
-            Recently played
-          </h2>
+          <div className="all-songs__section-head">
+            <h2 className="all-songs__section-title">
+              Recently played
+            </h2>
+
+            {!recentlyPlayed.every((song) =>
+              queuedIds.has(song._id)
+            ) && (
+              <button
+                className="all-songs__add-section-btn"
+                onClick={(e) =>
+                  handleAddSectionToQueue(e, recentlyPlayed)
+                }
+                title="Add this section to queue"
+              >
+                <i className="fa-solid fa-plus"></i>
+                Add all
+              </button>
+            )}
+          </div>
 
           <Rail
             items={recentlyPlayed}

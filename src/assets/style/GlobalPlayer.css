@@ -1329,3 +1329,24 @@
   background: rgba(255, 107, 0, 0.2);
   color: #ff6b00;
 }
+
+.global-player__playlist-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-player__playlist-clear {
+  background: transparent;
+  border: none;
+  color: #f44336;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.global-player__playlist-clear:hover {
+  background: rgba(244, 67, 54, 0.15);
+}

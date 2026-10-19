@@ -492,3 +492,101 @@
   border-color: rgba(255, 107, 0, 0.35);
   background: rgba(255, 107, 0, 0.1);
 }
+
+/* BrowseSongList.css — append */
+.bsl-queue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+}
+
+.bsl-queue-btn:hover:not(:disabled) {
+  background: rgba(0, 102, 255, 0.85);
+  transform: scale(1.06);
+}
+
+.bsl-queue-btn.is-queued {
+  background: rgba(76, 175, 80, 0.85);
+  border-color: transparent;
+  cursor: default;
+}
+/* BrowseSongList.css */
+
+.bsl-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 8px;
+}
+
+.bsl-list-header-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.bsl-list-header-title i {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bsl-list-header-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.bsl-add-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.bsl-add-all-btn:hover {
+  background: rgba(0, 102, 255, 0.85);
+  transform: translateY(-1px);
+}
+
+.bsl-queue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.bsl-queue-btn:hover {
+  background: rgba(0, 102, 255, 0.85);
+  transform: scale(1.06);
+}

@@ -8,12 +8,12 @@ import "../assets/style/BrowseSongList.css";
 export default function BrowseSongLists({ songs, photo }) {
   const navigate = useNavigate();
   const { photos } = useData();
-  const { playPlaylist, currentSong } = useGlobalPlayer();
+  const { playPlaylist, currentSong, currentPlaylist, addToPlaylist } =
+    useGlobalPlayer();
 
   const [downloadedIds, setDownloadedIds] = useState(new Set());
   const [downloadingIds, setDownloadingIds] = useState(new Set());
 
-  // Scan for downloaded songs
   useEffect(() => {
     let cancelled = false;
 
@@ -39,6 +39,34 @@ export default function BrowseSongLists({ songs, photo }) {
   const handleSongClick = (index) => {
     playPlaylist(songs, index);
     navigate("/player", { state: { songs, startIndex: index } });
+  };
+
+  const handleAddToQueue = (e, song) => {
+    e.stopPropagation();
+
+    const alreadyInQueue = currentPlaylist.some((s) => s._id === song._id);
+    if (alreadyInQueue) return;
+
+    addToPlaylist([song]);
+    showNotification(`＋ Added to queue: ${song.title}`, "#4CAF50");
+  };
+
+  const handleAddAllToQueue = (e) => {
+    e.stopPropagation();
+
+    const notQueued = songs.filter(
+      (s) => !currentPlaylist.some((existing) => existing._id === s._id)
+    );
+
+    if (notQueued.length === 0) return;
+
+    addToPlaylist(notQueued);
+    showNotification(
+      `＋ Added ${notQueued.length} song${
+        notQueued.length === 1 ? "" : "s"
+      } to queue`,
+      "#4CAF50"
+    );
   };
 
   const handleDownload = async (e, song) => {
@@ -78,6 +106,12 @@ export default function BrowseSongLists({ songs, photo }) {
   };
 
   const isSongPlaying = (song) => currentSong?._id === song._id;
+  const isSongQueued = (song) =>
+    currentPlaylist.some((s) => s._id === song._id);
+
+  const allQueued = songs.every((s) =>
+    currentPlaylist.some((existing) => existing._id === s._id)
+  );
 
   return (
     <div className="bsl-container">
@@ -91,16 +125,34 @@ export default function BrowseSongLists({ songs, photo }) {
         </div>
       )}
 
+      {/* 👇 Header row: label on left, Add-all button on the right */}
+      <div className="bsl-list-header">
+        <h3 className="bsl-list-header-title">
+          <i className="fa-solid fa-list-ol"></i> Songs
+          <span className="bsl-list-header-count">{songs.length}</span>
+        </h3>
+
+        {!allQueued && (
+          <button className="bsl-add-all-btn" onClick={handleAddAllToQueue}>
+            <i className="fa-solid fa-plus" />
+            Add all to queue
+          </button>
+        )}
+      </div>
+
       <div className="bsl-song-list">
         {songs.map((song, index) => {
           const inDownloads = downloadedIds.has(song._id);
           const isDownloading = downloadingIds.has(song._id);
+          const queued = isSongQueued(song);
 
           return (
             <div
               key={song._id}
               onClick={() => handleSongClick(index)}
-              className={`bsl-song-item ${isSongPlaying(song) ? "bsl-song-item--playing" : ""}`}
+              className={`bsl-song-item ${
+                isSongPlaying(song) ? "bsl-song-item--playing" : ""
+              }`}
             >
               {photos[song._id] ? (
                 <img
@@ -131,7 +183,17 @@ export default function BrowseSongLists({ songs, photo }) {
               </div>
 
               <div className="bsl-song-actions">
-                {/* ✅ Download button — disappears once downloaded */}
+                {!queued && (
+                  <button
+                    className="bsl-queue-btn"
+                    onClick={(e) => handleAddToQueue(e, song)}
+                    title="Add to queue"
+                    aria-label={`Add ${song.title} to queue`}
+                  >
+                    <i className="fa-solid fa-plus" />
+                  </button>
+                )}
+
                 {!inDownloads && (
                   <button
                     className="bsl-download-btn"

@@ -27,6 +27,7 @@ export default function GlobalPlayer() {
     toggleShuffle,
     toggleRepeat,
     removeFromPlaylist,
+    clearPlaylist,
   } = useGlobalPlayer();
 
   const { photos } = useData();
@@ -118,6 +119,13 @@ export default function GlobalPlayer() {
 
   const toggleMute = () => {
     setVolume(volume === 0 ? 1 : 0);
+  };
+
+  const handleClearQueue = () => {
+    if (window.confirm("Clear the entire queue?")) {
+      clearPlaylist();
+      setShowPlaylist(false);
+    }
   };
 
   if (!currentSong) return null;
@@ -366,12 +374,24 @@ export default function GlobalPlayer() {
                 </span>
               </h4>
 
-              <button
-                className="global-player__playlist-close"
-                onClick={() => setShowPlaylist(false)}
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
+              <div className="global-player__playlist-header-actions">
+                <button
+                  className="global-player__playlist-clear"
+                  onClick={handleClearQueue}
+                  title="Clear queue"
+                  aria-label="Clear queue"
+                >
+                  <i className="fa-solid fa-trash"></i>
+                </button>
+
+                <button
+                  className="global-player__playlist-close"
+                  onClick={() => setShowPlaylist(false)}
+                  aria-label="Close playlist"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              </div>
             </div>
 
             <div

@@ -36,6 +36,7 @@ export default function SongPlayerPage() {
     playSong,
     formatTime,
     removeFromPlaylist,
+    clearPlaylist,
   } = useGlobalPlayer();
 
   const [initialized, setInitialized] = useState(false);
@@ -120,7 +121,6 @@ export default function SongPlayerPage() {
 
     try {
       await downloadSong(song);
-      // ✅ Add to downloaded set → button disappears
       setDownloadedIds((prev) => new Set(prev).add(song._id));
     } catch (err) {
       console.error("Download failed:", err);
@@ -173,10 +173,14 @@ export default function SongPlayerPage() {
     } else if (success === 0) {
       showNotification("✕ Download failed", "#f44336");
     } else {
-      showNotification(
-        `Downloaded ${success}, ${failed} failed`,
-        "#FF6B00"
-      );
+      showNotification(`Downloaded ${success}, ${failed} failed`, "#FF6B00");
+    }
+  };
+
+  const handleClearQueue = () => {
+    if (window.confirm("Clear the entire queue?")) {
+      clearPlaylist();
+      navigate(-1);
     }
   };
 
@@ -429,32 +433,45 @@ export default function SongPlayerPage() {
               )}
             </h3>
 
-            <button
-              className={`ragafy-player__add-all-btn ${
-                allDownloaded ? "ragafy-player__add-all-btn--done" : ""
-              }`}
-              onClick={handleDownloadAll}
-              disabled={downloadingAll || allDownloaded}
-              title={
-                allDownloaded
-                  ? "All songs downloaded"
-                  : "Download all songs for offline"
-              }
-            >
-              {downloadingAll ? (
-                <>
-                  <i className="fa-solid fa-spinner fa-spin"></i> Downloading...
-                </>
-              ) : allDownloaded ? (
-                <>
-                  <i className="fa-solid fa-check"></i> Downloaded
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-cloud-arrow-down"></i> Download All
-                </>
-              )}
-            </button>
+            <div className="ragafy-player__song-list-header-actions">
+              <button
+                className="ragafy-player__clear-queue-btn"
+                onClick={handleClearQueue}
+                title="Clear queue"
+                aria-label="Clear queue"
+              >
+                <i className="fa-solid fa-trash"></i>
+              </button>
+
+              <button
+                className={`ragafy-player__add-all-btn ${
+                  allDownloaded ? "ragafy-player__add-all-btn--done" : ""
+                }`}
+                onClick={handleDownloadAll}
+                disabled={downloadingAll || allDownloaded}
+                title={
+                  allDownloaded
+                    ? "All songs downloaded"
+                    : "Download all songs for offline"
+                }
+              >
+                {downloadingAll ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin"></i>{" "}
+                    Downloading...
+                  </>
+                ) : allDownloaded ? (
+                  <>
+                    <i className="fa-solid fa-check"></i> Downloaded
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-cloud-arrow-down"></i> Download
+                    All
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="ragafy-player__song-list-items">
@@ -467,7 +484,9 @@ export default function SongPlayerPage() {
                   key={song._id}
                   ref={idx === currentIndex ? activeSongRef : null}
                   onClick={() => handleSongClick(song, idx)}
-                  className={`ragafy-player__song-item ${idx === currentIndex ? "active" : ""}`}
+                  className={`ragafy-player__song-item ${
+                    idx === currentIndex ? "active" : ""
+                  }`}
                 >
                   {photos && photos[song._id] ? (
                     <img
@@ -506,7 +525,6 @@ export default function SongPlayerPage() {
                     </div>
                   )}
 
-                  {/* Small download button — disappears once downloaded */}
                   {!inDownloads && (
                     <button
                       className="ragafy-player__song-item-download"
