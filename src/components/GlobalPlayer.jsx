@@ -27,6 +27,7 @@ export default function GlobalPlayer() {
     toggleShuffle,
     toggleRepeat,
     removeFromPlaylist,
+    reorderPlaylist,
     clearPlaylist,
     canUndo,
     undoPlaylistChange,
@@ -39,6 +40,11 @@ export default function GlobalPlayer() {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
+
+  // Drag state
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const touchDragRef = useRef(null);
 
   const volumeRef = useRef(null);
   const volumePopupRef = useRef(null);
@@ -128,6 +134,85 @@ export default function GlobalPlayer() {
       clearPlaylist();
       setShowPlaylist(false);
     }
+  };
+
+  // ---------- Drag helpers ----------
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) setDragOverIndex(index);
+  };
+
+  const handleDragLeave = (index) => {
+    if (dragOverIndex === index) setDragOverIndex(null);
+  };
+
+  const handleDrop = (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      reorderPlaylist(draggedIndex, index);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Touch drag (pointer events) for the handle
+  const handleTouchPointerDown = (e, index) => {
+    if (e.pointerType === "mouse") return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setDraggedIndex(index);
+    touchDragRef.current = {
+      pointerId: e.pointerId,
+      currentIndex: index,
+    };
+  };
+
+  const handleTouchPointerMove = (e) => {
+    const state = touchDragRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+    if (e.pointerType === "mouse") return;
+
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const row = el?.closest?.("[data-reorder-index]");
+    if (row) {
+      const idx = Number(row.dataset.reorderIndex);
+      if (!Number.isNaN(idx)) {
+        state.currentIndex = idx;
+        setDragOverIndex(idx);
+      }
+    }
+  };
+
+  const handleTouchPointerUp = (e) => {
+    const state = touchDragRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+    if (e.pointerType === "mouse") return;
+
+    if (draggedIndex !== null && state.currentIndex !== draggedIndex) {
+      reorderPlaylist(draggedIndex, state.currentIndex);
+    }
+    touchDragRef.current = null;
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleTouchPointerCancel = () => {
+    touchDragRef.current = null;
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   if (!currentSong) return null;
@@ -411,65 +496,89 @@ export default function GlobalPlayer() {
               className="global-player__playlist-items"
               ref={playlistItemsRef}
             >
-              {currentPlaylist.map((song, idx) => (
-                <div
-                  key={song._id}
-                  ref={currentSong?._id === song._id ? activeSongRef : null}
-                  className={`global-player__playlist-item ${
-                    currentSong?._id === song._id ? "active" : ""
-                  }`}
-                  onClick={() => {
-                    playSong(song, currentPlaylist, idx);
-                    setShowPlaylist(false);
-                  }}
-                >
-                  {photos && photos[song._id] ? (
-                    <img
-                      src={photos[song._id]}
-                      alt={song.title}
-                      className="global-player__playlist-image"
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                        if (e.target.nextSibling) {
-                          e.target.nextSibling.style.display = "flex";
-                        }
-                      }}
-                    />
-                  ) : null}
+              {currentPlaylist.map((song, idx) => {
+                const isDragging = draggedIndex === idx;
+                const isOver = dragOverIndex === idx && draggedIndex !== idx;
 
-                  {(!photos || !photos[song._id]) && (
-                    <div className="global-player__playlist-image-placeholder">
-                      <i className="fa-solid fa-music"></i>
-                    </div>
-                  )}
-
-                  <div className="global-player__playlist-info">
-                    <span className="global-player__playlist-title">
-                      {song.title}
-                    </span>
-                    <span className="global-player__playlist-artist">
-                      {song.artist?.name || song.singers?.[0]?.name || ""}
-                    </span>
-                  </div>
-
-                  {currentSong?._id === song._id && (
-                    <i className="fa-solid fa-volume-high playing-indicator"></i>
-                  )}
-
-                  <button
-                    type="button"
-                    className="global-player__playlist-remove"
-                    title="Remove from playlist"
-                    aria-label={`Remove ${song.title} from playlist`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFromPlaylist(song._id);
+                return (
+                  <div
+                    key={song._id}
+                    data-reorder-index={idx}
+                    ref={currentSong?._id === song._id ? activeSongRef : null}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDragLeave={() => handleDragLeave(idx)}
+                    onDrop={(e) => handleDrop(e, idx)}
+                    onDragEnd={handleDragEnd}
+                    className={`global-player__playlist-item ${
+                      currentSong?._id === song._id ? "active" : ""
+                    } ${isDragging ? "dragging" : ""} ${isOver ? "drag-over" : ""}`}
+                    onClick={() => {
+                      playSong(song, currentPlaylist, idx);
+                      setShowPlaylist(false);
                     }}
                   >
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
-                </div>
-              ))}
+                    <div
+                      className="global-player__playlist-drag-handle"
+                      onPointerDown={(e) => handleTouchPointerDown(e, idx)}
+                      onPointerMove={handleTouchPointerMove}
+                      onPointerUp={handleTouchPointerUp}
+                      onPointerCancel={handleTouchPointerCancel}
+                      onClick={(e) => e.stopPropagation()}
+                      title="Drag to reorder"
+                    >
+                      <i className="fa-solid fa-grip-vertical"></i>
+                    </div>
+
+                    {photos && photos[song._id] ? (
+                      <img
+                        src={photos[song._id]}
+                        alt={song.title}
+                        className="global-player__playlist-image"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          if (e.target.nextSibling) {
+                            e.target.nextSibling.style.display = "flex";
+                          }
+                        }}
+                      />
+                    ) : null}
+
+                    {(!photos || !photos[song._id]) && (
+                      <div className="global-player__playlist-image-placeholder">
+                        <i className="fa-solid fa-music"></i>
+                      </div>
+                    )}
+
+                    <div className="global-player__playlist-info">
+                      <span className="global-player__playlist-title">
+                        {song.title}
+                      </span>
+                      <span className="global-player__playlist-artist">
+                        {song.artist?.name || song.singers?.[0]?.name || ""}
+                      </span>
+                    </div>
+
+                    {currentSong?._id === song._id && (
+                      <i className="fa-solid fa-volume-high playing-indicator"></i>
+                    )}
+
+                    <button
+                      type="button"
+                      className="global-player__playlist-remove"
+                      title="Remove from playlist"
+                      aria-label={`Remove ${song.title} from playlist`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromPlaylist(song._id);
+                      }}
+                    >
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

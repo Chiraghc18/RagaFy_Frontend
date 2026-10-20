@@ -1,8 +1,14 @@
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { useData } from "../../context/DataContext";
 import { useGlobalPlayer } from "../../context/GlobalPlayerContext";
 import { useNavigate, Link } from "react-router-dom";
 import "../../assets/style/UserPage/AllSongs.css";
+
+// ─────────────────────────────────────────────────────
+// HOW FAR BACK COUNTS AS "NEW"
+// Change this single number to tune the window.
+// ─────────────────────────────────────────────────────
+const NEW_RELEASE_WINDOW_DAYS = 365;
 
 // Rails pulled from filterOptions
 const CATEGORY_RAILS = [
@@ -168,6 +174,50 @@ function pickUnplayed(pool, count, playedSet) {
     poolSize,
     exhausted: unplayed.length === 0,
   };
+}
+
+// ─────────────────────────────────────────────────────
+// RELEASE DATE HELPERS
+// ─────────────────────────────────────────────────────
+
+/**
+ * Resolve a song's release date into a millisecond timestamp.
+ * Returns NaN if no usable date is present.
+ */
+function getSongReleaseTimestamp(song) {
+  if (!song) return NaN;
+
+  const raw =
+    song.releaseDate ||
+    song.releasedAt ||
+    song.release_date ||
+    song.releasedOn ||
+    null;
+
+  if (!raw) return NaN;
+
+  const ts = new Date(raw).getTime();
+  return Number.isFinite(ts) ? ts : NaN;
+}
+
+/**
+ * Filter songs to those released within the last `days` days.
+ * Songs without a valid release date are dropped.
+ * Returned newest-first.
+ */
+function getNewReleases(songs, days) {
+  if (!songs?.length) return [];
+
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
+  return songs
+    .map((song) => ({
+      song,
+      ts: getSongReleaseTimestamp(song),
+    }))
+    .filter(({ ts }) => Number.isFinite(ts) && ts >= cutoff)
+    .sort((a, b) => b.ts - a.ts)
+    .map(({ song }) => song);
 }
 
 // ─────────────────────────────────────────────────────
@@ -366,6 +416,7 @@ export default function HomeSections() {
     recentlyPlayedIds,
     playedSongIds,
     resetPlayed,
+    resetPlayedSubset,
     currentPlaylist,
     addToPlaylist,
   } = useGlobalPlayer();
@@ -373,7 +424,6 @@ export default function HomeSections() {
   const navigate = useNavigate();
 
   // Convert global played history to a Set for efficient lookups.
-  // The source of truth is GlobalPlayerContext, not this component.
   const playedIds = useMemo(
     () => new Set(playedSongIds),
     [playedSongIds]
@@ -399,7 +449,6 @@ export default function HomeSections() {
       songs.map((song) => song._id)
     );
 
-    // Count only unique played songs still in the catalogue.
     const validPlayedIds = new Set(
       playedSongIds.filter((id) => catalogueIds.has(id))
     );
@@ -420,13 +469,25 @@ export default function HomeSections() {
   };
 
   // ───────────────────────────────────────────────────
-  // MADE FOR YOU
+  // MADE FOR YOU — NEW RELEASES ONLY
   // ───────────────────────────────────────────────────
 
-  const madeForYouResult = useMemo(
-    () => pickUnplayed(songs, RAIL_SIZE, playedIds),
-    [songs, playedIds, reloadKey]
+  // All songs within the new-release window (ignores played state).
+  // Kept separate so the scoped reset can reference the exact same pool.
+  const newReleasesPool = useMemo(
+    () => getNewReleases(songs, NEW_RELEASE_WINDOW_DAYS),
+    [songs]
   );
+
+  const madeForYouResult = useMemo(
+    () => pickUnplayed(newReleasesPool, RAIL_SIZE, playedIds),
+    [newReleasesPool, playedIds, reloadKey]
+  );
+
+  // Scoped reset: only clears play history for songs in the new-release window
+  const resetMadeForYou = useCallback(() => {
+    resetPlayedSubset(newReleasesPool.map((song) => song._id));
+  }, [newReleasesPool, resetPlayedSubset]);
 
   // ───────────────────────────────────────────────────
   // GENRE SECTIONS
@@ -584,7 +645,6 @@ export default function HomeSections() {
 
   // ───────────────────────────────────────────────────
   // RECENTLY PLAYED
-  // Uses the existing recent-history functionality.
   // ───────────────────────────────────────────────────
 
   const recentlyPlayed = useMemo(() => {
@@ -602,8 +662,6 @@ export default function HomeSections() {
   const goToPlayer = (songList, startIndex) => {
     if (!songList?.length || startIndex < 0) return;
 
-    // Do not manually update history here.
-    // GlobalPlayerContext tracks the current song centrally.
     navigate("/player", {
       state: {
         songs: songList,
@@ -693,7 +751,7 @@ export default function HomeSections() {
   // SECTION RENDERER
   // ───────────────────────────────────────────────────
 
-  const renderSection = (result, key, titleNode) => {
+  const renderSection = (result, key, titleNode, onResetOverride) => {
     if (result.poolSize === 0) return null;
 
     const allQueued =
@@ -726,7 +784,7 @@ export default function HomeSections() {
 
         {result.exhausted ? (
           <ExhaustedPlaceholder
-            onReset={resetPlayed}
+            onReset={onResetOverride || resetPlayed}
           />
         ) : (
           <Rail
@@ -777,11 +835,12 @@ export default function HomeSections() {
         </button>
       </div>
 
-      {/* Made for you */}
+      {/* Made for you — new releases only, with scoped reset */}
       {renderSection(
         madeForYouResult,
         "made-for-you",
-        "Made for you"
+        "Made for you",
+        resetMadeForYou
       )}
 
       {/* Genre sections */}
@@ -901,7 +960,7 @@ export default function HomeSections() {
         </div>
       )}
 
-      {/* Category rails — unchanged */}
+      {/* Category rails */}
       {CATEGORY_RAILS.map((rail) => {
         const items = filterOptions?.[rail.dataKey] || [];
 

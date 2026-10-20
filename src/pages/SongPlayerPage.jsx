@@ -33,6 +33,7 @@ export default function SongPlayerPage() {
     playSong,
     formatTime,
     removeFromPlaylist,
+    reorderPlaylist,
     clearPlaylist,
     canUndo,
     undoPlaylistChange,
@@ -42,6 +43,11 @@ export default function SongPlayerPage() {
   const [downloadedIds, setDownloadedIds] = useState(new Set());
   const [downloadingIds, setDownloadingIds] = useState(new Set());
   const [downloadingAll, setDownloadingAll] = useState(false);
+
+  // Drag state
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const touchDragRef = useRef(null);
 
   const audioRef = useRef(null);
   const activeSongRef = useRef(null);
@@ -184,6 +190,85 @@ export default function SongPlayerPage() {
 
   const handleSongClick = (song, index) => {
     playSong(song, currentPlaylist, index);
+  };
+
+  // ---------- Drag helpers ----------
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) setDragOverIndex(index);
+  };
+
+  const handleDragLeave = (index) => {
+    if (dragOverIndex === index) setDragOverIndex(null);
+  };
+
+  const handleDrop = (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      reorderPlaylist(draggedIndex, index);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Touch drag (pointer events) for the handle
+  const handleTouchPointerDown = (e, index) => {
+    if (e.pointerType === "mouse") return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setDraggedIndex(index);
+    touchDragRef.current = {
+      pointerId: e.pointerId,
+      currentIndex: index,
+    };
+  };
+
+  const handleTouchPointerMove = (e) => {
+    const state = touchDragRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+    if (e.pointerType === "mouse") return;
+
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const row = el?.closest?.("[data-reorder-index]");
+    if (row) {
+      const idx = Number(row.dataset.reorderIndex);
+      if (!Number.isNaN(idx)) {
+        state.currentIndex = idx;
+        setDragOverIndex(idx);
+      }
+    }
+  };
+
+  const handleTouchPointerUp = (e) => {
+    const state = touchDragRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+    if (e.pointerType === "mouse") return;
+
+    if (draggedIndex !== null && state.currentIndex !== draggedIndex) {
+      reorderPlaylist(draggedIndex, state.currentIndex);
+    }
+    touchDragRef.current = null;
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleTouchPointerCancel = () => {
+    touchDragRef.current = null;
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   if (!currentPlaylist.length || !currentSong) {
@@ -493,16 +578,37 @@ export default function SongPlayerPage() {
             {currentPlaylist.map((song, idx) => {
               const inDownloads = downloadedIds.has(song._id);
               const isDownloading = downloadingIds.has(song._id);
+              const isDragging = draggedIndex === idx;
+              const isOver = dragOverIndex === idx && draggedIndex !== idx;
 
               return (
                 <div
                   key={song._id}
+                  data-reorder-index={idx}
                   ref={idx === currentIndex ? activeSongRef : null}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDragLeave={() => handleDragLeave(idx)}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  onDragEnd={handleDragEnd}
                   onClick={() => handleSongClick(song, idx)}
                   className={`ragafy-player__song-item ${
                     idx === currentIndex ? "active" : ""
-                  }`}
+                  } ${isDragging ? "dragging" : ""} ${isOver ? "drag-over" : ""}`}
                 >
+                  <div
+                    className="ragafy-player__drag-handle"
+                    onPointerDown={(e) => handleTouchPointerDown(e, idx)}
+                    onPointerMove={handleTouchPointerMove}
+                    onPointerUp={handleTouchPointerUp}
+                    onPointerCancel={handleTouchPointerCancel}
+                    onClick={(e) => e.stopPropagation()}
+                    title="Drag to reorder"
+                  >
+                    <i className="fa-solid fa-grip-vertical"></i>
+                  </div>
+
                   {photos && photos[song._id] ? (
                     <img
                       src={photos[song._id]}

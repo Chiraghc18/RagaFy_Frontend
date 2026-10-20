@@ -1386,3 +1386,33 @@
 .global-player__playlist-clear:hover {
   background: rgba(244, 67, 54, 0.15);
 }
+
+.global-player__playlist-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  flex-shrink: 0;
+  color: var(--text-muted, #888);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.global-player__playlist-item:hover .global-player__playlist-drag-handle {
+  opacity: 1;
+}
+
+.global-player__playlist-drag-handle:active {
+  cursor: grabbing;
+}
+
+.global-player__playlist-item.dragging {
+  opacity: 0.4;
+}
+
+.global-player__playlist-item.drag-over {
+  border-top: 2px solid var(--accent, #0066ff);
+  box-shadow: 0 -2px 6px rgba(0, 102, 255, 0.25);
+}

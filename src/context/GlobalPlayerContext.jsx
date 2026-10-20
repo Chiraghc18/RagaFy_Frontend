@@ -128,6 +128,14 @@ export function GlobalPlayerProvider({ children }) {
 
   const resetPlayed = useCallback(() => setPlayedSongIds([]), []);
 
+  // Scoped reset: only remove specific song IDs from played history.
+  // Used by "Made for You" so its Reset button doesn't wipe the whole page.
+  const resetPlayedSubset = useCallback((songIds) => {
+    if (!songIds || songIds.length === 0) return;
+    const toRemove = new Set(songIds);
+    setPlayedSongIds((prev) => prev.filter((id) => !toRemove.has(id)));
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.PLAYED_SONGS, JSON.stringify(playedSongIds));
@@ -142,8 +150,6 @@ export function GlobalPlayerProvider({ children }) {
   // UNDO SNAPSHOT
   // =========================
 
-  // Single-level undo: holds { playlist, index } captured just before a
-  // queue-mutating action. Cleared after an undo.
   const undoSnapshotRef = useRef(null);
   const [canUndo, setCanUndo] = useState(false);
 
@@ -506,7 +512,6 @@ export function GlobalPlayerProvider({ children }) {
     (songs) => {
       if (!songs?.length) return;
 
-      // Only snapshot if there's actually something new to add.
       const hasNew = songs.some(
         (song) => !currentPlaylist.some((existing) => existing._id === song._id)
       );
@@ -569,6 +574,41 @@ export function GlobalPlayerProvider({ children }) {
   );
 
   // =========================
+  // REORDER PLAYLIST (DRAG & DROP)
+  // =========================
+
+  const reorderPlaylist = useCallback(
+    (fromIndex, toIndex) => {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= currentPlaylist.length ||
+        toIndex >= currentPlaylist.length
+      ) {
+        return;
+      }
+
+      snapshotForUndo();
+
+      setCurrentPlaylist((prev) => {
+        const next = [...prev];
+        const [moved] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, moved);
+        return next;
+      });
+
+      setCurrentIndex((prevIndex) => {
+        if (prevIndex === fromIndex) return toIndex;
+        if (fromIndex < prevIndex && toIndex >= prevIndex) return prevIndex - 1;
+        if (fromIndex > prevIndex && toIndex <= prevIndex) return prevIndex + 1;
+        return prevIndex;
+      });
+    },
+    [currentPlaylist.length, snapshotForUndo]
+  );
+
+  // =========================
   // CLEAR PLAYLIST
   // =========================
 
@@ -597,7 +637,6 @@ export function GlobalPlayerProvider({ children }) {
     const snap = undoSnapshotRef.current;
     if (!snap) return;
 
-    // Single-level undo: consume the snapshot.
     undoSnapshotRef.current = null;
     setCanUndo(false);
 
@@ -1163,10 +1202,12 @@ export function GlobalPlayerProvider({ children }) {
     playedSongIds,
     markPlayed,
     resetPlayed,
+    resetPlayedSubset,
     playPlaylist,
     playSong,
     addToPlaylist,
     removeFromPlaylist,
+    reorderPlaylist,
     clearPlaylist,
     canUndo,
     undoPlaylistChange,
