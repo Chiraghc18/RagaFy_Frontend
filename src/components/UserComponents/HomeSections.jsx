@@ -6,7 +6,6 @@ import "../../assets/style/UserPage/AllSongs.css";
 
 // ─────────────────────────────────────────────────────
 // HOW FAR BACK COUNTS AS "NEW"
-// Change this single number to tune the window.
 // ─────────────────────────────────────────────────────
 const NEW_RELEASE_WINDOW_DAYS = 365;
 
@@ -469,166 +468,85 @@ export default function HomeSections() {
   };
 
   // ───────────────────────────────────────────────────
-  // MADE FOR YOU — NEW RELEASES ONLY
+  // INDEPENDENT SECTION POOLS
+  // Each pool is lifted out so a scoped reset callback
+  // can target only that section's songs.
   // ───────────────────────────────────────────────────
 
-  // All songs within the new-release window (ignores played state).
-  // Kept separate so the scoped reset can reference the exact same pool.
   const newReleasesPool = useMemo(
     () => getNewReleases(songs, NEW_RELEASE_WINDOW_DAYS),
     [songs]
   );
 
-  const madeForYouResult = useMemo(
-    () => pickUnplayed(newReleasesPool, RAIL_SIZE, playedIds),
-    [newReleasesPool, playedIds, reloadKey]
+  const melodyPool = useMemo(
+    () =>
+      songs.filter((song) =>
+        songMatchesGenres(song, GENRE_GROUPS.melody.genres)
+      ),
+    [songs]
   );
 
-  // Scoped reset: only clears play history for songs in the new-release window
-  const resetMadeForYou = useCallback(() => {
-    resetPlayedSubset(newReleasesPool.map((song) => song._id));
-  }, [newReleasesPool, resetPlayedSubset]);
-
-  // ───────────────────────────────────────────────────
-  // GENRE SECTIONS
-  // ───────────────────────────────────────────────────
-
-  const genreSections = useMemo(() => {
-    const sections = [];
-
-    // 1. Melody
-    const melodyPool = songs.filter((song) =>
-      songMatchesGenres(
-        song,
-        GENRE_GROUPS.melody.genres
-      )
-    );
-
-    sections.push({
-      ...GENRE_GROUPS.melody,
-      ...pickUnplayed(
-        melodyPool,
-        RAIL_SIZE,
-        playedIds
+  const melodyRomanticPool = useMemo(
+    () =>
+      songs.filter((song) =>
+        songMatchesGenres(song, GENRE_GROUPS.melodyRomantic.genres)
       ),
-    });
+    [songs]
+  );
 
-    // 2. Melody & Romance
-    const melodyRomanticPool = songs.filter((song) =>
-      songMatchesGenres(
-        song,
-        GENRE_GROUPS.melodyRomantic.genres
-      )
-    );
-
-    sections.push({
-      ...GENRE_GROUPS.melodyRomantic,
-      ...pickUnplayed(
-        melodyRomanticPool,
-        RAIL_SIZE,
-        playedIds
+  const dancePool = useMemo(
+    () =>
+      songs.filter((song) =>
+        songMatchesGenres(song, GENRE_GROUPS.danceElectronic.genres)
       ),
-    });
+    [songs]
+  );
 
-    // 3. Dance & Electronic
-    const dancePool = songs.filter((song) =>
-      songMatchesGenres(
-        song,
-        GENRE_GROUPS.danceElectronic.genres
-      )
-    );
-
-    sections.push({
-      ...GENRE_GROUPS.danceElectronic,
-      ...pickUnplayed(
-        dancePool,
-        RAIL_SIZE,
-        playedIds
-      ),
-    });
-
-    // 4. Pop Collection
-    const popBasedPool = songs.filter((song) => {
-      const matches = songMatchesGenres(
-        song,
-        GENRE_GROUPS.popBased.genres
-      );
-
-      const excluded = songMatchesExcludedGenres(
-        song,
-        GENRE_GROUPS.popBased.excludeGenres
-      );
-
-      return matches && !excluded;
-    });
-
-    sections.push({
-      ...GENRE_GROUPS.popBased,
-      ...pickUnplayed(
-        popBasedPool,
-        RAIL_SIZE,
-        playedIds
-      ),
-    });
-
-    // 5. Devotional & Traditional
-    const devotionalPool = songs.filter((song) =>
-      songMatchesGenres(
-        song,
-        GENRE_GROUPS.devotional.genres
-      )
-    );
-
-    sections.push({
-      ...GENRE_GROUPS.devotional,
-      ...pickUnplayed(
-        devotionalPool,
-        RAIL_SIZE,
-        playedIds
-      ),
-    });
-
-    // 6. Evergreen Classics
-    const evergreenPool = songs.filter((song) =>
-      songMatchesGenres(
-        song,
-        GENRE_GROUPS.evergreen.genres
-      )
-    );
-
-    sections.push({
-      ...GENRE_GROUPS.evergreen,
-      ...pickUnplayed(
-        evergreenPool,
-        RAIL_SIZE,
-        playedIds
-      ),
-    });
-
-    // 7. More to Explore
-    const otherPool = songs.filter(
-      (song) =>
-        !songMatchesExcludedGenres(
+  const popBasedPool = useMemo(
+    () =>
+      songs.filter((song) => {
+        const matches = songMatchesGenres(
           song,
-          GENRE_GROUPS.otherGenres.excludeGenres
-        )
-    );
+          GENRE_GROUPS.popBased.genres
+        );
 
-    sections.push({
-      ...GENRE_GROUPS.otherGenres,
-      ...pickUnplayed(
-        otherPool,
-        RAIL_SIZE,
-        playedIds
+        const excluded = songMatchesExcludedGenres(
+          song,
+          GENRE_GROUPS.popBased.excludeGenres
+        );
+
+        return matches && !excluded;
+      }),
+    [songs]
+  );
+
+  const devotionalPool = useMemo(
+    () =>
+      songs.filter((song) =>
+        songMatchesGenres(song, GENRE_GROUPS.devotional.genres)
       ),
-    });
+    [songs]
+  );
 
-    return sections;
-  }, [songs, playedIds, reloadKey]);
+  const evergreenPool = useMemo(
+    () =>
+      songs.filter((song) =>
+        songMatchesGenres(song, GENRE_GROUPS.evergreen.genres)
+      ),
+    [songs]
+  );
 
-  // ───────────────────────────────────────────────────
-  // JAZZ
-  // ───────────────────────────────────────────────────
+  const otherPool = useMemo(
+    () =>
+      songs.filter(
+        (song) =>
+          !songMatchesExcludedGenres(
+            song,
+            GENRE_GROUPS.otherGenres.excludeGenres
+          )
+      ),
+    [songs]
+  );
 
   const jazzPool = useMemo(
     () =>
@@ -638,13 +556,99 @@ export default function HomeSections() {
     [songs]
   );
 
+  // ───────────────────────────────────────────────────
+  // INDEPENDENT SECTION RESULTS
+  // ───────────────────────────────────────────────────
+
+  const madeForYouResult = useMemo(
+    () => pickUnplayed(newReleasesPool, RAIL_SIZE, playedIds),
+    [newReleasesPool, playedIds, reloadKey]
+  );
+
+  const melodyResult = useMemo(
+    () => pickUnplayed(melodyPool, RAIL_SIZE, playedIds),
+    [melodyPool, playedIds, reloadKey]
+  );
+
+  const melodyRomanticResult = useMemo(
+    () => pickUnplayed(melodyRomanticPool, RAIL_SIZE, playedIds),
+    [melodyRomanticPool, playedIds, reloadKey]
+  );
+
+  const danceResult = useMemo(
+    () => pickUnplayed(dancePool, RAIL_SIZE, playedIds),
+    [dancePool, playedIds, reloadKey]
+  );
+
+  const popBasedResult = useMemo(
+    () => pickUnplayed(popBasedPool, RAIL_SIZE, playedIds),
+    [popBasedPool, playedIds, reloadKey]
+  );
+
+  const devotionalResult = useMemo(
+    () => pickUnplayed(devotionalPool, RAIL_SIZE, playedIds),
+    [devotionalPool, playedIds, reloadKey]
+  );
+
+  const evergreenResult = useMemo(
+    () => pickUnplayed(evergreenPool, RAIL_SIZE, playedIds),
+    [evergreenPool, playedIds, reloadKey]
+  );
+
+  const otherResult = useMemo(
+    () => pickUnplayed(otherPool, RAIL_SIZE, playedIds),
+    [otherPool, playedIds, reloadKey]
+  );
+
   const jazzResult = useMemo(
     () => pickUnplayed(jazzPool, RAIL_SIZE, playedIds),
     [jazzPool, playedIds, reloadKey]
   );
 
   // ───────────────────────────────────────────────────
-  // RECENTLY PLAYED
+  // SCOPED RESET CALLBACKS
+  // Each callback clears play history only for the
+  // songs belonging to that section's pool.
+  // ───────────────────────────────────────────────────
+
+  const resetMadeForYou = useCallback(() => {
+    resetPlayedSubset(newReleasesPool.map((song) => song._id));
+  }, [newReleasesPool, resetPlayedSubset]);
+
+  const resetMelody = useCallback(() => {
+    resetPlayedSubset(melodyPool.map((song) => song._id));
+  }, [melodyPool, resetPlayedSubset]);
+
+  const resetMelodyRomantic = useCallback(() => {
+    resetPlayedSubset(melodyRomanticPool.map((song) => song._id));
+  }, [melodyRomanticPool, resetPlayedSubset]);
+
+  const resetDance = useCallback(() => {
+    resetPlayedSubset(dancePool.map((song) => song._id));
+  }, [dancePool, resetPlayedSubset]);
+
+  const resetPopBased = useCallback(() => {
+    resetPlayedSubset(popBasedPool.map((song) => song._id));
+  }, [popBasedPool, resetPlayedSubset]);
+
+  const resetDevotional = useCallback(() => {
+    resetPlayedSubset(devotionalPool.map((song) => song._id));
+  }, [devotionalPool, resetPlayedSubset]);
+
+  const resetEvergreen = useCallback(() => {
+    resetPlayedSubset(evergreenPool.map((song) => song._id));
+  }, [evergreenPool, resetPlayedSubset]);
+
+  const resetOther = useCallback(() => {
+    resetPlayedSubset(otherPool.map((song) => song._id));
+  }, [otherPool, resetPlayedSubset]);
+
+  const resetJazz = useCallback(() => {
+    resetPlayedSubset(jazzPool.map((song) => song._id));
+  }, [jazzPool, resetPlayedSubset]);
+
+  // ───────────────────────────────────────────────────
+  // RECENTLY PLAYED (unchanged — global history)
   // ───────────────────────────────────────────────────
 
   const recentlyPlayed = useMemo(() => {
@@ -749,9 +753,11 @@ export default function HomeSections() {
 
   // ───────────────────────────────────────────────────
   // SECTION RENDERER
+  // onReset is now required per section — no fallback
+  // to the global resetPlayed.
   // ───────────────────────────────────────────────────
 
-  const renderSection = (result, key, titleNode, onResetOverride) => {
+  const renderSection = (result, key, titleNode, onReset) => {
     if (result.poolSize === 0) return null;
 
     const allQueued =
@@ -783,9 +789,7 @@ export default function HomeSections() {
         </div>
 
         {result.exhausted ? (
-          <ExhaustedPlaceholder
-            onReset={onResetOverride || resetPlayed}
-          />
+          <ExhaustedPlaceholder onReset={onReset} />
         ) : (
           <Rail
             items={result.picks}
@@ -808,7 +812,7 @@ export default function HomeSections() {
 
   return (
     <div className="home-sections">
-      {/* Greeting + Reload + Reset */}
+      {/* Greeting + Reload + Reset (global reset still available for the user) */}
       <div className="all-songs__greeting">
         <button
           className="all-songs__reload-btn"
@@ -827,15 +831,15 @@ export default function HomeSections() {
         <button
           className="all-songs__reset-btn"
           onClick={resetPlayed}
-          aria-label="Reset played songs"
-          title="Reset played songs"
+          aria-label="Reset all played songs"
+          title="Reset all played songs"
         >
           <i className="fa-solid fa-rotate-left"></i>{" "}
-          Reset
+          Reset all
         </button>
       </div>
 
-      {/* Made for you — new releases only, with scoped reset */}
+      {/* Made for you — new releases only, scoped reset */}
       {renderSection(
         madeForYouResult,
         "made-for-you",
@@ -843,26 +847,92 @@ export default function HomeSections() {
         resetMadeForYou
       )}
 
-      {/* Genre sections */}
-      {genreSections.map((section) =>
-        renderSection(
-          section,
-          section.key,
-          <>
-            <i className={`fa-solid ${section.icon}`}></i>{" "}
-            {section.label}
-          </>
-        )
+      {/* Melody — scoped reset */}
+      {renderSection(
+        melodyResult,
+        GENRE_GROUPS.melody.key,
+        <>
+          <i className={`fa-solid ${GENRE_GROUPS.melody.icon}`}></i>{" "}
+          {GENRE_GROUPS.melody.label}
+        </>,
+        resetMelody
       )}
 
-      {/* Jazz */}
+      {/* Melody & Romance — scoped reset */}
+      {renderSection(
+        melodyRomanticResult,
+        GENRE_GROUPS.melodyRomantic.key,
+        <>
+          <i className={`fa-solid ${GENRE_GROUPS.melodyRomantic.icon}`}></i>{" "}
+          {GENRE_GROUPS.melodyRomantic.label}
+        </>,
+        resetMelodyRomantic
+      )}
+
+      {/* Dance & Electronic — scoped reset */}
+      {renderSection(
+        danceResult,
+        GENRE_GROUPS.danceElectronic.key,
+        <>
+          <i className={`fa-solid ${GENRE_GROUPS.danceElectronic.icon}`}></i>{" "}
+          {GENRE_GROUPS.danceElectronic.label}
+        </>,
+        resetDance
+      )}
+
+      {/* Pop Collection — scoped reset */}
+      {renderSection(
+        popBasedResult,
+        GENRE_GROUPS.popBased.key,
+        <>
+          <i className={`fa-solid ${GENRE_GROUPS.popBased.icon}`}></i>{" "}
+          {GENRE_GROUPS.popBased.label}
+        </>,
+        resetPopBased
+      )}
+
+      {/* Devotional & Traditional — scoped reset */}
+      {renderSection(
+        devotionalResult,
+        GENRE_GROUPS.devotional.key,
+        <>
+          <i className={`fa-solid ${GENRE_GROUPS.devotional.icon}`}></i>{" "}
+          {GENRE_GROUPS.devotional.label}
+        </>,
+        resetDevotional
+      )}
+
+      {/* Evergreen Classics — scoped reset */}
+      {renderSection(
+        evergreenResult,
+        GENRE_GROUPS.evergreen.key,
+        <>
+          <i className={`fa-solid ${GENRE_GROUPS.evergreen.icon}`}></i>{" "}
+          {GENRE_GROUPS.evergreen.label}
+        </>,
+        resetEvergreen
+      )}
+
+      {/* More to Explore — scoped reset */}
+      {renderSection(
+        otherResult,
+        GENRE_GROUPS.otherGenres.key,
+        <>
+          <i className={`fa-solid ${GENRE_GROUPS.otherGenres.icon}`}></i>{" "}
+          {GENRE_GROUPS.otherGenres.label}
+        </>,
+        resetOther
+      )}
+
+      {/* Jazz — scoped reset */}
       {renderSection(
         jazzResult,
         "jazz",
-        "Jazz"
+        "Jazz",
+        resetJazz
       )}
 
-      {/* Recently played */}
+      {/* Recently played — unchanged */}
       {recentlyPlayed.length > 0 && (
         <div className="all-songs__rail-section">
           <div className="all-songs__section-head">
@@ -899,7 +969,7 @@ export default function HomeSections() {
         </div>
       )}
 
-      {/* Continue listening */}
+      {/* Continue listening — unchanged */}
       {queue.length > 0 && (
         <div className="all-songs__rail-section">
           <h2 className="all-songs__section-title">
