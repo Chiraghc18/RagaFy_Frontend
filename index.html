@@ -1,56 +1,67 @@
+
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/blend.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#0A0A14" />
-    <meta name="description" content="RagaFy Beats - Your Ultimate Music Experience" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
-    <title>RagaFy Beats</title>
+
+    <!-- Responsive viewport -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <!-- RagaFy Beats RFB Favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="/ragafy-logo.png?v=2"
+    />
+
+    <!-- Mobile App Icon -->
+    <link
+      rel="apple-touch-icon"
+      href="/ragafy-logo.png"
+    />
+
+    <!-- Browser Theme -->
+    <meta name="theme-color" content="#080F27" />
+
+    <!-- Application Information -->
+    <meta
+      name="description"
+      content="RagaFy Beats - Your Ultimate Music Experience"
+    />
+
+    <meta
+      name="application-name"
+      content="RagaFy Beats"
+    />
+
+    <meta name="author" content="RagaFy Beats" />
+
+    <!-- Font Awesome -->
+    <link
+      rel="preconnect"
+      href="https://cdnjs.cloudflare.com"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+
+    <!-- Page Title -->
+    <title>RagaFy Beats | Your Music Experience</title>
   </head>
+
   <body>
+    <!-- React Application Root -->
     <div id="root"></div>
-    
-    <script>
-      (function createBlendedFavicon() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        
-        // Orange to Blue gradient background
-        const gradient = ctx.createLinearGradient(0, 0, 64, 64);
-        gradient.addColorStop(0, '#FF6B00');
-        gradient.addColorStop(0.5, '#FF8C3D');
-        gradient.addColorStop(1, '#0066FF');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 64, 64);
-        
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = function() {
-          // Screen blend mode for light logo on dark gradient
-          ctx.globalCompositeOperation = 'screen';
-          ctx.drawImage(img, 0, 0, 64, 64);
-          
-          const link = document.querySelector("link[rel='icon']");
-          if (link) {
-            link.href = canvas.toDataURL('image/png');
-          }
-        };
-        img.onerror = function() {
-          // Fallback: just use the gradient as favicon if image fails
-          const link = document.querySelector("link[rel='icon']");
-          if (link) {
-            link.href = canvas.toDataURL('image/png');
-          }
-        };
-        img.src = '/blend.png';
-      })();
-    </script>
-    
-    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- React Entry Point -->
+    <script
+      type="module"
+      src="/src/main.jsx"
+    ></script>
   </body>
 </html>
