@@ -707,9 +707,13 @@
 
 .global-player__playlist-close i { font-size: 14px; }
 
+/* ✅ The scrollable list wrapper */
 .global-player__playlist-items {
-  max-height: 340px;
-  overflow-y: auto;
+  max-height: 320px;         /* must be a fixed height */
+  overflow-y: auto;          /* must scroll */
+  position: relative;        /* ✅ REQUIRED for accurate offsetTop math */
+  scroll-behavior: smooth;
+  scroll-padding: 12px 0;    /* small breathing room top/bottom */
   padding: 8px;
 }
 
@@ -818,6 +822,139 @@
 .global-player-spacer {
   height: calc(90px + env(safe-area-inset-bottom, 0px));
   width: 100%;
+}
+
+/* ============================================
+   DOWNLOADS BUTTON
+   ============================================ */
+
+.global-player__downloads-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.global-player__downloads-btn:hover {
+  background: rgba(255, 107, 0, 0.2);
+  color: #ff6b00;
+  transform: scale(1.06);
+}
+
+.global-player__downloads-btn:active {
+  transform: scale(0.94);
+}
+
+/* ============================================
+   PLAYLIST HEADER ACTIONS / UNDO / CLEAR / REMOVE
+   ============================================ */
+
+.global-player__playlist-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-player__playlist-undo {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.global-player__playlist-undo:hover {
+  background: rgba(0, 102, 255, 0.25);
+}
+
+.global-player__playlist-clear {
+  background: transparent;
+  border: none;
+  color: #f44336;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.global-player__playlist-clear:hover {
+  background: rgba(244, 67, 54, 0.15);
+}
+
+.global-player__playlist-remove {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  margin-left: 6px;
+}
+
+.global-player__playlist-remove:hover {
+  background: rgba(255, 82, 82, 0.18);
+  color: #ff5252;
+  transform: scale(1.1);
+}
+
+@media (hover: none) {
+  .global-player__playlist-remove {
+    color: rgba(255, 255, 255, 0.75);
+  }
+}
+
+/* ============================================
+   DRAG & DROP — PLAYLIST REORDER
+   ============================================ */
+
+.global-player__playlist-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  flex-shrink: 0;
+  color: var(--text-muted, #888);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.global-player__playlist-item:hover .global-player__playlist-drag-handle {
+  opacity: 1;
+}
+
+.global-player__playlist-drag-handle:active {
+  cursor: grabbing;
+}
+
+.global-player__playlist-item.dragging {
+  opacity: 0.4;
+}
+
+.global-player__playlist-item.drag-over {
+  border-top: 2px solid var(--accent, #0066ff);
+  box-shadow: 0 -2px 6px rgba(0, 102, 255, 0.25);
 }
 
 /* ============================================
@@ -938,6 +1075,13 @@
     padding: 0 3px;
   }
 
+  /* Downloads button — match right-side buttons */
+  .global-player__downloads-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+
   /* ============================================================
      VOLUME POPUP — HORIZONTAL PILL on mobile
      Layout:  [75%]  [────●────]  [−] [+] [🔇]
@@ -957,7 +1101,6 @@
     right: 4px;
   }
 
-  /* Percentage — small, on the left */
   .global-player__volume-value {
     order: 1;
     font-size: 10px;
@@ -966,7 +1109,6 @@
     margin: 0;
   }
 
-  /* Slider — flexible middle section */
   .global-player__volume-slider {
     order: 2;
     flex: 1 1 auto;
@@ -987,7 +1129,6 @@
     height: 13px;
   }
 
-  /* Buttons — inline row on the right */
   .global-player__volume-actions {
     order: 3;
     width: auto;
@@ -1097,6 +1238,13 @@
     padding: 0 3px;
   }
 
+  /* Downloads button */
+  .global-player__downloads-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+  }
+
   /* ============================================================
      VOLUME PILL — even tighter on small phones
      ============================================================ */
@@ -1183,6 +1331,13 @@
     height: 26px;
   }
 
+  /* Downloads button */
+  .global-player__downloads-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+
   /* Pill — ultra compact */
   .global-player__volume-popup {
     gap: 5px;
@@ -1220,199 +1375,4 @@
     bottom: auto;
     top: calc(100% + 8px);
   }
-}
-
-.global-player__playlist-remove {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-  margin-left: 6px;
-}
-
-.global-player__playlist-remove:hover {
-  background: rgba(255, 82, 82, 0.18);
-  color: #ff5252;
-  transform: scale(1.1);
-}
-
-@media (hover: none) {
-  .global-player__playlist-remove {
-    color: rgba(255, 255, 255, 0.75);
-  }
-}
-
-/* ✅ The scrollable list wrapper */
-.global-player__playlist-items {
-  max-height: 320px;         /* must be a fixed height */
-  overflow-y: auto;          /* must scroll */
-  position: relative;        /* ✅ REQUIRED for accurate offsetTop math */
-  scroll-behavior: smooth;
-  scroll-padding: 12px 0;    /* small breathing room top/bottom */
-}
-
-/* ✅ Remove-from-playlist button */
-.global-player__playlist-remove {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-  margin-left: 6px;
-}
-
-.global-player__playlist-remove:hover {
-  background: rgba(255, 82, 82, 0.18);
-  color: #ff5252;
-  transform: scale(1.1);
-}
-
-@media (hover: none) {
-  .global-player__playlist-remove {
-    color: rgba(255, 255, 255, 0.75);
-  }
-}
-
-.global-player__downloads-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.2s ease;
-}
-
-.global-player__downloads-btn:hover {
-  background: rgba(255, 107, 0, 0.2);
-  color: #ff6b00;
-}
-
-.global-player__downloads-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.2s ease;
-}
-
-.global-player__downloads-btn:hover {
-  background: rgba(255, 107, 0, 0.2);
-  color: #ff6b00;
-}
-
-.global-player__playlist-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.global-player__playlist-clear {
-  background: transparent;
-  border: none;
-  color: #f44336;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  transition: background 0.15s ease;
-}
-
-.global-player__playlist-clear:hover {
-  background: rgba(244, 67, 54, 0.15);
-}
-
-.global-player__playlist-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.global-player__playlist-undo {
-  background: transparent;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  transition: background 0.15s ease;
-}
-
-.global-player__playlist-undo:hover {
-  background: rgba(0, 102, 255, 0.25);
-}
-
-.global-player__playlist-clear {
-  background: transparent;
-  border: none;
-  color: #f44336;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  transition: background 0.15s ease;
-}
-
-.global-player__playlist-clear:hover {
-  background: rgba(244, 67, 54, 0.15);
-}
-
-.global-player__playlist-drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  flex-shrink: 0;
-  color: var(--text-muted, #888);
-  cursor: grab;
-  touch-action: none;
-  opacity: 0.4;
-  transition: opacity 0.2s;
-}
-
-.global-player__playlist-item:hover .global-player__playlist-drag-handle {
-  opacity: 1;
-}
-
-.global-player__playlist-drag-handle:active {
-  cursor: grabbing;
-}
-
-.global-player__playlist-item.dragging {
-  opacity: 0.4;
-}
-
-.global-player__playlist-item.drag-over {
-  border-top: 2px solid var(--accent, #0066ff);
-  box-shadow: 0 -2px 6px rgba(0, 102, 255, 0.25);
 }
