@@ -5,9 +5,18 @@
 .hs {
   min-height: 100vh;
   background: transparent;
+  color: white;
   padding: 80px 20px 40px;
   padding-bottom: 110px;
-  box-sizing: border-box;
+  position: relative;
+  width: 100%;                 /* FIX */
+  max-width: 100%;             /* FIX */
+  box-sizing: border-box;      /* FIX */
+  overflow-x: hidden;          /* FIX — belt-and-suspenders against any stray overflow */
+  animation: pageEnter 0.5s ease-out;
+}
+
+.hs > * {
   position: relative;
   z-index: 1;
 }
@@ -69,10 +78,12 @@
 
 /* ===== SEARCH BAR ===== */
 .hs__search {
-  max-width: 600px;
-  margin: 0 auto 30px;
+  max-width: 650px;
+  width: 100%;
+  margin: 0 auto 25px;
   position: relative;
-  z-index: 2;
+  z-index: 10;
+  box-sizing: border-box;
 }
 
 .hs__search-wrapper {
@@ -94,6 +105,7 @@
 
 .hs__input {
   width: 100%;
+  max-width: 100%;             /* FIX */
   padding: 16px 50px 16px 50px;
   background: rgba(18, 18, 34, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -104,7 +116,7 @@
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   transition: all 0.3s ease;
-  box-sizing: border-box;
+  box-sizing: border-box;      /* FIX */
   outline: none;
 }
 
@@ -149,10 +161,13 @@
 .hs__count {
   text-align: center;
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 20px;
+  margin: 0 auto 18px;
   font-size: 0.9rem;
   position: relative;
   z-index: 1;
+  max-width: 650px;
+  padding: 0 10px;
+  word-break: break-word;
 }
 
 .hs__count strong {
@@ -166,101 +181,33 @@
 }
 
 /* ===== RESULTS LIST ===== */
+/* 
+ * Matches .sfs-results EXACTLY.
+ * NO max-height, NO overflow-y — page scrolls naturally.
+ * NO align-items: center — that was collapsing the grid on mobile.
+ */
 .hs__results {
-  max-width: 700px;
+  max-width: 1350px;
   margin: 0 auto;
+  padding: 15px 10px;
+  width: 100%;
+  box-sizing: border-box;      /* FIX */
   position: relative;
   z-index: 1;
+  /* REMOVED: display: flex; flex-direction: column; align-items: center;
+     — that flex centering collapsed BrowseSongLists' grid to content width */
 }
 
-/* Song item */
-.hs__item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 18px;
-  margin-bottom: 8px;
-  background: rgba(18, 18, 34, 0.5);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+/* Ensure the grid children from BrowseSongLists can shrink — same as sfs */
+.hs__results .bsl-container,
+.hs__results .bsl-song-list {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;                /* FIX — critical for grid children in flex parent */
 }
 
-.hs__item:hover {
-  background: rgba(255, 107, 0, 0.1);
-  border-color: rgba(255, 107, 0, 0.2);
-  transform: translateX(5px);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
-}
-
-.hs__item:active {
-  transform: scale(0.98);
-}
-
-.hs__item-img {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  object-fit: cover;
-  flex-shrink: 0;
-  border: 2px solid rgba(255, 255, 255, 0.08);
-}
-
-.hs__item-placeholder {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 107, 0, 0.15), rgba(0, 102, 255, 0.15));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-}
-
-.hs__item-placeholder i {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.hs__item-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.hs__item-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: white;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hs__item-artist {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hs__item-arrow {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 14px;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.hs__item:hover .hs__item-arrow {
-  color: #FF6B00;
-  transform: translateX(3px);
+.hs__results .bsl-song-list > * {
+  min-width: 0;                /* FIX — lets grid items shrink below their content width */
 }
 
 /* ===== LOADING ===== */
@@ -272,6 +219,7 @@
   padding: 60px 20px;
   color: rgba(255, 255, 255, 0.7);
   gap: 15px;
+  width: 100%;
 }
 
 .hs__spinner {
@@ -294,7 +242,15 @@
   background: rgba(18, 18, 34, 0.4);
   border-radius: 20px;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
 }
 
 .hs__empty-icon {
@@ -314,6 +270,7 @@
 .hs__empty-text {
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.45);
+  word-break: break-word;
 }
 
 .hs__empty-text span {
@@ -321,24 +278,22 @@
   font-style: italic;
 }
 
-/* ===== SCROLLBAR ===== */
-.hs::-webkit-scrollbar {
-  width: 5px;
-}
-
-.hs::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.hs::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #FF6B00, #0066FF);
-  border-radius: 10px;
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
+/* ===== TABLET ===== */
+@media (max-width: 1023px) {
   .hs {
     padding: 70px 15px 100px;
+  }
+
+  .hs__results {
+    padding: 12px 8px;
+  }
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 767px) {
+  .hs {
+    padding: 65px 10px 95px;
+    /* NO display: flex — that was collapsing the grid */
   }
 
   .hs__back {
@@ -362,7 +317,8 @@
   }
 
   .hs__search {
-    margin-bottom: 25px;
+    margin-bottom: 20px;
+    width: 100%;               /* FIX — was calc(100% - 8px), unnecessary */
   }
 
   .hs__input {
@@ -370,21 +326,38 @@
     font-size: 1rem;
   }
 
-  .hs__item {
-    padding: 12px 14px;
-    gap: 12px;
+  .hs__count {
+    margin-bottom: 14px;
+    font-size: 0.85rem;
   }
 
-  .hs__item-img,
-  .hs__item-placeholder {
-    width: 44px;
-    height: 44px;
+  .hs__results {
+    padding: 10px 5px;
+    width: 100%;
+  }
+
+  .hs__empty {
+    padding: 30px 18px;
+    min-height: 150px;
+  }
+
+  .hs__empty-icon {
+    font-size: 36px;
+  }
+
+  .hs__empty-title {
+    font-size: 1.05rem;
+  }
+
+  .hs__empty-text {
+    font-size: 0.88rem;
   }
 }
 
-@media (max-width: 480px) {
+/* ===== SMALL MOBILE ===== */
+@media (max-width: 479px) {
   .hs {
-    padding: 60px 10px 90px;
+    padding: 55px 6px 85px;
   }
 
   .hs__back {
@@ -421,32 +394,21 @@
     right: 16px;
   }
 
-  .hs__item {
-    padding: 10px 12px;
-    gap: 10px;
-    border-radius: 12px;
-  }
-
-  .hs__item-img,
-  .hs__item-placeholder {
-    width: 38px;
-    height: 38px;
-    border-radius: 8px;
-  }
-
-  .hs__item-title {
-    font-size: 14px;
+  .hs__results {
+    padding: 8px 4px;
   }
 
   .hs__empty {
-    padding: 40px 20px;
+    padding: 25px 15px;
+    min-height: 130px;
   }
 
   .hs__empty-icon {
-    font-size: 36px;
+    font-size: 28px;
   }
 }
 
+/* ===== ICON-ONLY BACK ===== */
 @media (max-width: 380px) {
   .hs__back {
     padding: 7px;
@@ -462,7 +424,7 @@
   }
 }
 
-/* iOS Safe Area */
+/* ===== iOS SAFE AREA ===== */
 @supports (-webkit-touch-callout: none) {
   .hs__back {
     top: max(14px, env(safe-area-inset-top, 14px));
@@ -472,4 +434,10 @@
     padding-top: max(80px, env(safe-area-inset-top, 80px));
     padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px) + 90px);
   }
+}
+
+/* ===== PAGE ENTER ANIMATION ===== */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
