@@ -275,15 +275,20 @@ function pickUnplayedRandom(pool, count, playedSet) {
 }
 
 /**
- * MADE-FOR-YOU selection — fully random shuffle across the
- * whole pool (unplayed + played combined).
+ * MADE-FOR-YOU selection — random, backfill ONLY when short.
  *
  * Behavior:
- *  - Combine ALL pool songs (played and unplayed together).
- *  - Shuffle the combined array (Fisher–Yates).
- *  - Slice to `count` → up to 29 songs.
- *  - Played songs may appear anywhere in the rail
- *    (front, middle, or back) — fully random.
+ *  - If unplayed count >= `count`:
+ *        → return `count` random UNPLAYED songs.
+ *          Played songs never appear.
+ *
+ *  - If unplayed count < `count`:
+ *        → take ALL unplayed songs,
+ *          backfill with random played songs,
+ *          shuffle the combined list together,
+ *          return up to `count`.
+ *          (Played songs can appear anywhere in the list.)
+ *
  *  - `exhausted` is only true when the pool itself is empty.
  */
 function pickUnplayedWithBackfill(pool, count, playedSet) {
@@ -293,7 +298,6 @@ function pickUnplayedWithBackfill(pool, count, playedSet) {
     return { picks: [], poolSize: 0, exhausted: false };
   }
 
-  // Combine unplayed + played into one list.
   const unplayed = [];
   const played = [];
 
@@ -305,15 +309,23 @@ function pickUnplayedWithBackfill(pool, count, playedSet) {
     }
   }
 
-  // Concatenate, shuffle together, slice.
-  const combined = [...unplayed, ...played];
-  const picks = pickRandom(combined, count);
+  // ── Case 1: enough unplayed songs → use only unplayed ──
+  if (unplayed.length >= count) {
+    const picks = pickRandom(unplayed, count);
+    return { picks, poolSize, exhausted: false };
+  }
 
-  return {
-    picks,
-    poolSize,
-    exhausted: false,
-  };
+  // ── Case 2: not enough unplayed → backfill with played ──
+  const stillNeeded = count - unplayed.length;
+
+  const backfill = pickRandom(played, stillNeeded);
+
+  // Shuffle unplayed + backfill together so played songs
+  // can appear anywhere in the rail.
+  const combined = [...unplayed, ...backfill];
+  const picks = pickRandom(combined, combined.length);
+
+  return { picks, poolSize, exhausted: false };
 }
 
 /**
