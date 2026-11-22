@@ -120,6 +120,11 @@ const GENRE_GROUPS = {
 
 const RAIL_SIZE = 29;
 
+// ─── Per-section auto-reset ───
+const AUTO_RESET_RATIO = 0.8;
+const AUTO_RESET_DELAY_MS = 30 * 60 * 1000; // 30 minutes
+const AUTO_RESET_MIN_POOL = 30; // skip tiny pools (they'd thrash)
+
 // ─────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────
@@ -579,28 +584,6 @@ export default function HomeSections() {
   const [reloadKey, setReloadKey] = useState(0);
 
   // ───────────────────────────────────────────────────
-  // AUTO-RESET AT 80% OF THE FULL CATALOGUE
-  // ───────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!songs.length) return;
-
-    const catalogueIds = new Set(
-      songs.map((song) => song._id)
-    );
-
-    const validPlayedIds = new Set(
-      playedSongIds.filter((id) => catalogueIds.has(id))
-    );
-
-    const resetThreshold = Math.ceil(songs.length * 0.8);
-
-    if (validPlayedIds.size >= resetThreshold) {
-      resetPlayed();
-    }
-  }, [songs, playedSongIds, resetPlayed]);
-
-  // ───────────────────────────────────────────────────
   // RELOAD SECTIONS
   // ───────────────────────────────────────────────────
 
@@ -697,17 +680,6 @@ export default function HomeSections() {
 
   // ───────────────────────────────────────────────────
   // INDEPENDENT SECTION RESULTS
-  //
-  //  - Made for you
-  //        → pickUnplayedWithBackfill (fully random across
-  //          unplayed + played, fills to 29)
-  //
-  //  - Devotional & Traditional / More to Explore / Jazz
-  //        → pickUnplayedRandom (unchanged)
-  //
-  //  - Melody / Melody & Romance / Dance & Electronic /
-  //    Pop Collection / Evergreen Classics
-  //        → pickUnplayedTiered (priority + per-tier shuffle)
   // ───────────────────────────────────────────────────
 
   const madeForYouResult = useMemo(
@@ -794,6 +766,141 @@ export default function HomeSections() {
   const resetJazz = useCallback(() => {
     resetPlayedSubset(jazzPool.map((song) => song._id));
   }, [jazzPool, resetPlayedSubset]);
+
+  // ───────────────────────────────────────────────────
+  // PER-SECTION AUTO-RESET — 80% PLAYED → 30 MIN → RESET
+  //
+  // Each genre section arms its own 30-minute timer the
+  // first time its pool crosses 80% played. The timer:
+  //   • does NOT restart on subsequent plays
+  //   • is cancelled if the pool drops back below 80%
+  //   • re-checks at fire time (overlapping pools can
+  //     un-play shared songs before it fires)
+  //
+  // NOTE: timers are cleared on unmount, so the 30 min
+  // only elapses while this page is mounted.
+  // ───────────────────────────────────────────────────
+
+  const autoResetTimers = useRef({}); // { [key]: { id } }
+  const poolsRef = useRef({});
+  const playedIdsRef = useRef(playedIds);
+
+  useEffect(() => {
+    playedIdsRef.current = playedIds;
+  }, [playedIds]);
+
+  useEffect(() => {
+    poolsRef.current = {
+      melody: melodyPool,
+      "melody-romantic": melodyRomanticPool,
+      dance: dancePool,
+      pop: popBasedPool,
+      devotional: devotionalPool,
+      evergreen: evergreenPool,
+      other: otherPool,
+      jazz: jazzPool,
+    };
+  }, [
+    melodyPool,
+    melodyRomanticPool,
+    dancePool,
+    popBasedPool,
+    devotionalPool,
+    evergreenPool,
+    otherPool,
+    jazzPool,
+  ]);
+
+  // Clear all armed timers on unmount.
+  useEffect(() => {
+    return () => {
+      for (const entry of Object.values(autoResetTimers.current)) {
+        if (entry?.id) clearTimeout(entry.id);
+      }
+      autoResetTimers.current = {};
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!songs.length) return;
+
+    const sections = [
+      ["melody", melodyPool, resetMelody],
+      ["melody-romantic", melodyRomanticPool, resetMelodyRomantic],
+      ["dance", dancePool, resetDance],
+      ["pop", popBasedPool, resetPopBased],
+      ["devotional", devotionalPool, resetDevotional],
+      ["evergreen", evergreenPool, resetEvergreen],
+      ["other", otherPool, resetOther],
+      ["jazz", jazzPool, resetJazz],
+      // "made-for-you" intentionally excluded — its 1-year
+      // rolling window + backfill would thrash.
+    ];
+
+    for (const [key, pool, resetFn] of sections) {
+      if (pool.length < AUTO_RESET_MIN_POOL) continue;
+
+      let playedInPool = 0;
+      for (const song of pool) {
+        if (playedIds.has(song._id)) playedInPool++;
+      }
+
+      const threshold = Math.ceil(pool.length * AUTO_RESET_RATIO);
+      const above = playedInPool >= threshold;
+      const existing = autoResetTimers.current[key];
+
+      if (!above) {
+        if (existing?.id) {
+          clearTimeout(existing.id);
+          delete autoResetTimers.current[key];
+        }
+        continue;
+      }
+
+      // Already armed — do NOT restart the 30-minute clock.
+      if (existing) continue;
+
+      const id = setTimeout(() => {
+        delete autoResetTimers.current[key];
+
+        const latestPool = poolsRef.current[key];
+        const latestPlayed = playedIdsRef.current;
+
+        if (!latestPool || latestPool.length < AUTO_RESET_MIN_POOL) return;
+
+        let played = 0;
+        for (const s of latestPool) {
+          if (latestPlayed.has(s._id)) played++;
+        }
+
+        const thr = Math.ceil(latestPool.length * AUTO_RESET_RATIO);
+        if (played < thr) return; // dropped below — skip
+
+        resetFn();
+      }, AUTO_RESET_DELAY_MS);
+
+      autoResetTimers.current[key] = { id };
+    }
+  }, [
+    songs,
+    playedIds,
+    melodyPool,
+    melodyRomanticPool,
+    dancePool,
+    popBasedPool,
+    devotionalPool,
+    evergreenPool,
+    otherPool,
+    jazzPool,
+    resetMelody,
+    resetMelodyRomantic,
+    resetDance,
+    resetPopBased,
+    resetDevotional,
+    resetEvergreen,
+    resetOther,
+    resetJazz,
+  ]);
 
   // ───────────────────────────────────────────────────
   // RECENTLY PLAYED (unchanged — global history)
