@@ -150,29 +150,33 @@ function pickRandom(arr, count) {
   return copy.slice(0, count);
 }
 
-// Filter out played songs, then randomly pick songs
-function pickUnplayed(pool, count, playedSet) {
-  const poolSize = pool?.length || 0;
+// ─────────────────────────────────────────────────────
+// EXHAUSTED SECTION PLACEHOLDER
+// ─────────────────────────────────────────────────────
 
-  if (poolSize === 0) {
-    return {
-      picks: [],
-      poolSize: 0,
-      exhausted: false,
-    };
-  }
+function ExhaustedPlaceholder({ onReset }) {
+  return (
+    <div className="all-songs__exhausted">
+      <div className="all-songs__exhausted-inner">
+        <i className="fa-solid fa-circle-check all-songs__exhausted-icon"></i>
 
-  const unplayed = pool.filter(
-    (song) => !playedSet.has(song._id)
+        <p className="all-songs__exhausted-title">
+          You've heard them all
+        </p>
+
+        <p className="all-songs__exhausted-text">
+          Hit <strong>Reset</strong> to start this section again.
+        </p>
+
+        <button
+          className="all-songs__exhausted-btn"
+          onClick={onReset}
+        >
+          <i className="fa-solid fa-rotate-left"></i> Reset
+        </button>
+      </div>
+    </div>
   );
-
-  const picks = pickRandom(unplayed, count);
-
-  return {
-    picks,
-    poolSize,
-    exhausted: unplayed.length === 0,
-  };
 }
 
 // ─────────────────────────────────────────────────────
@@ -217,6 +221,160 @@ function getNewReleases(songs, days) {
     .filter(({ ts }) => Number.isFinite(ts) && ts >= cutoff)
     .sort((a, b) => b.ts - a.ts)
     .map(({ song }) => song);
+}
+
+// ─────────────────────────────────────────────────────
+// RELEASE-DATE TIERS (priority order)
+// ─────────────────────────────────────────────────────
+
+const RELEASE_TIERS = [
+  { key: "last3", minDays: 0, maxDays: 365 * 3 },
+  { key: "3to7", minDays: 365 * 3, maxDays: 365 * 7 },
+  { key: "7to10", minDays: 365 * 7, maxDays: 365 * 10 },
+  { key: "older", minDays: 365 * 10, maxDays: Infinity },
+];
+
+/**
+ * Assign a song to a tier based on its release date.
+ * Songs without a valid date fall into "older" (lowest priority).
+ */
+function getSongTier(song) {
+  const ts = getSongReleaseTimestamp(song);
+
+  if (!Number.isFinite(ts)) return "older";
+
+  const ageDays = (Date.now() - ts) / (24 * 60 * 60 * 1000);
+
+  for (const tier of RELEASE_TIERS) {
+    if (ageDays >= tier.minDays && ageDays < tier.maxDays) {
+      return tier.key;
+    }
+  }
+  return "older";
+}
+
+/**
+ * ORIGINAL selection — fully random across the whole pool.
+ * Used by: More to Explore, Devotional & Traditional, Jazz.
+ */
+function pickUnplayedRandom(pool, count, playedSet) {
+  const poolSize = pool?.length || 0;
+
+  if (poolSize === 0) {
+    return { picks: [], poolSize: 0, exhausted: false };
+  }
+
+  const unplayed = pool.filter((song) => !playedSet.has(song._id));
+  const picks = pickRandom(unplayed, count);
+
+  return {
+    picks,
+    poolSize,
+    exhausted: unplayed.length === 0,
+  };
+}
+
+/**
+ * MADE-FOR-YOU selection — fully random shuffle across the
+ * whole pool (unplayed + played combined).
+ *
+ * Behavior:
+ *  - Combine ALL pool songs (played and unplayed together).
+ *  - Shuffle the combined array (Fisher–Yates).
+ *  - Slice to `count` → up to 29 songs.
+ *  - Played songs may appear anywhere in the rail
+ *    (front, middle, or back) — fully random.
+ *  - `exhausted` is only true when the pool itself is empty.
+ */
+function pickUnplayedWithBackfill(pool, count, playedSet) {
+  const poolSize = pool?.length || 0;
+
+  if (poolSize === 0) {
+    return { picks: [], poolSize: 0, exhausted: false };
+  }
+
+  // Combine unplayed + played into one list.
+  const unplayed = [];
+  const played = [];
+
+  for (const song of pool) {
+    if (playedSet.has(song._id)) {
+      played.push(song);
+    } else {
+      unplayed.push(song);
+    }
+  }
+
+  // Concatenate, shuffle together, slice.
+  const combined = [...unplayed, ...played];
+  const picks = pickRandom(combined, count);
+
+  return {
+    picks,
+    poolSize,
+    exhausted: false,
+  };
+}
+
+/**
+ * TIERED selection — progressive priority fill.
+ * Used by: Melody, Melody & Romance, Dance & Electronic,
+ *          Pop Collection, Evergreen Classics.
+ *
+ * Behavior:
+ *  - Fill newest tier (last 3 years) first, then 3–7, then
+ *    7–10, then older — stopping at `count`.
+ *  - Randomize WITHIN each tier only.
+ *  - Final array preserves tier order (newest → oldest).
+ */
+function pickUnplayedTiered(pool, count, playedSet) {
+  const poolSize = pool?.length || 0;
+
+  if (poolSize === 0) {
+    return { picks: [], poolSize: 0, exhausted: false };
+  }
+
+  const unplayed = pool.filter((song) => !playedSet.has(song._id));
+
+  if (unplayed.length === 0) {
+    return { picks: [], poolSize, exhausted: true };
+  }
+
+  const buckets = {
+    last3: [],
+    "3to7": [],
+    "7to10": [],
+    older: [],
+  };
+
+  for (const song of unplayed) {
+    buckets[getSongTier(song)].push(song);
+  }
+
+  const picks = [];
+  const tierOrder = ["last3", "3to7", "7to10", "older"];
+
+  for (const tierKey of tierOrder) {
+    const bucket = buckets[tierKey];
+    if (bucket.length === 0) continue;
+
+    const shuffled = [...bucket];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const remaining = count - picks.length;
+    picks.push(...shuffled.slice(0, remaining));
+
+    if (picks.length >= count) break;
+  }
+
+  return {
+    picks,
+    poolSize,
+    exhausted: false,
+  };
 }
 
 // ─────────────────────────────────────────────────────
@@ -370,35 +528,6 @@ function Rail({ items, renderItem }) {
 }
 
 // ─────────────────────────────────────────────────────
-// EXHAUSTED SECTION PLACEHOLDER
-// ─────────────────────────────────────────────────────
-
-function ExhaustedPlaceholder({ onReset }) {
-  return (
-    <div className="all-songs__exhausted">
-      <div className="all-songs__exhausted-inner">
-        <i className="fa-solid fa-circle-check all-songs__exhausted-icon"></i>
-
-        <p className="all-songs__exhausted-title">
-          You've heard them all
-        </p>
-
-        <p className="all-songs__exhausted-text">
-          Hit <strong>Reset</strong> to start this section again.
-        </p>
-
-        <button
-          className="all-songs__exhausted-btn"
-          onClick={onReset}
-        >
-          <i className="fa-solid fa-rotate-left"></i> Reset
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────
 
@@ -469,8 +598,6 @@ export default function HomeSections() {
 
   // ───────────────────────────────────────────────────
   // INDEPENDENT SECTION POOLS
-  // Each pool is lifted out so a scoped reset callback
-  // can target only that section's songs.
   // ───────────────────────────────────────────────────
 
   const newReleasesPool = useMemo(
@@ -558,57 +685,66 @@ export default function HomeSections() {
 
   // ───────────────────────────────────────────────────
   // INDEPENDENT SECTION RESULTS
+  //
+  //  - Made for you
+  //        → pickUnplayedWithBackfill (fully random across
+  //          unplayed + played, fills to 29)
+  //
+  //  - Devotional & Traditional / More to Explore / Jazz
+  //        → pickUnplayedRandom (unchanged)
+  //
+  //  - Melody / Melody & Romance / Dance & Electronic /
+  //    Pop Collection / Evergreen Classics
+  //        → pickUnplayedTiered (priority + per-tier shuffle)
   // ───────────────────────────────────────────────────
 
   const madeForYouResult = useMemo(
-    () => pickUnplayed(newReleasesPool, RAIL_SIZE, playedIds),
+    () => pickUnplayedWithBackfill(newReleasesPool, RAIL_SIZE, playedIds),
     [newReleasesPool, playedIds, reloadKey]
   );
 
   const melodyResult = useMemo(
-    () => pickUnplayed(melodyPool, RAIL_SIZE, playedIds),
+    () => pickUnplayedTiered(melodyPool, RAIL_SIZE, playedIds),
     [melodyPool, playedIds, reloadKey]
   );
 
   const melodyRomanticResult = useMemo(
-    () => pickUnplayed(melodyRomanticPool, RAIL_SIZE, playedIds),
+    () => pickUnplayedTiered(melodyRomanticPool, RAIL_SIZE, playedIds),
     [melodyRomanticPool, playedIds, reloadKey]
   );
 
   const danceResult = useMemo(
-    () => pickUnplayed(dancePool, RAIL_SIZE, playedIds),
+    () => pickUnplayedTiered(dancePool, RAIL_SIZE, playedIds),
     [dancePool, playedIds, reloadKey]
   );
 
   const popBasedResult = useMemo(
-    () => pickUnplayed(popBasedPool, RAIL_SIZE, playedIds),
+    () => pickUnplayedTiered(popBasedPool, RAIL_SIZE, playedIds),
     [popBasedPool, playedIds, reloadKey]
   );
 
   const devotionalResult = useMemo(
-    () => pickUnplayed(devotionalPool, RAIL_SIZE, playedIds),
+    () => pickUnplayedRandom(devotionalPool, RAIL_SIZE, playedIds),
     [devotionalPool, playedIds, reloadKey]
   );
 
   const evergreenResult = useMemo(
-    () => pickUnplayed(evergreenPool, RAIL_SIZE, playedIds),
+    () => pickUnplayedTiered(evergreenPool, RAIL_SIZE, playedIds),
     [evergreenPool, playedIds, reloadKey]
   );
 
   const otherResult = useMemo(
-    () => pickUnplayed(otherPool, RAIL_SIZE, playedIds),
+    () => pickUnplayedRandom(otherPool, RAIL_SIZE, playedIds),
     [otherPool, playedIds, reloadKey]
   );
 
   const jazzResult = useMemo(
-    () => pickUnplayed(jazzPool, RAIL_SIZE, playedIds),
+    () => pickUnplayedRandom(jazzPool, RAIL_SIZE, playedIds),
     [jazzPool, playedIds, reloadKey]
   );
 
   // ───────────────────────────────────────────────────
   // SCOPED RESET CALLBACKS
-  // Each callback clears play history only for the
-  // songs belonging to that section's pool.
   // ───────────────────────────────────────────────────
 
   const resetMadeForYou = useCallback(() => {
@@ -753,8 +889,6 @@ export default function HomeSections() {
 
   // ───────────────────────────────────────────────────
   // SECTION RENDERER
-  // onReset is now required per section — no fallback
-  // to the global resetPlayed.
   // ───────────────────────────────────────────────────
 
   const renderSection = (result, key, titleNode, onReset) => {
@@ -812,7 +946,7 @@ export default function HomeSections() {
 
   return (
     <div className="home-sections">
-      {/* Greeting + Reload + Reset (global reset still available for the user) */}
+      {/* Greeting + Reload + Reset */}
       <div className="all-songs__greeting">
         <button
           className="all-songs__reload-btn"
@@ -839,7 +973,7 @@ export default function HomeSections() {
         </button>
       </div>
 
-      {/* Made for you — new releases only, scoped reset */}
+      {/* Made for you — fully random across unplayed + played */}
       {renderSection(
         madeForYouResult,
         "made-for-you",
@@ -847,7 +981,7 @@ export default function HomeSections() {
         resetMadeForYou
       )}
 
-      {/* Melody — scoped reset */}
+      {/* Melody — tiered */}
       {renderSection(
         melodyResult,
         GENRE_GROUPS.melody.key,
@@ -858,7 +992,7 @@ export default function HomeSections() {
         resetMelody
       )}
 
-      {/* Melody & Romance — scoped reset */}
+      {/* Melody & Romance — tiered */}
       {renderSection(
         melodyRomanticResult,
         GENRE_GROUPS.melodyRomantic.key,
@@ -869,7 +1003,7 @@ export default function HomeSections() {
         resetMelodyRomantic
       )}
 
-      {/* Dance & Electronic — scoped reset */}
+      {/* Dance & Electronic — tiered */}
       {renderSection(
         danceResult,
         GENRE_GROUPS.danceElectronic.key,
@@ -880,7 +1014,7 @@ export default function HomeSections() {
         resetDance
       )}
 
-      {/* Pop Collection — scoped reset */}
+      {/* Pop Collection — tiered */}
       {renderSection(
         popBasedResult,
         GENRE_GROUPS.popBased.key,
@@ -891,7 +1025,7 @@ export default function HomeSections() {
         resetPopBased
       )}
 
-      {/* Devotional & Traditional — scoped reset */}
+      {/* Devotional & Traditional — random (unchanged) */}
       {renderSection(
         devotionalResult,
         GENRE_GROUPS.devotional.key,
@@ -902,7 +1036,7 @@ export default function HomeSections() {
         resetDevotional
       )}
 
-      {/* Evergreen Classics — scoped reset */}
+      {/* Evergreen Classics — tiered */}
       {renderSection(
         evergreenResult,
         GENRE_GROUPS.evergreen.key,
@@ -913,7 +1047,7 @@ export default function HomeSections() {
         resetEvergreen
       )}
 
-      {/* More to Explore — scoped reset */}
+      {/* More to Explore — random (unchanged) */}
       {renderSection(
         otherResult,
         GENRE_GROUPS.otherGenres.key,
@@ -924,7 +1058,7 @@ export default function HomeSections() {
         resetOther
       )}
 
-      {/* Jazz — scoped reset */}
+      {/* Jazz — random (unchanged) */}
       {renderSection(
         jazzResult,
         "jazz",
