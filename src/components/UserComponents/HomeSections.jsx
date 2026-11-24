@@ -7,7 +7,7 @@ import "../../assets/style/UserPage/AllSongs.css";
 // ─────────────────────────────────────────────────────
 // HOW FAR BACK COUNTS AS "NEW"
 // ─────────────────────────────────────────────────────
-const NEW_RELEASE_WINDOW_DAYS = 365;
+const NEW_RELEASE_WINDOW_DAYS = 400;
 
 // Rails pulled from filterOptions
 const CATEGORY_RAILS = [
@@ -118,12 +118,14 @@ const GENRE_GROUPS = {
   },
 };
 
-const RAIL_SIZE = 29;
+const RAIL_SIZE = 30;
 
 // ─── Per-section auto-reset ───
 const AUTO_RESET_RATIO = 0.8;
-const AUTO_RESET_DELAY_MS = 30 * 60 * 1000; // 30 minutes
+const AUTO_RESET_DAYS = 12;
+const AUTO_RESET_DELAY_MS = AUTO_RESET_DAYS * 24 * 60 * 60 * 1000; // 12 days in ms
 const AUTO_RESET_MIN_POOL = 30; // skip tiny pools (they'd thrash)
+const AUTO_RESET_STORAGE_PREFIX = "autoreset:";
 
 // ─────────────────────────────────────────────────────
 // HELPERS
@@ -281,20 +283,6 @@ function pickUnplayedRandom(pool, count, playedSet) {
 
 /**
  * MADE-FOR-YOU selection — random, backfill ONLY when short.
- *
- * Behavior:
- *  - If unplayed count >= `count`:
- *        → return `count` random UNPLAYED songs.
- *          Played songs never appear.
- *
- *  - If unplayed count < `count`:
- *        → take ALL unplayed songs,
- *          backfill with random played songs,
- *          shuffle the combined list together,
- *          return up to `count`.
- *          (Played songs can appear anywhere in the list.)
- *
- *  - `exhausted` is only true when the pool itself is empty.
  */
 function pickUnplayedWithBackfill(pool, count, playedSet) {
   const poolSize = pool?.length || 0;
@@ -337,12 +325,6 @@ function pickUnplayedWithBackfill(pool, count, playedSet) {
  * TIERED selection — progressive priority fill.
  * Used by: Melody, Melody & Romance, Dance & Electronic,
  *          Pop Collection, Evergreen Classics.
- *
- * Behavior:
- *  - Fill newest tier (last 3 years) first, then 3–7, then
- *    7–10, then older — stopping at `count`.
- *  - Randomize WITHIN each tier only.
- *  - Final array preserves tier order (newest → oldest).
  */
 function pickUnplayedTiered(pool, count, playedSet) {
   const poolSize = pool?.length || 0;
@@ -768,22 +750,28 @@ export default function HomeSections() {
   }, [jazzPool, resetPlayedSubset]);
 
   // ───────────────────────────────────────────────────
-  // PER-SECTION AUTO-RESET — 80% PLAYED → 30 MIN → RESET
+  // PER-SECTION AUTO-RESET — 90% PLAYED → 12 DAYS → RESET
   //
-  // Each genre section arms its own 30-minute timer the
-  // first time its pool crosses 80% played. The timer:
+  // Each genre section arms its own 12-day timer the
+  // first time its pool crosses 90% played. The timer:
   //   • does NOT restart on subsequent plays
-  //   • is cancelled if the pool drops back below 80%
+  //   • is cancelled if the pool drops back below 90%
   //   • re-checks at fire time (overlapping pools can
   //     un-play shared songs before it fires)
   //
-  // NOTE: timers are cleared on unmount, so the 30 min
-  // only elapses while this page is mounted.
+  // IMPORTANT: the "armed at" timestamp is persisted to
+  // localStorage, so the 12 days continue to elapse even
+  // when this page is unmounted (navigation, refresh,
+  // tab close). On every mount / playedIds change we
+  // check whether any armed section has expired.
   // ───────────────────────────────────────────────────
 
-  const autoResetTimers = useRef({}); // { [key]: { id } }
+  // Refs so the expiry check (which runs in a useEffect
+  // with a stable dependency list) always sees the latest
+  // pools + played set without re-arming on every play.
   const poolsRef = useRef({});
   const playedIdsRef = useRef(playedIds);
+  const resetFnsRef = useRef({});
 
   useEffect(() => {
     playedIdsRef.current = playedIds;
@@ -800,90 +788,18 @@ export default function HomeSections() {
       other: otherPool,
       jazz: jazzPool,
     };
-  }, [
-    melodyPool,
-    melodyRomanticPool,
-    dancePool,
-    popBasedPool,
-    devotionalPool,
-    evergreenPool,
-    otherPool,
-    jazzPool,
-  ]);
 
-  // Clear all armed timers on unmount.
-  useEffect(() => {
-    return () => {
-      for (const entry of Object.values(autoResetTimers.current)) {
-        if (entry?.id) clearTimeout(entry.id);
-      }
-      autoResetTimers.current = {};
+    resetFnsRef.current = {
+      melody: resetMelody,
+      "melody-romantic": resetMelodyRomantic,
+      dance: resetDance,
+      pop: resetPopBased,
+      devotional: resetDevotional,
+      evergreen: resetEvergreen,
+      other: resetOther,
+      jazz: resetJazz,
     };
-  }, []);
-
-  useEffect(() => {
-    if (!songs.length) return;
-
-    const sections = [
-      ["melody", melodyPool, resetMelody],
-      ["melody-romantic", melodyRomanticPool, resetMelodyRomantic],
-      ["dance", dancePool, resetDance],
-      ["pop", popBasedPool, resetPopBased],
-      ["devotional", devotionalPool, resetDevotional],
-      ["evergreen", evergreenPool, resetEvergreen],
-      ["other", otherPool, resetOther],
-      ["jazz", jazzPool, resetJazz],
-      // "made-for-you" intentionally excluded — its 1-year
-      // rolling window + backfill would thrash.
-    ];
-
-    for (const [key, pool, resetFn] of sections) {
-      if (pool.length < AUTO_RESET_MIN_POOL) continue;
-
-      let playedInPool = 0;
-      for (const song of pool) {
-        if (playedIds.has(song._id)) playedInPool++;
-      }
-
-      const threshold = Math.ceil(pool.length * AUTO_RESET_RATIO);
-      const above = playedInPool >= threshold;
-      const existing = autoResetTimers.current[key];
-
-      if (!above) {
-        if (existing?.id) {
-          clearTimeout(existing.id);
-          delete autoResetTimers.current[key];
-        }
-        continue;
-      }
-
-      // Already armed — do NOT restart the 30-minute clock.
-      if (existing) continue;
-
-      const id = setTimeout(() => {
-        delete autoResetTimers.current[key];
-
-        const latestPool = poolsRef.current[key];
-        const latestPlayed = playedIdsRef.current;
-
-        if (!latestPool || latestPool.length < AUTO_RESET_MIN_POOL) return;
-
-        let played = 0;
-        for (const s of latestPool) {
-          if (latestPlayed.has(s._id)) played++;
-        }
-
-        const thr = Math.ceil(latestPool.length * AUTO_RESET_RATIO);
-        if (played < thr) return; // dropped below — skip
-
-        resetFn();
-      }, AUTO_RESET_DELAY_MS);
-
-      autoResetTimers.current[key] = { id };
-    }
   }, [
-    songs,
-    playedIds,
     melodyPool,
     melodyRomanticPool,
     dancePool,
@@ -900,6 +816,153 @@ export default function HomeSections() {
     resetEvergreen,
     resetOther,
     resetJazz,
+  ]);
+
+  // ─── localStorage helpers ───
+
+  const readArmedAt = (key) => {
+    try {
+      const raw = localStorage.getItem(
+        AUTO_RESET_STORAGE_PREFIX + key
+      );
+      if (!raw) return null;
+      const ts = Number(raw);
+      return Number.isFinite(ts) ? ts : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const writeArmedAt = (key, ts) => {
+    try {
+      localStorage.setItem(
+        AUTO_RESET_STORAGE_PREFIX + key,
+        String(ts)
+      );
+    } catch {
+      // localStorage may be unavailable (privacy mode) — ignore
+    }
+  };
+
+  const clearArmedAt = (key) => {
+    try {
+      localStorage.removeItem(AUTO_RESET_STORAGE_PREFIX + key);
+    } catch {
+      // ignore
+    }
+  };
+
+  // Compute how many songs in `pool` are in `playedIds`.
+  const countPlayed = (pool, playedSet) => {
+    let n = 0;
+    for (const song of pool) {
+      if (playedSet.has(song._id)) n++;
+    }
+    return n;
+  };
+
+  // ─── Main auto-reset effect ───
+  //
+  // Runs on every change to pools / playedIds. For each
+  // section it:
+  //   1. Skips pools < AUTO_RESET_MIN_POOL (and clears
+  //      any stale armed timestamp).
+  //   2. If below the 90% threshold → clears armed timestamp.
+  //   3. If above the threshold:
+  //        a. If already armed → checks whether the stored
+  //           timestamp has expired; if so, fires reset.
+  //        b. If not armed → arms now (stores Date.now()).
+  //
+  // Because we store the timestamp in localStorage, the
+  // 12-day clock survives unmount / refresh / tab close.
+  // ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!songs.length) return;
+
+    const sectionKeys = [
+      "melody",
+      "melody-romantic",
+      "dance",
+      "pop",
+      "devotional",
+      "evergreen",
+      "other",
+      "jazz",
+      // "made-for-you" intentionally excluded — its rolling
+      // window + backfill would thrash.
+    ];
+
+    const now = Date.now();
+
+    for (const key of sectionKeys) {
+      const pool = poolsRef.current[key];
+      const resetFn = resetFnsRef.current[key];
+
+      if (!pool || !resetFn) continue;
+
+      // ── 1. Pool too small → clear any stale timestamp ──
+      if (pool.length < AUTO_RESET_MIN_POOL) {
+        clearArmedAt(key);
+        continue;
+      }
+
+      const playedInPool = countPlayed(pool, playedIds);
+      const threshold = Math.ceil(pool.length * AUTO_RESET_RATIO);
+      const above = playedInPool >= threshold;
+
+      // ── 2. Dropped below threshold → disarm ──
+      if (!above) {
+        clearArmedAt(key);
+        continue;
+      }
+
+      // ── 3a. Already armed → check expiry ──
+      const armedAt = readArmedAt(key);
+
+      if (armedAt !== null) {
+        if (now - armedAt >= AUTO_RESET_DELAY_MS) {
+          // Re-check against the latest snapshot at fire time
+          const latestPool = poolsRef.current[key];
+          const latestPlayed = playedIdsRef.current;
+
+          if (
+            latestPool &&
+            latestPool.length >= AUTO_RESET_MIN_POOL
+          ) {
+            const latestPlayedCount = countPlayed(
+              latestPool,
+              latestPlayed
+            );
+            const latestThreshold = Math.ceil(
+              latestPool.length * AUTO_RESET_RATIO
+            );
+
+            if (latestPlayedCount >= latestThreshold) {
+              resetFn();
+            }
+          }
+
+          // Whether or not the reset fired, the timer is spent.
+          clearArmedAt(key);
+        }
+        continue;
+      }
+
+      // ── 3b. Not armed → arm now ──
+      writeArmedAt(key, now);
+    }
+  }, [
+    songs,
+    playedIds,
+    melodyPool,
+    melodyRomanticPool,
+    dancePool,
+    popBasedPool,
+    devotionalPool,
+    evergreenPool,
+    otherPool,
+    jazzPool,
   ]);
 
   // ───────────────────────────────────────────────────
