@@ -43,6 +43,8 @@ export default function SongPlayerPage() {
   const [downloadedIds, setDownloadedIds] = useState(new Set());
   const [downloadingIds, setDownloadingIds] = useState(new Set());
   const [downloadingAll, setDownloadingAll] = useState(false);
+  
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Drag state
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -51,6 +53,18 @@ export default function SongPlayerPage() {
 
   const audioRef = useRef(null);
   const activeSongRef = useRef(null);
+
+  // Monitor network status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (songs && songs.length > 0 && !initialized) {
@@ -115,6 +129,10 @@ export default function SongPlayerPage() {
 
   const handleDownloadOne = async (e, song) => {
     e.stopPropagation();
+    if (!isOnline) {
+      showNotification("You need internet to download", "#FF9800");
+      return;
+    }
     if (downloadedIds.has(song._id) || downloadingIds.has(song._id)) return;
 
     setDownloadingIds((prev) => new Set(prev).add(song._id));
@@ -122,6 +140,7 @@ export default function SongPlayerPage() {
     try {
       await downloadSong(song);
       setDownloadedIds((prev) => new Set(prev).add(song._id));
+      showNotification("✓ Downloaded", "#4CAF50");
     } catch (err) {
       console.error("Download failed:", err);
       showNotification("✕ Download failed", "#f44336");
@@ -135,6 +154,10 @@ export default function SongPlayerPage() {
   };
 
   const handleDownloadAll = async () => {
+    if (!isOnline) {
+      showNotification("You need internet to download", "#FF9800");
+      return;
+    }
     if (downloadingAll) return;
 
     const toDownload = currentPlaylist.filter(
@@ -189,6 +212,10 @@ export default function SongPlayerPage() {
   };
 
   const handleSongClick = (song, index) => {
+    if (!isOnline && !downloadedIds.has(song._id)) {
+      showNotification("This song is not downloaded for offline play", "#FF9800");
+      return;
+    }
     playSong(song, currentPlaylist, index);
   };
 
@@ -543,34 +570,36 @@ export default function SongPlayerPage() {
                 <i className="fa-solid fa-trash"></i>
               </button>
 
-              <button
-                className={`ragafy-player__add-all-btn ${
-                  allDownloaded ? "ragafy-player__add-all-btn--done" : ""
-                }`}
-                onClick={handleDownloadAll}
-                disabled={downloadingAll || allDownloaded}
-                title={
-                  allDownloaded
-                    ? "All songs downloaded"
-                    : "Download all songs for offline"
-                }
-              >
-                {downloadingAll ? (
-                  <>
-                    <i className="fa-solid fa-spinner fa-spin"></i>{" "}
-                    Downloading...
-                  </>
-                ) : allDownloaded ? (
-                  <>
-                    <i className="fa-solid fa-check"></i> Downloaded
-                  </>
-                ) : (
-                  <>
-                    <i className="fa-solid fa-cloud-arrow-down"></i> Download
-                    All
-                  </>
-                )}
-              </button>
+              {isOnline && (
+                <button
+                  className={`ragafy-player__add-all-btn ${
+                    allDownloaded ? "ragafy-player__add-all-btn--done" : ""
+                  }`}
+                  onClick={handleDownloadAll}
+                  disabled={downloadingAll || allDownloaded}
+                  title={
+                    allDownloaded
+                      ? "All songs downloaded"
+                      : "Download all songs for offline"
+                  }
+                >
+                  {downloadingAll ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin"></i>{" "}
+                      Downloading...
+                    </>
+                  ) : allDownloaded ? (
+                    <>
+                      <i className="fa-solid fa-check"></i> Downloaded
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-cloud-arrow-down"></i> Download
+                      All
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
@@ -596,6 +625,7 @@ export default function SongPlayerPage() {
                   className={`ragafy-player__song-item ${
                     idx === currentIndex ? "active" : ""
                   } ${isDragging ? "dragging" : ""} ${isOver ? "drag-over" : ""}`}
+                  style={{ opacity: !isOnline && !inDownloads ? 0.5 : 1 }} // Dim non-downloaded songs offline
                 >
                   <div
                     className="ragafy-player__drag-handle"
@@ -644,7 +674,7 @@ export default function SongPlayerPage() {
                     </div>
                   )}
 
-                  {!inDownloads && (
+                  {!inDownloads && isOnline && (
                     <button
                       className="ragafy-player__song-item-download"
                       onClick={(e) => handleDownloadOne(e, song)}

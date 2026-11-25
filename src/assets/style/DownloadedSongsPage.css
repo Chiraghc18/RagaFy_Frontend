@@ -203,10 +203,9 @@
   margin: 0;
 }
 
-/* ===== ACTION BUTTONS — Play All / Shuffle / Remove All ===== */
+/* ===== ACTION BUTTONS — Play All / Remove All ===== */
 .ds__actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 10px;
   margin-bottom: 25px;
 }
@@ -216,7 +215,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 13px 10px;
+  padding: 13px 20px;
   border-radius: 14px;
   border: 1px solid transparent;
   font-size: 13px;
@@ -226,8 +225,6 @@
     border-color 0.2s ease;
   color: white;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   position: relative;
 }
 
@@ -240,6 +237,7 @@
 .ds__action--play {
   background: linear-gradient(135deg, #4caf50, #45a049);
   box-shadow: 0 4px 15px rgba(76, 175, 80, 0.25);
+  min-width: 120px;
 }
 
 .ds__action--play:hover:not(:disabled) {
@@ -247,22 +245,12 @@
   box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
 }
 
-/* Shuffle — orange */
-.ds__action--shuffle {
-  background: linear-gradient(135deg, #ff6b00, #ff8c3d);
-  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.25);
-}
-
-.ds__action--shuffle:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ff7a1a, #ff9a4d);
-  box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
-}
-
 /* Remove All — red, destructive but same shape */
 .ds__action--remove {
   background: rgba(244, 67, 54, 0.15);
   border-color: rgba(244, 67, 54, 0.35);
   color: #f44336;
+  min-width: 120px;
 }
 
 .ds__action--remove:hover:not(:disabled) {
@@ -283,6 +271,59 @@
 .ds__action:disabled {
   cursor: default;
   opacity: 0.7;
+}
+
+/* ===== LANGUAGE FILTER PILLS ===== */
+.ds__languages {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 20px;
+  margin-bottom: 10px;
+  /* Hide scrollbar for a clean mobile look */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.ds__languages::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+.ds__lang-pill {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent; /* Removes blue flash on mobile tap */
+}
+
+.ds__lang-pill:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.ds__lang-pill:active {
+  transform: scale(0.95); /* Adds a "push down" feel when clicked */
+}
+
+/* Active State (The selected language) */
+.ds__lang-pill.active {
+  background: #ff9800;
+  color: #000;
+  border-color: #ff9800;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3); /* Glow effect */
+}
+
+.ds__lang-pill.active:hover {
+  background: #ffa726;
+  border-color: #ffa726;
 }
 
 /* ===== LIST ===== */
@@ -705,7 +746,7 @@
   }
 
   .ds__action {
-    padding: 11px 8px;
+    padding: 11px 15px;
     font-size: 12px;
   }
 }
@@ -777,13 +818,21 @@
   }
 
   .ds__action {
-    padding: 10px 6px;
+    padding: 10px 12px;
     font-size: 11px;
     gap: 5px;
+    flex: 1; /* Makes buttons stretch evenly on mobile */
   }
 
   .ds__action i {
     font-size: 11px;
+  }
+  
+  /* Push the buttons apart on mobile */
+  .ds__actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
   }
 
   .ds__empty {
@@ -807,6 +856,11 @@
     padding: 10px 18px;
     font-size: 13px;
   }
+  
+  .ds__lang-pill {
+    padding: 6px 16px;
+    font-size: 12px;
+  }
 }
 
 /* ===== RESPONSIVE - TINY ===== */
@@ -825,18 +879,17 @@
   }
 
   .ds__actions {
-    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
   }
 
   .ds__action {
-    padding: 8px 4px;
+    padding: 8px 10px;
     font-size: 10px;
-    gap: 3px;
+    gap: 4px;
   }
 
   /* On tiny screens, hide the labels and show icons only,
-     so the three buttons stay legible and equal width */
+     so the two buttons stay legible and equal width */
   .ds__action span {
     display: none;
   }
@@ -851,5 +904,81 @@
   .ds {
     padding-top: max(80px, env(safe-area-inset-top, 80px));
     padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px) + 90px);
+  }
+}
+
+/* ===== FILTERS ROW (Search + Select) ===== */
+.ds__filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+/* ===== CUSTOM SELECT DROPDOWN ===== */
+.ds__select-wrapper {
+  position: relative;
+  min-width: 130px;
+  flex-shrink: 0;
+}
+
+.ds__select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  padding: 14px 40px 14px 16px;
+  background: rgba(18, 18, 34, 0.5);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.ds__select:focus {
+  border-color: #ff6b00;
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+}
+
+.ds__select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Style the options inside the dropdown (limited browser support, but good fallback) */
+.ds__select option {
+  background: #121222;
+  color: white;
+  padding: 10px;
+}
+
+/* Custom Chevron Icon */
+.ds__select-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* Mobile Adjustments for Filters */
+@media (max-width: 600px) {
+  .ds__filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .ds__select-wrapper {
+    width: 100%;
   }
 }

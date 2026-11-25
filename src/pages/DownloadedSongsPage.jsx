@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from "react";
+// src/pages/DownloadedSongsPage.jsx
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useGlobalPlayer } from "../context/GlobalPlayerContext";
 import {
-  isDownloaded,
-  downloadSong,
+  getAllDownloads,
   removeDownload,
+  updateDownloadMetadata, // 🔥 Use the new healing function
 } from "../services/downloadService";
 import "../assets/style/DownloadedSongsPage.css";
 
@@ -24,146 +25,181 @@ function readStoredOrder() {
 function writeStoredOrder(order) {
   try {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(order));
-  } catch {
-    // Ignore storage errors
-  }
+  } catch {}
 }
 
 export default function DownloadedSongsPage() {
   const navigate = useNavigate();
-  const { songs, photos } = useData();
+  const { photos, songs: allSongs } = useData();
   const { playPlaylist, currentSong, isPlaying } = useGlobalPlayer();
 
-  const [downloadedIds, setDownloadedIds] = useState(new Set());
-  const [downloadingIds, setDownloadingIds] = useState(new Set());
+  const [downloadedSongs, setDownloadedSongs] = useState([]);
   const [removingIds, setRemovingIds] = useState(new Set());
   const [removingAll, setRemovingAll] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("All");
 
   const [order, setOrder] = useState(readStoredOrder);
-
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
-  // Scan catalog for downloaded songs
+  const hasHealedRef = useRef(false);
+
+  // Load directly from IndexedDB
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       setLoading(true);
-      const entries = await Promise.all(
-        songs.map(async (song) => ({
-          id: song._id,
-          cached: await isDownloaded(song._id),
-        }))
-      );
-      if (cancelled) return;
-      setDownloadedIds(
-        new Set(entries.filter((e) => e.cached).map((e) => e.id))
-      );
-      setLoading(false);
+      try {
+        const records = await getAllDownloads();
+        if (cancelled) return;
+
+        const mappedSongs = records.map((r) => ({
+          _id: r.songId,
+          title: r.title,
+          audioUrl: r.audioUrl,
+          language: r.language || "Unknown",
+          artistName: r.artistName || "Unknown Artist",
+          photoUrl: r.photoUrl || null,
+        }));
+
+        const orderedSongs = [...mappedSongs].sort((a, b) => {
+          const idxA = order.indexOf(a._id);
+          const idxB = order.indexOf(b._id);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return 0;
+        });
+
+        setDownloadedSongs(orderedSongs);
+      } catch (err) {
+        console.error("Failed to load downloads:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     load();
     return () => {
       cancelled = true;
     };
-  }, [songs]);
+  }, []); 
 
-  // Reconcile order with downloadedIds
+  // 🔥 HEALING EFFECT: Backfill missing Language, Artist, and Photo
   useEffect(() => {
-    const downloadedArray = songs
-      .filter((s) => downloadedIds.has(s._id))
-      .map((s) => s._id);
+    if (!allSongs.length || downloadedSongs.length === 0 || hasHealedRef.current) {
+      return;
+    }
 
-    setOrder((previousOrder) => {
-      const keptInPrevious = previousOrder.filter((id) =>
-        downloadedIds.has(id)
-      );
-      const missing = downloadedArray.filter(
-        (id) => !keptInPrevious.includes(id)
-      );
-      const next = [...keptInPrevious, ...missing];
+    const healMetadata = async () => {
+      let needsStateRefresh = false;
+      const updatedDownloads = [...downloadedSongs];
 
-      if (next.length !== previousOrder.length) {
-        writeStoredOrder(next);
-      } else {
-        for (let i = 0; i < next.length; i++) {
-          if (next[i] !== previousOrder[i]) {
-            writeStoredOrder(next);
-            break;
+      for (let i = 0; i < updatedDownloads.length; i++) {
+        const dl = updatedDownloads[i];
+        const catalogSong = allSongs.find((s) => s._id === dl._id);
+
+        if (catalogSong) {
+          const updates = {};
+          
+          // Check Language
+          if (dl.language === "Unknown" && catalogSong.language?.name) {
+            updates.language = catalogSong.language.name;
+          }
+          
+          // Check Artist
+          if (dl.artistName === "Unknown Artist") {
+            const realArtist = catalogSong.artist?.name || catalogSong.singers?.[0]?.name;
+            if (realArtist) updates.artistName = realArtist;
+          }
+
+          // Check Photo
+          if (!dl.photoUrl) {
+            const realPhoto = catalogSong.photo || catalogSong.imageUrl || photos[catalogSong._id];
+            if (realPhoto) updates.photoUrl = realPhoto;
+          }
+
+          // If we found any missing data, update IndexedDB and local state
+          if (Object.keys(updates).length > 0) {
+            await updateDownloadMetadata(dl._id, updates);
+            updatedDownloads[i] = { ...dl, ...updates };
+            needsStateRefresh = true;
           }
         }
       }
-      return next;
-    });
-  }, [downloadedIds, songs]);
 
-  const downloadedSongs = useMemo(() => {
-    const byId = new Map(songs.map((s) => [s._id, s]));
-    return order.map((id) => byId.get(id)).filter(Boolean);
-  }, [songs, order]);
+      if (needsStateRefresh) {
+        setDownloadedSongs(updatedDownloads);
+      }
+      
+      hasHealedRef.current = true;
+    };
+
+    healMetadata();
+  }, [allSongs, downloadedSongs, photos]);
+
+  // Sync order when new songs are added or removed
+  useEffect(() => {
+    const currentIds = downloadedSongs.map((s) => s._id);
+    const keptInPrevious = order.filter((id) => currentIds.includes(id));
+    const missing = currentIds.filter((id) => !keptInPrevious.includes(id));
+    const nextOrder = [...keptInPrevious, ...missing];
+
+    if (nextOrder.length !== order.length || !nextOrder.every((id, i) => id === order[i])) {
+      setOrder(nextOrder);
+      writeStoredOrder(nextOrder);
+    }
+  }, [downloadedSongs, order]);
+
+  const availableLanguages = useMemo(() => {
+    const langs = new Set(downloadedSongs.map((s) => s.language));
+    return ["All", ...Array.from(langs)];
+  }, [downloadedSongs]);
 
   const filteredDownloads = useMemo(() => {
-    if (!searchTerm.trim()) return downloadedSongs;
-    const q = searchTerm.toLowerCase();
-    return downloadedSongs.filter(
-      (s) =>
-        s.title?.toLowerCase().includes(q) ||
-        (s.artist?.name || s.singers?.[0]?.name || "")
-          .toLowerCase()
-          .includes(q)
-    );
-  }, [downloadedSongs, searchTerm]);
+    let result = downloadedSongs;
+
+    if (selectedLanguage !== "All") {
+      result = result.filter((s) => s.language === selectedLanguage);
+    }
+
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.title?.toLowerCase().includes(q) ||
+          s.artistName.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [downloadedSongs, searchTerm, selectedLanguage]);
 
   const handlePlay = (index) => {
-    playPlaylist(downloadedSongs, index);
-    navigate("/player", {
-      state: { songs: downloadedSongs, startIndex: index },
-    });
+    // Map to format expected by the player
+    const playableSongs = filteredDownloads.map(s => ({
+      _id: s._id,
+      title: s.title,
+      audioUrl: s.audioUrl,
+      artist: { name: s.artistName }
+    }));
+    playPlaylist(playableSongs, index);
+    navigate("/player", { state: { songs: playableSongs, startIndex: index } });
   };
 
   const handlePlayAll = () => {
-    if (!downloadedSongs.length) return;
-    playPlaylist(downloadedSongs, 0);
-    navigate("/player", {
-      state: { songs: downloadedSongs, startIndex: 0 },
-    });
-  };
-
-  const handleShufflePlay = () => {
-    if (!downloadedSongs.length) return;
-    const shuffled = [...downloadedSongs];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    playPlaylist(shuffled, 0);
-    navigate("/player", {
-      state: { songs: shuffled, startIndex: 0 },
-    });
-  };
-
-  const handleDownload = async (e, song) => {
-    e.stopPropagation();
-    if (downloadedIds.has(song._id) || downloadingIds.has(song._id)) return;
-
-    setDownloadingIds((prev) => new Set(prev).add(song._id));
-    try {
-      await downloadSong(song);
-      setDownloadedIds((prev) => new Set(prev).add(song._id));
-      showNotification("✓ Downloaded", "#4CAF50");
-    } catch (err) {
-      console.error("Download failed:", err);
-      showNotification("✕ Download failed", "#f44336");
-    } finally {
-      setDownloadingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(song._id);
-        return next;
-      });
-    }
+    if (!filteredDownloads.length) return;
+    const playableSongs = filteredDownloads.map(s => ({
+      _id: s._id,
+      title: s.title,
+      audioUrl: s.audioUrl,
+      artist: { name: s.artistName }
+    }));
+    playPlaylist(playableSongs, 0);
+    navigate("/player", { state: { songs: playableSongs, startIndex: 0 } });
   };
 
   const handleRemove = async (e, song) => {
@@ -173,11 +209,7 @@ export default function DownloadedSongsPage() {
     setRemovingIds((prev) => new Set(prev).add(song._id));
     try {
       await removeDownload(song._id);
-      setDownloadedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(song._id);
-        return next;
-      });
+      setDownloadedSongs((prev) => prev.filter((s) => s._id !== song._id));
       showNotification("🗑️ Removed download", "#f44336");
     } catch (err) {
       console.error("Remove failed:", err);
@@ -195,14 +227,11 @@ export default function DownloadedSongsPage() {
     if (removingAll || downloadedSongs.length === 0) return;
 
     const confirmed = window.confirm(
-      `Remove all ${downloadedSongs.length} downloaded song${
-        downloadedSongs.length === 1 ? "" : "s"
-      }? This cannot be undone.`
+      `Remove all ${downloadedSongs.length} downloaded song${downloadedSongs.length === 1 ? "" : "s"}? This cannot be undone.`
     );
     if (!confirmed) return;
 
     setRemovingAll(true);
-
     const targetIds = downloadedSongs.map((s) => s._id);
     setRemovingIds(new Set(targetIds));
 
@@ -213,70 +242,38 @@ export default function DownloadedSongsPage() {
       try {
         await removeDownload(id);
         removed += 1;
-
-        setRemovingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-
-        setDownloadedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
+        setRemovingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+        setDownloadedSongs((prev) => prev.filter((s) => s._id !== id));
       } catch (err) {
         console.error("Remove failed:", id, err);
         failed += 1;
-
-        setRemovingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
+        setRemovingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
       }
     }
 
     setRemovingAll(false);
+    setSelectedLanguage("All");
 
-    if (failed === 0) {
-      showNotification(
-        `🗑️ Removed ${removed} download${removed === 1 ? "" : "s"}`,
-        "#f44336"
-      );
-    } else if (removed === 0) {
-      showNotification("✕ Could not remove downloads", "#f44336");
-    } else {
-      showNotification(`Removed ${removed}, ${failed} failed`, "#FF6B00");
-    }
+    if (failed === 0) showNotification(`🗑️ Removed ${removed} download${removed === 1 ? "" : "s"}`, "#f44336");
+    else if (removed === 0) showNotification("✕ Could not remove downloads", "#f44336");
+    else showNotification(`Removed ${removed}, ${failed} failed`, "#FF6B00");
   };
 
-  const handleDragStart = (index) => {
-    setDraggedIndex(index);
-  };
-
+  const handleDragStart = (index) => setDraggedIndex(index);
   const handleDragOver = (e, index) => {
     e.preventDefault();
-    if (draggedIndex === null) return;
-    if (index === draggedIndex) return;
+    if (draggedIndex === null || index === draggedIndex) return;
     setDragOverIndex(index);
   };
-
-  const handleDragLeave = () => {
-    setDragOverIndex(null);
-  };
+  const handleDragLeave = () => setDragOverIndex(null);
 
   const handleDragEnd = () => {
-    if (
-      draggedIndex !== null &&
-      dragOverIndex !== null &&
-      draggedIndex !== dragOverIndex
-    ) {
-      setOrder((previousOrder) => {
-        const next = [...previousOrder];
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      setDownloadedSongs((prevSongs) => {
+        const next = [...prevSongs];
         const [moved] = next.splice(draggedIndex, 1);
         next.splice(dragOverIndex, 0, moved);
-        writeStoredOrder(next);
+        writeStoredOrder(next.map((s) => s._id));
         return next;
       });
     }
@@ -293,17 +290,13 @@ export default function DownloadedSongsPage() {
     setTimeout(() => el.remove(), 2000);
   };
 
-  const isSongPlaying = (song) =>
-    currentSong?._id === song._id && isPlaying;
-
-  const dragEnabled = !searchTerm.trim() && !removingAll;
+  const isSongPlaying = (song) => currentSong?._id === song._id && isPlaying;
+  const dragEnabled = !searchTerm.trim() && selectedLanguage === "All" && !removingAll;
 
   return (
     <>
       <div className="ds__back" onClick={() => navigate(-1)}>
-        <div className="ds__back-icon">
-          <i className="fa-solid fa-arrow-left"></i>
-        </div>
+        <div className="ds__back-icon"><i className="fa-solid fa-arrow-left"></i></div>
         <span className="ds__back-text">Back</span>
       </div>
 
@@ -318,22 +311,35 @@ export default function DownloadedSongsPage() {
         </div>
 
         {downloadedSongs.length > 0 && (
-          <div className="ds__search">
-            <i className="fa-solid fa-magnifying-glass ds__search-icon"></i>
-            <input
-              type="text"
-              placeholder="Search downloads..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="ds__search-input"
-              disabled={removingAll}
-            />
-            {searchTerm && (
-              <i
-                className="fa-solid fa-xmark ds__search-clear"
-                onClick={() => setSearchTerm("")}
-              ></i>
-            )}
+          <div className="ds__filters">
+            <div className="ds__search" style={{ flex: 1, marginBottom: 0 }}>
+              <i className="fa-solid fa-magnifying-glass ds__search-icon"></i>
+              <input
+                type="text"
+                placeholder="Search downloads..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="ds__search-input"
+                disabled={removingAll}
+              />
+              {searchTerm && (
+                <i className="fa-solid fa-xmark ds__search-clear" onClick={() => setSearchTerm("")}></i>
+              )}
+            </div>
+
+            <div className="ds__select-wrapper">
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                className="ds__select"
+                disabled={removingAll}
+              >
+                {availableLanguages.map((lang) => (
+                  <option key={lang} value={lang}>{lang}</option>
+                ))}
+              </select>
+              <i className="fa-solid fa-chevron-down ds__select-icon"></i>
+            </div>
           </div>
         )}
 
@@ -344,63 +350,34 @@ export default function DownloadedSongsPage() {
           </div>
         ) : downloadedSongs.length === 0 ? (
           <div className="ds__empty">
-            <div className="ds__empty-art">
-              <i className="fa-solid fa-cloud-arrow-down"></i>
-            </div>
+            <div className="ds__empty-art"><i className="fa-solid fa-cloud-arrow-down"></i></div>
             <h2 className="ds__empty-title">No downloads yet</h2>
-            <p className="ds__empty-text">
-              Tap the download button on any song to save it for offline
-              playback.
-            </p>
-            <button
-              className="ds__btn ds__btn--primary"
-              onClick={() => navigate("/")}
-            >
+            <p className="ds__empty-text">Tap the download button on any song to save it for offline playback.</p>
+            <button className="ds__btn ds__btn--primary" onClick={() => navigate("/")}>
               <i className="fa-solid fa-compass"></i> Browse Songs
             </button>
           </div>
         ) : (
           <>
-            {/* ✅ 3-button action row: Play All / Shuffle / Remove All */}
             <div className="ds__actions">
-              <button
-                className="ds__action ds__action--play"
-                onClick={handlePlayAll}
-                disabled={removingAll}
-              >
+              <button className="ds__action ds__action--play" onClick={handlePlayAll} disabled={removingAll || filteredDownloads.length === 0}>
                 <i className="fa-solid fa-play"></i> <span>Play All</span>
               </button>
-              <button
-                className="ds__action ds__action--shuffle"
-                onClick={handleShufflePlay}
-                disabled={removingAll}
-              >
-                <i className="fa-solid fa-shuffle"></i> <span>Shuffle</span>
-              </button>
-              <button
-                className="ds__action ds__action--remove"
-                onClick={handleRemoveAll}
-                disabled={removingAll}
-                title="Remove all downloads"
-              >
+              
+              <div style={{ flex: 1 }}></div>
+
+              <button className="ds__action ds__action--remove" onClick={handleRemoveAll} disabled={removingAll}>
                 {removingAll ? (
-                  <>
-                    <i className="fa-solid fa-spinner fa-spin"></i>{" "}
-                    <span>Removing...</span>
-                  </>
+                  <><i className="fa-solid fa-spinner fa-spin"></i> <span>Removing...</span></>
                 ) : (
-                  <>
-                    <i className="fa-regular fa-trash-can"></i>{" "}
-                    <span>Remove All</span>
-                  </>
+                  <><i className="fa-regular fa-trash-can"></i> <span>Remove All</span></>
                 )}
               </button>
             </div>
 
-            {searchTerm && (
+            {(searchTerm || selectedLanguage !== "All") && (
               <div className="ds__search-info">
-                Showing {filteredDownloads.length} of{" "}
-                {downloadedSongs.length} downloads
+                Showing {filteredDownloads.length} of {downloadedSongs.length} downloads
               </div>
             )}
 
@@ -408,84 +385,59 @@ export default function DownloadedSongsPage() {
               {filteredDownloads.length === 0 ? (
                 <div className="ds__list-empty">
                   <i className="fa-solid fa-search"></i>
-                  <p>No downloads match "{searchTerm}"</p>
+                  <p>No downloads match your filters</p>
                 </div>
               ) : (
                 filteredDownloads.map((song, filteredIndex) => {
-                  const realIndex = dragEnabled
-                    ? filteredIndex
-                    : downloadedSongs.findIndex((s) => s._id === song._id);
+                  const realIndex = dragEnabled ? filteredIndex : downloadedSongs.findIndex((s) => s._id === song._id);
                   const playing = isSongPlaying(song);
                   const isRemoving = removingIds.has(song._id);
                   const isDragging = draggedIndex === realIndex;
                   const isDragOver = dragOverIndex === realIndex;
+                  
+                  // Use saved photoUrl first, fallback to DataContext photos
+                  const displayPhoto = song.photoUrl || photos[song._id];
 
                   return (
                     <div
                       key={song._id}
                       className={`ds__item ${playing ? "ds__item--playing" : ""} ${isDragging ? "ds__item--dragging" : ""} ${isDragOver ? "ds__item--drag-over" : ""}`}
-                      onClick={() => !removingAll && handlePlay(realIndex)}
+                      onClick={() => !removingAll && handlePlay(filteredIndex)}
                       draggable={dragEnabled}
-                      onDragStart={() =>
-                        dragEnabled && handleDragStart(realIndex)
-                      }
-                      onDragOver={(e) =>
-                        dragEnabled && handleDragOver(e, realIndex)
-                      }
+                      onDragStart={() => dragEnabled && handleDragStart(realIndex)}
+                      onDragOver={(e) => dragEnabled && handleDragOver(e, realIndex)}
                       onDragLeave={handleDragLeave}
                       onDragEnd={handleDragEnd}
                     >
-                      {photos[song._id] ? (
-                        <img
-                          src={photos[song._id]}
-                          alt={song.title}
-                          className="ds__item-img"
-                        />
+                      {displayPhoto ? (
+                        <img src={displayPhoto} alt={song.title} className="ds__item-img" />
                       ) : (
-                        <div className="ds__item-placeholder">
-                          <i className="fa-solid fa-music"></i>
-                        </div>
+                        <div className="ds__item-placeholder"><i className="fa-solid fa-music"></i></div>
                       )}
 
                       {playing && (
-                        <div className="ds__playing-bars">
-                          <span></span>
-                          <span></span>
-                          <span></span>
-                        </div>
+                        <div className="ds__playing-bars"><span></span><span></span><span></span></div>
                       )}
 
                       <div className="ds__item-details">
                         <span className="ds__item-title">{song.title}</span>
                         <span className="ds__item-artist">
-                          {song.artist?.name ||
-                            song.singers?.[0]?.name ||
-                            "Unknown Artist"}
+                          {song.artistName}
                         </span>
                       </div>
 
-                      <div
-                        className="ds__item-actions"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="ds__item-actions" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="ds__download-btn ds__download-btn--remove"
                           onClick={(e) => handleRemove(e, song)}
                           disabled={isRemoving || removingAll}
                           title="Remove download"
                         >
-                          {isRemoving ? (
-                            <i className="fa-solid fa-spinner fa-spin"></i>
-                          ) : (
-                            <i className="fa-regular fa-trash-can"></i>
-                          )}
+                          {isRemoving ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-regular fa-trash-can"></i>}
                         </button>
 
                         {dragEnabled && (
-                          <span
-                            className="ds__item-drag"
-                            title="Drag to reorder"
-                          >
+                          <span className="ds__item-drag" title="Drag to reorder">
                             <i className="fa-solid fa-grip-lines"></i>
                           </span>
                         )}

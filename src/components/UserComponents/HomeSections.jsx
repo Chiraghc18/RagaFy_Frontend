@@ -7,7 +7,7 @@ import "../../assets/style/UserPage/AllSongs.css";
 // ─────────────────────────────────────────────────────
 // HOW FAR BACK COUNTS AS "NEW"
 // ─────────────────────────────────────────────────────
-const NEW_RELEASE_WINDOW_DAYS = 365;
+const NEW_RELEASE_WINDOW_DAYS = 450;
 
 // Rails pulled from filterOptions
 const CATEGORY_RAILS = [
@@ -288,6 +288,20 @@ export default function HomeSections() {
   const { recentlyPlayedIds, playedSongIds, resetPlayed, resetPlayedSubset, currentPlaylist, addToPlaylist } = useGlobalPlayer();
   const navigate = useNavigate();
 
+  // 🔥 Offline Detection State
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   // Convert global played history to a Set for efficient lookups.
   const playedIds = useMemo(() => new Set(playedSongIds), [playedSongIds]);
 
@@ -321,7 +335,6 @@ export default function HomeSections() {
 
   // ───────────────────────────────────────────────────
   // SCOPED RESET CALLBACKS
-  // (Defined here so they can be used in the Auto-Reset useEffect below)
   // ───────────────────────────────────────────────────
 
   const resetMadeForYou = useCallback(() => resetPlayedSubset(newReleasesPool.map((song) => song._id)), [newReleasesPool, resetPlayedSubset]);
@@ -336,7 +349,6 @@ export default function HomeSections() {
 
   // ───────────────────────────────────────────────────
   // PER-SECTION AUTO-RESET (80% EXHAUSTION → 1 DAYS)
-  // Only applies to: Made for you, Melody, Melody & Romance, Dance & Electronic, Pop Collection
   // ───────────────────────────────────────────────────
 
   const AUTO_RESET_RATIO = 0.8;
@@ -420,7 +432,6 @@ export default function HomeSections() {
 
       if (armedAt !== null) {
         if (now - armedAt >= AUTO_RESET_DELAY_MS) {
-          // Re-verify at fire time just in case
           const latestPool = poolsRef.current[key];
           const latestPlayed = playedIdsRef.current;
           if (latestPool && latestPool.length > 0) {
@@ -434,8 +445,6 @@ export default function HomeSections() {
         }
         continue;
       }
-
-      // It just crossed 80%, arm the 12-day timer
       writeArmedAt(key, now);
     }
   }, [songs, playedIds, newReleasesPool, melodyPool, melodyRomanticPool, dancePool, popBasedPool]);
@@ -467,11 +476,16 @@ export default function HomeSections() {
   // ───────────────────────────────────────────────────
 
   const goToPlayer = (songList, startIndex) => {
+    if (!isOnline) {
+      showNotification("Offline - go to Downloads to play", "#FF9800");
+      return;
+    }
     if (!songList?.length || startIndex < 0) return;
     navigate("/player", { state: { songs: songList, startIndex } });
   };
 
   const goToCategory = (categoryKey, item) => {
+    if (!isOnline) return;
     navigate("/browse", { state: { category: categoryKey, item } });
   };
 
@@ -486,6 +500,7 @@ export default function HomeSections() {
 
   const handleAddSectionToQueue = (e, songList) => {
     e.stopPropagation();
+    if (!isOnline) return;
     if (!songList?.length) return;
     const notQueued = songList.filter((song) => !queuedIds.has(song._id));
     if (notQueued.length === 0) return;
@@ -498,7 +513,17 @@ export default function HomeSections() {
   // ───────────────────────────────────────────────────
 
   const renderSongCard = (song, index, songList) => (
-    <div key={song._id} className="all-songs__rail-card" onClick={() => goToPlayer(songList, index)}>
+    <div 
+      key={song._id} 
+      className="all-songs__rail-card" 
+      onClick={() => goToPlayer(songList, index)}
+      style={{
+        opacity: !isOnline ? 0.45 : 1,
+        transition: "opacity 0.2s ease",
+        cursor: isOnline ? "pointer" : "not-allowed"
+      }}
+      title={!isOnline ? "Offline: Only downloaded songs can be played" : ""}
+    >
       <div className="all-songs__rail-cover">
         {photos[song._id] ? (
           <img src={photos[song._id]} alt={song.title} />
@@ -520,7 +545,12 @@ export default function HomeSections() {
         <div className="all-songs__section-head">
           <h2 className="all-songs__section-title">{titleNode}</h2>
           {!result.exhausted && !allQueued && (
-            <button className="all-songs__add-section-btn" onClick={(e) => handleAddSectionToQueue(e, result.picks)} title="Add this section to queue">
+            <button 
+              className="all-songs__add-section-btn" 
+              onClick={(e) => handleAddSectionToQueue(e, result.picks)} 
+              title="Add this section to queue"
+              style={{ display: !isOnline ? "none" : "flex" }}
+            >
               <i className="fa-solid fa-plus"></i> Add all
             </button>
           )}
@@ -564,7 +594,7 @@ export default function HomeSections() {
         <div className="all-songs__rail-section">
           <div className="all-songs__section-head">
             <h2 className="all-songs__section-title">Recently played</h2>
-            {!recentlyPlayed.every((song) => queuedIds.has(song._id)) && (
+            {!recentlyPlayed.every((song) => queuedIds.has(song._id)) && isOnline && (
               <button className="all-songs__add-section-btn" onClick={(e) => handleAddSectionToQueue(e, recentlyPlayed)} title="Add this section to queue">
                 <i className="fa-solid fa-plus"></i> Add all
               </button>
@@ -586,7 +616,12 @@ export default function HomeSections() {
           <h2 className="all-songs__section-title">Featured Playlists</h2>
           <div className="all-songs__playlist-container">
             {playlists.map((playlist) => (
-              <Link key={playlist._id} to={`/user-playlists/${playlist._id}`} className="all-songs__playlist-card">
+              <Link 
+                key={playlist._id} 
+                to={`/user-playlists/${playlist._id}`} 
+                className="all-songs__playlist-card"
+                style={{ opacity: !isOnline ? 0.45 : 1, pointerEvents: !isOnline ? "none" : "auto" }}
+              >
                 <div className="all-songs__playlist-cover">
                   {playlist.coverImage ? (
                     <img src={playlist.coverImage} alt={playlist.name} className="all-songs__playlist-image" />
@@ -611,12 +646,23 @@ export default function HomeSections() {
               <h2 className="all-songs__section-title">
                 <i className={`fa-solid ${rail.icon}`}></i> {rail.label}
               </h2>
-              <button className="all-songs__see-all" onClick={() => goToCategory(rail.key)}>See all</button>
+              <button 
+                className="all-songs__see-all" 
+                onClick={() => goToCategory(rail.key)}
+                style={{ display: !isOnline ? "none" : "block" }}
+              >
+                See all
+              </button>
             </div>
             <Rail
               items={items.slice(0, 12)}
               renderItem={(item) => (
-                <div key={item._id} className="all-songs__pill-card" onClick={() => goToCategory(rail.key, item)}>
+                <div 
+                  key={item._id} 
+                  className="all-songs__pill-card" 
+                  onClick={() => goToCategory(rail.key, item)}
+                  style={{ opacity: !isOnline ? 0.45 : 1, pointerEvents: !isOnline ? "none" : "auto" }}
+                >
                   <div className="all-songs__pill-cover">
                     {item.photo || item.imageUrl ? (
                       <img src={item.photo || item.imageUrl} alt={item.name} />

@@ -5,12 +5,13 @@ import logo from "../../assets/images/logo/blend.png";
 const Head = ({ onSearchClick }) => {
   return (
     <header className="head">
-      <div className="head__left">
+      {/* 🟢 Wrapped in <a> to force a full page reload on click */}
+      <a href="/" className="head__left" style={{ textDecoration: "none", color: "inherit" }}>
         <div className="head__logo-wrap">
           <img src={logo} alt="RagaFy" className="head__logo" />
         </div>
         <span className="head__brand-text">RagaFy Beats</span>
-      </div>
+      </a>
       
       <div className="head__right" onClick={onSearchClick}>
         <span className="head__discover-text">Discover</span>
